@@ -8,7 +8,7 @@
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.thinkpad = {
     isNormalUser = true;
-    description = "Thinkpad";
+    description = "thinkpad";
     extraGroups = [ "networkmanager" "wheel" "docker" "audio" ];
     #packages = with pkgs; [
     #  firefox

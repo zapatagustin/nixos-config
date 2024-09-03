@@ -5,7 +5,6 @@
     ./zellij/zellij.nix
   ];
 
-    home-manager.users.thinkpad = { pkgs, ...}: {
       home.file.".bash_aliases".source = ./bash_aliases;
       # home.packages = with pkgs; [
       #   neofetch
@@ -21,5 +20,4 @@
         terminal = false;
         categories = [ "Application" "Utility" ];
       };
-    };
 }

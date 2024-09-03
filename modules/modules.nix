@@ -2,9 +2,10 @@
 {
   imports = [
     ./boot/boot.nix
-    ./init/init.nix
+    ./dev/dev.nix
     ./themes/kanagawa.nix
     ./hardware/hardware.nix
     ./gaming/gaming.nix
+    ./desktops/desktops.nix
   ];
 }

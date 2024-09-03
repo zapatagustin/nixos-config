@@ -34,10 +34,5 @@
     xclip
     xcp
     zoxide
-    cargo
-    gcc
-    jq
-    killall
-    python3
   ];
 }

@@ -1,14 +1,6 @@
 { lib, pkgs, ... }: with lib; let
   shopt = pkgs.writeShellScriptBin "shopt" (builtins.readFile ./shopt);
 in {
-    # Needed to install at system-level to source their .zsh files in .zshrc
-    environment.systemPackages = with pkgs; [
-      nix-zsh-completions
-      zsh-autosuggestions
-      zsh-syntax-highlighting
-    ];
-
-    home-manager.users.thinkpad = { pkgs, ...}: {
       home.packages = with pkgs; [
         neofetch
         shopt
@@ -85,5 +77,4 @@ in {
           precmd() { eval "$PROMPT_COMMAND" }
         '';
       };
-    };
 }

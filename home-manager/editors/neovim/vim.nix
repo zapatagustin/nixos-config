@@ -1,5 +1,4 @@
-{ ... }: {
-    home-manager.users.thinkpad = { pkgs, ...}: {
+{ pkgs, ... }: {
       home.packages = with pkgs; [
         gnumake
         nodejs
@@ -16,5 +15,4 @@
       };
       xdg.configFile."nvim/lua".source = ./lua;
       xdg.configFile."nvim/init.lua".source = ./init.lua;
-    };
 }

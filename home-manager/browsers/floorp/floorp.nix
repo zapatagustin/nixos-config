@@ -1,6 +1,5 @@
 { ... }: {
-    home-manager.users.thinkpad = { pkgs, ...}: {
-      programs.floorp = {
+      home-manager.thinkpad.programs.floorp = {
         enable = true;
         profiles = {
           thinkpad = {
@@ -18,7 +17,7 @@
                             { name = "query"; value = "{searchTerms}"; }
                         ];
                     }];
-                    icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+                    icon = "/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
                     definedAliases = [ "@np" ];
                 };
 
@@ -162,5 +161,4 @@
           };
         };
       };
-    };
 }

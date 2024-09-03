@@ -8,39 +8,23 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    doomemacs = {
-      url = "github:doomemacs/doomemacs";
-    };
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    home-manager,
-    ...
-  } @ inputs: {
-    # configuration entrypoint
+  outputs = inputs@{ nixpkgs, home-manager, ... }: {
     nixosConfigurations = {
-      # FIXME replace with your hostname
       thinkpad = nixpkgs.lib.nixosSystem {
-        specialArgs = {inherit inputs outputs;};
-        # > Our main configuration file <
+        system = "x86_64-linux";
         modules = [
-	        ./configuration.nix
-         	 inputs.stylix.nixosModules.stylix
-	      ];	
+          ./configuration.nix
+          inputs.stylix.nixosModules.stylix
+        ];
       };
     };
 
-    # Standalone home-manager configuration entrypoint
-    # Available through 'home-manager --flake .#your-username@your-hostname'
-     homeConfigurations = {
-    #    FIXME replace with your username@hostname
+    homeConfigurations = {
       "thinkpad@thinkpad-t480s" = home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
-        extraSpecialArgs = {inherit inputs outputs;};
-        # > Our main home-manager configuration file <
-        modules = [./home-manager/home.nix];
+        pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        modules = [ ./home-manager/home.nix ];
       };
     };
   };

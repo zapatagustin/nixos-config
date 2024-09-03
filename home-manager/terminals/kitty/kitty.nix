@@ -1,5 +1,5 @@
 { ... }: {
-    home-manager.users.thinkpad.programs.kitty = {
+    programs.kitty = {
       enable = true;
       settings = {
         font_family = "UDEV Gothic Medium";

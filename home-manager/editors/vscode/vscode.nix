@@ -1,6 +1,5 @@
-{ ... }:
+{ pkgs, ... }:
 {
-    home-manager.users.thinkpad = { pkgs, ...}: {
       programs.vscode = {
         enable = true;
         package = pkgs.vscode;
@@ -24,5 +23,4 @@
           "editor.cursorBlinking" =  "smooth";
         };
       };
-    };
 }
