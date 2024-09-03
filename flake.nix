@@ -8,6 +8,9 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    doomemacs = {
+      url = "github:doomemacs/doomemacs";
+    };
   };
 
   outputs = {
@@ -15,9 +18,7 @@
     nixpkgs,
     home-manager,
     ...
-  } @ inputs: let
-    inherit (self) outputs;
-  in {
+  } @ inputs: {
     # configuration entrypoint
     nixosConfigurations = {
       # FIXME replace with your hostname
@@ -26,8 +27,7 @@
         # > Our main configuration file <
         modules = [
 	        ./configuration.nix
-          ./.
-          inputs.stylix.nixosModules.stylix
+         	 inputs.stylix.nixosModules.stylix
 	      ];	
       };
     };
@@ -40,7 +40,7 @@
         pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
         extraSpecialArgs = {inherit inputs outputs;};
         # > Our main home-manager configuration file <
-        modules = [./home-manager/default.nix];
+        modules = [./home-manager/home.nix];
       };
     };
   };

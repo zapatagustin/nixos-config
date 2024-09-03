@@ -1,7 +1,0 @@
-{ ... }:
-{
-  imports = [
-    ./shells
-    ./util
-  ];
-}

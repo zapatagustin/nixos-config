@@ -1,7 +1,0 @@
-{ ... }: {
-  imports = [
-    ./gdm
-    ./lightdm
-    ./sddm
-  ];
-}

@@ -1,5 +1,4 @@
-{ lib, config, ... }: {
-  config = lib.mkIf config.thinkpad.baseConfiguration {
+{ lib, ... }: {
     # To not change upstream! It is managed by the installer
     services = {
       spice-vdagentd.enable = lib.mkDefault false;
@@ -15,5 +14,4 @@
       # which lags behind kernel releases, potentially causing broken builds.
       virtualbox.guest.enable = lib.mkDefault false;
     };
-  };
 }

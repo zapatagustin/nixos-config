@@ -1,0 +1,43 @@
+{ pkgs, ... }:
+{
+  environment.systemPackages = with pkgs; [
+    asciinema
+    bat
+    bfetch
+    bless
+    cmatrix
+    cowsay
+    figlet
+    file
+    fortune
+    glxinfo
+    gparted
+    htb-toolkit
+    hw-probe
+    imagemagick
+    lolcat
+    lsd
+    ncdu
+    netcat-openbsd
+    nixpkgs-review
+    nyancat
+    openvpn
+    orca
+    pciutils
+    pfetch
+    python3
+    sl
+    toilet
+    tree
+    unzip
+    wget
+    xclip
+    xcp
+    zoxide
+    cargo
+    gcc
+    jq
+    killall
+    python3
+  ];
+}

@@ -1,5 +1,4 @@
-{ lib, config, ... }: {
-  config = lib.mkIf config.thinkpad.baseConfiguration {
+{ lib, ... }: {
     programs.virt-manager.enable = lib.mkDefault false;
     virtualisation = {
       /* QEMU - Virt Manager */
@@ -15,5 +14,4 @@
         '';
       };
     };
-  };
 }
