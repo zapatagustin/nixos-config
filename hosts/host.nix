@@ -15,8 +15,8 @@
     environment = {
       systemPackages = [];
       sessionVariables = {
-        EDITOR = "nano";
-        BROWSER = "floorp";
+        #EDITOR = "nano";
+        #BROWSER = "floorp";
         SHELL = "/run/current-system/sw/bin/zsh";
         TERMINAL = "kitty";
         TERM = "xterm-256color";

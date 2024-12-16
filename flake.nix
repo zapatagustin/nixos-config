@@ -10,22 +10,31 @@
     };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, ... }: {
+  outputs = { nixpkgs, home-manager, stylix, ... }: {
     nixosConfigurations = {
       thinkpad = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [
           ./configuration.nix
-          inputs.stylix.nixosModules.stylix
+          stylix.nixosModules.stylix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.thinkpad = import ./modules/home-manager/home.nix;
+          }
         ];
       };
     };
 
-    homeConfigurations = {
-      "thinkpad@thinkpad-t480s" = home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.x86_64-linux;
-        modules = [ ./home-manager/home.nix ];
-      };
-    };
+    #homeConfigurations.thinkpad = home-manager.lib.homeManagerConfiguration {
+    #  pkgs = nixpkgs.legacyPackages.x86_64-linux;
+    #  home-manager.useGlobalPkgs = true;
+    #  home-manager.useUserPackages = true;
+    #  modules = [
+    #    ./modules/home-manager/home.nix
+    #    stylix.homeManagerModules.stylix
+    #  ];
+    #};
   };
 }

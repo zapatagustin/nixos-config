@@ -16,4 +16,10 @@
     #  thunderbird
     #];
   };
+
+  networking.networkmanager.enable = true;
+
+  home-manager.users.thinkpad = {
+     home.stateVersion = "24.11";
+  };
 }

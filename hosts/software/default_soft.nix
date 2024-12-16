@@ -4,7 +4,6 @@
     asciinema
     bat
     bfetch
-    bless
     cmatrix
     cowsay
     figlet
@@ -34,5 +33,8 @@
     xclip
     xcp
     zoxide
+		nix-zsh-completions
+		zsh-autosuggestions
+		zsh-syntax-highlighting
   ];
 }

@@ -1,5 +1,0 @@
-{ ... }: {
-  imports = [
-    ./floorp/floorp.nix
-  ];
-}

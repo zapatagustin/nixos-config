@@ -7,5 +7,6 @@
     killall
     python3
     nil
+    nixd
   ];
 }

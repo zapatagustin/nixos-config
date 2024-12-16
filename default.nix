@@ -11,14 +11,33 @@
   # Enable flatpak
   services.flatpak.enable = true;
 
+  # lastest kernel
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+
   # Enable portals
   xdg.portal.enable = true;
-  xdg.portal.extraPortals = [ pkgs.kdePackages.xdg-desktop-portal-kde ];
-  xdg.portal.config.common.default = "kde";
+  xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
+  xdg.portal.config.common.default = "hyprland";
 
   # Enable the OpenSSH daemon.
   services.openssh = {
     enable = true;
     openFirewall = true;
+  };
+
+  fonts = {
+    enableDefaultPackages = true;
+    packages = with pkgs; [ 
+      udev-gothic
+    ];
+
+    fontconfig = {
+      enable = true;
+      defaultFonts = {
+        serif = [  "UDEV Gothic" ];
+        sansSerif = [ "UDEV Gothic" ];
+        monospace = [ "UDEV Gothic" ];
+      };
+    };
   };
 }
