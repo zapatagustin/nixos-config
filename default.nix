@@ -14,6 +14,9 @@
   # lastest kernel
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  # optimize space
+  nix.settings.auto-optimise-store = true;
+
   # Enable portals
   xdg.portal.enable = true;
   xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
@@ -27,7 +30,7 @@
 
   fonts = {
     enableDefaultPackages = true;
-    packages = with pkgs; [ 
+    packages = with pkgs; [
       udev-gothic
     ];
 

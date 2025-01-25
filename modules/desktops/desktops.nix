@@ -2,7 +2,8 @@
 {
   imports = [
     ./kde/kde.nix
-    ./hypr/hypr.nix
+    #./xfce/xfce.nix
+    #./hypr/hypr.nix
     #./gnome/gnome.nix
   ];
 }

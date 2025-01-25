@@ -8,6 +8,7 @@
     cowsay
     figlet
     file
+    unrar
     fortune
     glxinfo
     gparted
@@ -33,8 +34,9 @@
     xclip
     xcp
     zoxide
-		nix-zsh-completions
-		zsh-autosuggestions
-		zsh-syntax-highlighting
+	nix-zsh-completions
+	zsh-autosuggestions
+	zsh-syntax-highlighting
+	kdePackages.ark
   ];
 }

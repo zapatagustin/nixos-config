@@ -3,9 +3,7 @@
   stylix = {
      enable = true;
      image = ./assets/gruv-samurai-cyberpunk2077.png;
-     
      polarity = "dark";
- 
      base16Scheme = "${pkgs.base16-schemes}/share/themes/kanagawa.yaml";
 
       cursor = {

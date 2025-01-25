@@ -6,7 +6,7 @@
     #   ~/.steam/root        - A symlink to ~/.local/share/Steam
     #   ~/.steam             - Some Symlinks & user info
     enable = true;
-    gamescopeSession.enable = true;
+    #gamescopeSession.enable = true;
 
     # fix gamescope inside steam
     package = pkgs.steam.override {
@@ -28,10 +28,9 @@
 
   environment.systemPackages = with pkgs; [
     wineWowPackages.waylandFull
-    retroarch
-    pcsx2
+    #retroarch-full
   ];
-  
+
   # Input config
   services = {
     libinput = {

@@ -6,12 +6,12 @@ let
 in
 {
   imports = [
-    ./editors/neovim/vim.nix
+    #./editors/neovim/vim.nix
     #./editors/vscode/vscode.nix
     ./editors/zed/zed.nix
     ./shells/shells.nix
     ./terminals/terminals.nix
-    ./desktops/hypr/hypr_home.nix
+    #./desktops/hypr/hypr_home.nix
     #./desktops/gnome/gnome_home.nix
   ];
 
@@ -26,7 +26,5 @@ in
     nix-alien
     pkgs.floorp
     pkgs.nnn
-    pkgs.kdePackages.ark
-    pkgs.xfce.thunar
   ];
 }
