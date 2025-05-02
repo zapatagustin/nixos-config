@@ -7,8 +7,8 @@ in
 {
   imports = [
     #./editors/neovim/vim.nix
-    #./editors/vscode/vscode.nix
-    ./editors/zed/zed.nix
+    ./editors/vscode/vscode.nix
+    #./editors/zed/zed.nix
     ./shells/shells.nix
     ./terminals/terminals.nix
     #./desktops/hypr/hypr_home.nix
@@ -26,5 +26,10 @@ in
     nix-alien
     pkgs.floorp
     pkgs.nnn
+    pkgs.zathura
+    pkgs.zathura
+    pkgs.calibre
+    pkgs.maliit-keyboard
+    pkgs.stremio
   ];
 }
