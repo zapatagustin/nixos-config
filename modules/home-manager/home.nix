@@ -1,18 +1,9 @@
-{ pkgs, ... }:
-let
-  nix-alien-pkgs = import (
-    builtins.fetchTarball "https://github.com/thiagokokada/nix-alien/tarball/master"
-  ) { };
-in
+{ pkgs, inputs, ... }:
 {
   imports = [
-    #./editors/neovim/vim.nix
     ./editors/vscode/vscode.nix
-    #./editors/zed/zed.nix
     ./shells/shells.nix
     ./terminals/terminals.nix
-    #./desktops/hypr/hypr_home.nix
-    #./desktops/gnome/gnome_home.nix
   ];
 
   home.username = "thinkpad";
@@ -22,14 +13,12 @@ in
 
   nixpkgs.config.allowUnfree = true;
 
-  home.packages = with nix-alien-pkgs; [
-    nix-alien
+  home.packages = [
+    inputs.nix-alien.packages.${pkgs.system}.nix-alien
     pkgs.floorp
     pkgs.nnn
     pkgs.zathura
-    pkgs.zathura
     pkgs.calibre
-    pkgs.maliit-keyboard
     pkgs.stremio
   ];
 }

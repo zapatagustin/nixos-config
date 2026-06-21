@@ -1,4 +1,0 @@
-alias flakeupdate='rm ~/nixos-config/flake.lock && sudo nix flake update'
-alias nixosupdate='rm ~/nixos-config/flake.lock && cd ~/nixos-config/ &&  sudo nix flake update && sudo nixos-rebuild switch --upgrade --impure --flake .#thinkpad && flatpak update'
-alias nixosinstall='sudo nixos-rebuild switch --impure --flake .#thinkpad'
-alias nixosdeletegen='sudo nix-collect-garbage -d && nix-store --gc --print-roots && nix-store --optimise'

@@ -6,9 +6,9 @@
     bfetch
     cmatrix
     cowsay
+    fastfetch
     figlet
     file
-    unrar
     fortune
     glxinfo
     gparted
@@ -19,7 +19,10 @@
     lsd
     ncdu
     netcat-openbsd
+    nh
+    nix-output-monitor
     nixpkgs-review
+    nvd
     nyancat
     openvpn
     orca
@@ -29,14 +32,12 @@
     sl
     toilet
     tree
+    unrar
     unzip
     wget
-    xclip
+    wl-clipboard
     xcp
     zoxide
-	nix-zsh-completions
-	zsh-autosuggestions
-	zsh-syntax-highlighting
-	kdePackages.ark
+    kdePackages.ark
   ];
 }

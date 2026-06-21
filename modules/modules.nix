@@ -1,8 +1,8 @@
 { ... }:
 {
   imports = [
-    ./boot/boot.nix
-    ./dev/dev.nix
+    ./boot/systemd/systemd.nix
+    ./dev/dev_dependencies.nix
     ./hardware/hardware.nix
     ./gaming/gaming.nix
     ./desktops/desktops.nix

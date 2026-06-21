@@ -5,42 +5,47 @@
     ./software/default_soft.nix
   ];
 
-    programs = {
-      git.enable = true;
-      nano.enable = true;
-      zsh.enable = true;
-      ssh.askPassword = ""; # Preventing OpenSSH popup during 'git push'
+  programs = {
+    git.enable = true;
+    nano.enable = true;
+    zsh.enable = true;
+    ssh.askPassword = ""; # Prevent OpenSSH popup during 'git push'
+  };
+
+  environment = {
+    systemPackages = [];
+    sessionVariables = {
+      TERMINAL = "kitty";
+      NIXPKGS_ALLOW_UNFREE = "1";
     };
+  };
 
-    environment = {
-      systemPackages = [];
-      sessionVariables = {
-        #EDITOR = "nano";
-        #BROWSER = "floorp";
-        SHELL = "/run/current-system/sw/bin/zsh";
-        TERMINAL = "kitty";
-        TERM = "xterm-256color";
-        NIXPKGS_ALLOW_UNFREE = "1"; # To allow nix-shell to use unfree packages
-      };
+  nix = {
+    settings = {
+      allowed-users = [ "@wheel" ];
+      extra-experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+      auto-optimise-store = true;
     };
-
-    # ----- System Config -----
-    # nix config
-    nix = {
-      package = pkgs.nixStable;
-      settings = {
-        allowed-users = ["@wheel"]; #locks down access to nix-daemon
-        extra-experimental-features = [
-          "nix-command"
-          "flakes"
-        ];
-        auto-optimise-store = true;
-      };
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 14d";
     };
+  };
 
-    # Allow unfree packages
-    nixpkgs.config.allowUnfree = mkDefault true;
+  boot.tmp.cleanOnBoot = true;
 
-    # Dont change
-    system.stateVersion = "24.05";
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+  };
+
+  networking.firewall.enable = true;
+
+  nixpkgs.config.allowUnfree = mkDefault true;
+
+  system.stateVersion = "26.05";
 }

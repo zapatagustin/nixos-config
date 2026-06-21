@@ -197,9 +197,8 @@ plugins {
 
 // Choose the path to the default shell that zellij will use for opening new panes
 // Default: $SHELL
-// Change to nushell
 //
-default_shell "nu"
+// default_shell "zsh"
 
 // Toggle between having pane frames around the panes
 // Options:

@@ -5,18 +5,22 @@
     ./zellij/zellij.nix
   ];
 
-      home.file.".bash_aliases".source = ./bash_aliases;
-      # home.packages = with pkgs; [
-      #   neofetch
-      #   zoxide
-      # ];
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+  };
 
-      #xdg.desktopEntries."shell" = {
-      #  name = "Shell";
-      #  comment = "Shell";
-      #  icon = "shell";
-      #  exec = "kitty";
-      #  terminal = false;
-      #  categories = [ "Utility" ];
-      #};
+  programs.zoxide.enable = true;
+  programs.bat.enable = true;
+
+  programs.eza = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
+  programs.git = {
+    enable = true;
+    userName = "zapatagustin";
+    userEmail = "zapatagustin4@gmail.com";
+  };
 }
