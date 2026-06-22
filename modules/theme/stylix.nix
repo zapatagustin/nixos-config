@@ -8,7 +8,7 @@
     image = config.lib.stylix.pixel "base00";
 
     fonts = {
-      monospace = { package = pkgs.udev-gothic; name = "UDEV Gothic"; };
+      monospace = { package = pkgs.terminus_font_ttf; name = "Terminus (TTF)"; };
       sansSerif = { package = pkgs.udev-gothic; name = "UDEV Gothic"; };
       serif = { package = pkgs.udev-gothic; name = "UDEV Gothic"; };
     };

@@ -22,7 +22,7 @@
 
   fonts = {
     enableDefaultPackages = true;
-    packages = with pkgs; [ udev-gothic ];
+    packages = with pkgs; [ udev-gothic ];  # terminus installed via stylix.fonts.monospace
     fontconfig.enable = true;
     # defaultFonts managed by stylix (modules/theme/stylix.nix)
   };
