@@ -38,14 +38,7 @@ in
       cmp_luasnip
       friendly-snippets
 
-      {
-        plugin = gruvbox-nvim;
-        type = "lua";
-        config = ''
-          require("gruvbox").setup({})
-          vim.cmd.colorscheme("gruvbox")
-        '';
-      }
+      # colorscheme managed by stylix (modules/theme/stylix.nix)
       {
         plugin = nvim-treesitter.withAllGrammars;
         type = "lua";
@@ -101,7 +94,7 @@ in
       {
         plugin = lualine-nvim;
         type = "lua";
-        config = ''require("lualine").setup({ options = { theme = "gruvbox" } })'';
+        config = ''require("lualine").setup({ options = { theme = "auto" } })'';
       }
       {
         plugin = which-key-nvim;

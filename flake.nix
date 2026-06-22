@@ -12,6 +12,10 @@
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    stylix = {
+      url = "github:nix-community/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { nixpkgs, home-manager, chaotic, ... }@inputs:
@@ -25,6 +29,7 @@
       modules = [
         ./configuration.nix
         chaotic.nixosModules.default
+        inputs.stylix.nixosModules.stylix
         home-manager.nixosModules.home-manager
         {
           home-manager.useUserPackages = true;

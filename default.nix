@@ -23,14 +23,7 @@
   fonts = {
     enableDefaultPackages = true;
     packages = with pkgs; [ udev-gothic ];
-
-    fontconfig = {
-      enable = true;
-      defaultFonts = {
-        serif = [ "UDEV Gothic" ];
-        sansSerif = [ "UDEV Gothic" ];
-        monospace = [ "UDEV Gothic" ];
-      };
-    };
+    fontconfig.enable = true;
+    # defaultFonts managed by stylix (modules/theme/stylix.nix)
   };
 }
