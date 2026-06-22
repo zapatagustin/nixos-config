@@ -1,0 +1,14 @@
+# sops creation rules — used by the `sops` CLI to know who can decrypt.
+# Replace the PLACEHOLDER age recipients with the real public keys.
+# How to get them (run on the thinkpad — see README "Secrets"):
+#   ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub   # -> host recipient
+#   age-keygen -o ~/.config/sops/age/keys.txt        # -> personal; use the "public key:" line
+keys:
+  - &host_thinkpad age1PLACEHOLDER_REPLACE_WITH_HOST_KEY
+  - &user_agustin  age1PLACEHOLDER_REPLACE_WITH_PERSONAL_KEY
+creation_rules:
+  - path_regex: secrets/secrets\.yaml$
+    key_groups:
+      - age:
+          - *host_thinkpad
+          - *user_agustin
