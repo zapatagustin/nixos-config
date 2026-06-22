@@ -8,7 +8,7 @@
   services.printing.enable = true;
   services.flatpak.enable = true;
 
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelPackages = pkgs.linuxPackages_cachyos;
 
   services.openssh = {
     enable = true;

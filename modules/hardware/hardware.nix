@@ -14,9 +14,27 @@
       enable = true;
       mouse.accelProfile = "flat";
     };
+
+    # ThinkPad power/thermal
+    tlp.enable = true;
+    thermald.enable = true;
+    power-profiles-daemon.enable = false;  # conflicts with TLP
+    upower.enable = true;
+    fwupd.enable = true;
+
+    # SSD
+    fstrim = {
+      enable = true;
+      interval = "weekly";
+    };
+    smartd.enable = true;
   };
 
-  zramSwap.enable = true;
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+  };
+
   hardware = {
     cpu.intel.updateMicrocode = true;
     enableAllFirmware = true;

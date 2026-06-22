@@ -1,4 +1,4 @@
-{ pkgs, inputs, ... }:
+{ pkgs, ... }:
 {
   imports = [
     ./editors/vscode/vscode.nix
@@ -13,12 +13,11 @@
 
   nixpkgs.config.allowUnfree = true;
 
-  home.packages = [
-    inputs.nix-alien.packages.${pkgs.system}.nix-alien
-    pkgs.floorp
-    pkgs.nnn
-    pkgs.zathura
-    pkgs.calibre
-    pkgs.stremio
+  home.packages = with pkgs; [
+    floorp
+    nnn
+    zathura
+    calibre
+    stremio
   ];
 }
