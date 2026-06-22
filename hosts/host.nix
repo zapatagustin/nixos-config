@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }: with lib;
+{ pkgs, lib, ... }:
 {
   imports = [
     ./locale/locale.nix
@@ -9,9 +9,11 @@
     git.enable = true;
     nano.enable = true;
     zsh.enable = true;
-    ssh.askPassword = ""; # Prevent OpenSSH popup during 'git push'
+    ssh.askPassword = "";
+    command-not-found.enable = false;  # use nix-index instead
     nix-ld = {
       enable = true;
+      package = pkgs.nix-ld-rs;
       libraries = with pkgs; [
         stdenv.cc.cc
         zlib
@@ -69,14 +71,17 @@
 
   boot.tmp.cleanOnBoot = true;
 
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
+  services = {
+    avahi = {
+      enable = true;
+      nssmdns4 = true;
+    };
+    journald.extraConfig = "SystemMaxUse=500M";
   };
 
   networking.firewall.enable = true;
 
-  nixpkgs.config.allowUnfree = mkDefault true;
+  nixpkgs.config.allowUnfree = lib.mkDefault true;
 
   system.stateVersion = "26.05";
 }

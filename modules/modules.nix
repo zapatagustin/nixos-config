@@ -5,7 +5,6 @@
     ./dev/dev_dependencies.nix
     ./hardware/hardware.nix
     ./gaming/gaming.nix
-    ./desktops/desktops.nix
     ./performance/performance.nix
   ];
 }

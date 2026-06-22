@@ -5,8 +5,7 @@
     gcc
     jq
     killall
-    python3
-    nil
     nixd
+    python3
   ];
 }

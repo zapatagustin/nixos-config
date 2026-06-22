@@ -13,6 +13,11 @@
   services.openssh = {
     enable = true;
     openFirewall = true;
+    settings = {
+      PasswordAuthentication = true;  # TEMP: switch to false after installing SSH key
+      KbdInteractiveAuthentication = false;
+      PermitRootLogin = "no";
+    };
   };
 
   fonts = {

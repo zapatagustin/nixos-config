@@ -1,6 +1,0 @@
-{ ... }:
-{
-  imports = [
-    ./kde/kde.nix
-  ];
-}

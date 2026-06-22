@@ -1,43 +1,52 @@
 { pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
+    # Fetch / fun
     asciinema
-    bat
-    bfetch
     cmatrix
     cowsay
     fastfetch
     figlet
-    file
     fortune
-    glxinfo
-    gparted
-    htb-toolkit
-    hw-probe
-    imagemagick
     lolcat
-    lsd
+    nyancat
+    sl
+    toilet
+
+    # File / disk utils
+    btop
+    dust
+    duf
+    fd
+    file
+    gparted
     ncdu
+    procs
+    ripgrep
+    tree
+    unrar
+    unzip
+    xcp
+    zoxide
+
+    # Network
     netcat-openbsd
+    openvpn
+    wget
+
+    # Wayland
+    wl-clipboard
+
+    # Nix tooling
+    comma
     nh
     nix-output-monitor
     nixpkgs-review
     nvd
-    nyancat
-    openvpn
-    orca
+
+    # System info
+    glxinfo
+    imagemagick
     pciutils
-    pfetch
-    python3
-    sl
-    toilet
-    tree
-    unrar
-    unzip
-    wget
-    wl-clipboard
-    xcp
-    zoxide
-    kdePackages.ark
   ];
 }

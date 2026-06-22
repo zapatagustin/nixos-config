@@ -11,7 +11,7 @@
       ll = "eza -l";
       update = "sudo nixos-rebuild switch --flake ~/Projects/nixos-config#thinkpad";
       upgrade = "cd ~/Projects/nixos-config && nix flake update && sudo nixos-rebuild switch --flake .#thinkpad";
-      gc = "sudo nix-collect-garbage -d && nix-store --optimise";
+      gc = "sudo nix-collect-garbage -d";
     };
 
     history = {

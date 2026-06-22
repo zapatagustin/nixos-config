@@ -12,6 +12,8 @@
 
   programs.zoxide.enable = true;
   programs.bat.enable = true;
+  programs.gh.enable = true;
+  programs.nix-index.enable = true;
 
   programs.eza = {
     enable = true;
@@ -22,5 +24,6 @@
     enable = true;
     userName = "zapatagustin";
     userEmail = "zapatagustin4@gmail.com";
+    delta.enable = true;
   };
 }
