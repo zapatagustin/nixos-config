@@ -9,8 +9,13 @@
     git.enable = true;
     nano.enable = true;
     zsh.enable = true;
+    tmux.enable = true;
     ssh.askPassword = "";
     command-not-found.enable = false;  # use nix-index instead
+    appimage = {
+      enable = true;
+      binfmt = true;
+    };
     nix-ld = {
       enable = true;
       package = pkgs.nix-ld-rs;
@@ -57,6 +62,11 @@
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       ];
       builders-use-substitutes = true;
+      warn-dirty = false;
+      keep-going = true;
+      fallback = true;
+      connect-timeout = 5;
+      log-lines = 50;
     };
     gc = {
       automatic = true;
@@ -77,7 +87,10 @@
       nssmdns4 = true;
     };
     journald.extraConfig = "SystemMaxUse=500M";
+    dbus.implementation = "broker";
   };
+
+  security.protectKernelImage = true;
 
   networking.firewall.enable = true;
 

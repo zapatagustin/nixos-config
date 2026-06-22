@@ -10,6 +10,7 @@
   services = {
     hardware.bolt.enable = true;
     timesyncd.enable = true;
+    gpm.enable = true;  # mouse in TTY
     libinput = {
       enable = true;
       mouse.accelProfile = "flat";
