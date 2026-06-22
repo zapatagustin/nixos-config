@@ -14,18 +14,22 @@
     };
   };
 
-  outputs = { nixpkgs, home-manager, chaotic, ... }@inputs: {
-    nixosConfigurations.thinkpad = nixpkgs.lib.nixosSystem {
+  outputs = { nixpkgs, home-manager, chaotic, ... }@inputs:
+  let
+    hostname = "thinkpad";
+    username = "thinkpad";
+  in {
+    nixosConfigurations.${hostname} = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
-      specialArgs = { inherit inputs; };
+      specialArgs = { inherit inputs hostname username; };
       modules = [
         ./configuration.nix
         chaotic.nixosModules.default
         home-manager.nixosModules.home-manager
         {
           home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit inputs; };
-          home-manager.users.thinkpad = import ./modules/home-manager/home.nix;
+          home-manager.extraSpecialArgs = { inherit inputs username; };
+          home-manager.users.${username} = import ./modules/home-manager/home.nix;
         }
       ];
     };

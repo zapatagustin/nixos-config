@@ -1,12 +1,13 @@
-{ pkgs, inputs, ... }:
+{ pkgs, inputs, username, ... }:
 {
   imports = [
     ./shells/shells.nix
     ./terminals/terminals.nix
+    ./editors/neovim
   ];
 
-  home.username = "thinkpad";
-  home.homeDirectory = "/home/thinkpad";
+  home.username = username;
+  home.homeDirectory = "/home/${username}";
   home.stateVersion = "26.05";
 
   programs.home-manager.enable = true;

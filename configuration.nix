@@ -1,13 +1,15 @@
-{ pkgs, ... }:
+{ pkgs, hostname, username, ... }:
 {
   imports = [
     /etc/nixos/hardware-configuration.nix
     ./default.nix
   ];
 
-  users.users.thinkpad = {
+  networking.hostName = hostname;
+
+  users.users.${username} = {
     isNormalUser = true;
-    description = "thinkpad";
+    description = username;
     extraGroups = [ "networkmanager" "wheel" "docker" "audio" "tss" ];
     shell = pkgs.zsh;
   };
