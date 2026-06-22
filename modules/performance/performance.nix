@@ -1,24 +1,20 @@
 { pkgs, ... }: {
-  # CachyOS sched_ext scheduler (laptop-friendly, latency-aware)
+  # CachyOS sched_ext scheduler
   chaotic.scx = {
     enable = true;
     scheduler = "scx_bpfland";
   };
 
-  # Auto re-nice processes based on rules
   services.ananicy = {
     enable = true;
     package = pkgs.ananicy-cpp;
   };
 
-  # Aggressive userspace OOM killer
   services.earlyoom.enable = true;
-
-  # Spread hardware interrupts across CPUs
   services.irqbalance.enable = true;
 
   boot.kernel.sysctl = {
-    # Network
+    # Network perf
     "net.ipv4.tcp_congestion_control" = "bbr";
     "net.core.default_qdisc" = "fq";
     "net.ipv4.tcp_fastopen" = 3;
@@ -33,5 +29,15 @@
     # Kernel hardening
     "kernel.dmesg_restrict" = 1;
     "kernel.kptr_restrict" = 2;
+
+    # Network hardening
+    "net.ipv4.conf.all.rp_filter" = 1;
+    "net.ipv4.conf.default.rp_filter" = 1;
+    "net.ipv4.tcp_syncookies" = 1;
+    "net.ipv4.conf.all.accept_redirects" = 0;
+    "net.ipv4.conf.default.accept_redirects" = 0;
+    "net.ipv4.conf.all.send_redirects" = 0;
+    "net.ipv4.conf.all.accept_source_route" = 0;
+    "net.ipv4.conf.default.accept_source_route" = 0;
   };
 }

@@ -6,7 +6,7 @@
   ];
 
   services.printing.enable = true;
-  services.flatpak.enable = true;
+  # services.flatpak.enable = true;  # disabled until DE/compositor is re-added
 
   boot.kernelPackages = pkgs.linuxPackages_cachyos;
 

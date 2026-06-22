@@ -67,6 +67,8 @@
       fallback = true;
       connect-timeout = 5;
       log-lines = 50;
+      use-xdg-base-directories = true;
+      use-cgroups = true;
     };
     gc = {
       automatic = true;

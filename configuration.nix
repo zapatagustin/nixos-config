@@ -8,7 +8,7 @@
   users.users.thinkpad = {
     isNormalUser = true;
     description = "thinkpad";
-    extraGroups = [ "networkmanager" "wheel" "docker" "audio" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" "audio" "tss" ];
     shell = pkgs.zsh;
   };
 }
