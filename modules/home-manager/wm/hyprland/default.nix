@@ -22,6 +22,7 @@ in
     libnotify
     kitty
     yazi
+    satty   # screenshot annotation (screenshot.sh edit)
     gruvbox-gtk-theme
     papirus-icon-theme
     noto-fonts-cjk-sans   # hyprlock clock font (Noto Sans JP)
@@ -117,6 +118,7 @@ in
         "SHIFT, Print, exec, bash ~/.config/hypr/screenshot.sh window"
         "CTRL, Print, exec, bash ~/.config/hypr/screenshot.sh output"
         "SUPER, Print, exec, bash ~/.config/hypr/screenshot.sh screen"
+        "$mainMod SHIFT, S, exec, bash ~/.config/hypr/screenshot.sh edit"
         # focus (vim + arrows)
         "$mainMod, h, movefocus, l"
         "$mainMod, l, movefocus, r"
@@ -272,21 +274,16 @@ in
           valign = "center";
         }
       ];
+      # input-field colors come from stylix.targets.hyprlock (base16)
       "input-field" = [{
         monitor = "";
         size = "280, 42";
-        outer_color = "rgba(40, 40, 40, 0.85)";
-        inner_color = "rgba(60, 56, 54, 0.90)";
-        font_color = "rgba(235, 219, 178, 1.0)";
-        check_color = "rgba(215, 153, 33, 1.0)";
-        fail_color = "rgba(204, 36, 29, 0.85)";
         placeholder_text = ''<span foreground="##a89984">contraseña...</span>'';
         hide_input = false;
         dots_size = 0.30;
         dots_spacing = 0.20;
         dots_center = true;
         fade_on_empty = true;
-        capslock_color = "rgba(215, 153, 33, 1.0)";
         position = "0, -100";
         halign = "center";
         valign = "center";
