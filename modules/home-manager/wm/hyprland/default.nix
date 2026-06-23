@@ -41,8 +41,8 @@ in
       ];
 
       monitor = [
-        "eDP-1,preferred,1168x1080,1.6"   # built-in; externals via setup-monitors.sh
-        ",preferred,auto,auto"            # fallback for unknown monitors
+        "eDP-1,preferred,auto,1"   # 1920x1080 native, scale 1 (no fractional); externals via setup-monitors.sh
+        ",preferred,auto,auto"     # fallback for unknown monitors
       ];
 
       general = {
@@ -71,6 +71,7 @@ in
       misc = {
         force_default_wallpaper = 1;
         disable_hyprland_logo = true;
+        vrr = 1;   # adaptive sync (free win on panels that support it)
       };
 
       input = {
@@ -202,8 +203,24 @@ in
     };
   };
 
-  # cachy had hypridle disabled ("problema con hyprlock"). Keep off; enable later if wanted.
-  services.hypridle.enable = false;
+  # idle management. On NixOS the lock works because hyprlock has a PAM entry
+  # (modules/wm/hyprland.nix). lock_cmd guards against double-launch.
+  services.hypridle = {
+    enable = true;
+    settings = {
+      general = {
+        lock_cmd = "pidof hyprlock || hyprlock";
+        before_sleep_cmd = "loginctl lock-session";
+        after_sleep_cmd = "hyprctl dispatch dpms on";
+      };
+      listener = [
+        { timeout = 240; on-timeout = "brightnessctl -s set 20%"; on-resume = "brightnessctl -r"; }
+        { timeout = 300; on-timeout = "loginctl lock-session"; on-resume = "hyprctl dispatch dpms on"; }
+        { timeout = 360; on-timeout = "hyprctl dispatch dpms off"; on-resume = "hyprctl dispatch dpms on"; }
+        { timeout = 900; on-timeout = "systemctl suspend"; }
+      ];
+    };
+  };
 
   programs.hyprlock = {
     enable = true;

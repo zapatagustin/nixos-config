@@ -23,7 +23,8 @@ fi
 if [ -n "$RIGHT_SAMSUNG" ]; then
     hyprctl keyword monitor "$RIGHT_SAMSUNG,1920x1080@74.97,1920x0,1"
 fi
-hyprctl keyword monitor "$EDP,preferred,1168x1080,1.6"
+# eDP-1 1920x1080 native, scale 1 (no fractional), centered below the 3840-wide Samsung row
+hyprctl keyword monitor "$EDP,preferred,960x1080,1"
 
 # Workspace rules dinámicas: 1-9 → LEFT, 10-18 → RIGHT, 19-27 → eDP-1
 apply_ws_rules() {

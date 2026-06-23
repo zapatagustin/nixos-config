@@ -71,7 +71,7 @@ Wired: `modules/wm/hyprland.nix` into `modules/modules.nix`; HM module into
 | programs.conf | `settings."$terminal"` etc. (variables) |
 | startup.conf | `settings.exec-once` (minus theme switcher; + qs-theme one-shot) |
 | variables.conf / uwsm/env | `settings.env` / `home.sessionVariables` (drop kde/breeze) |
-| hypridle.conf | `services.hypridle` — **enable=false** (was disabled in cachy) |
+| hypridle.conf | `services.hypridle` — **enabled** (cachy's "hyprlock problem" was distro-specific; NixOS works via `security.pam.services.hyprlock`) |
 | hyprpaper.conf | `services.hyprpaper.settings` (eDP wallpaper; externals at runtime) |
 | hyprlock.conf | `programs.hyprlock.settings` |
 
