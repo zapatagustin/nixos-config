@@ -1,6 +1,6 @@
-{ pkgs, lib, inputs, ... }:
+{ pkgs, lib, ... }:
 let
-  walls = inputs.wallpapers;                       # flake=false input: store path of wallpapers repo
+  walls = ../../../../wallpapers;                  # repo-root/wallpapers (only the used images, ~1.7MB)
   ws = builtins.genList (i: toString (i + 1)) 9;   # ["1".."9"]
   # workspace binds call scripts via `bash` so no exec-bit needed on store files
   mkWsBinds = mod: script: map (n: "${mod}, ${n}, exec, bash ~/.config/hypr/${script} ${n}") ws;

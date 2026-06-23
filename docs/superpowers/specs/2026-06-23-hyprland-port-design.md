@@ -18,8 +18,10 @@ nix, config as nix attrs where possible, scripts/QML deployed reproducibly.
   Stylix (read-only GTK files). Stylix owns GTK/Qt/cursor, fixed dark. A one-shot
   `exec-once` writes `dark` to `/tmp/qs-theme` so Quickshell shows dark.
 - **Session: greetd + tuigreet** → `uwsm start hyprland` (cachy had no login mgr).
-- **Wallpapers: gitlab repo as `flake = false` input** (`gitlab:zapatagustin/wallpapers`),
-  referenced by store path. Reproducible, no binaries in this repo.
+- **Wallpapers: the 4 used images committed to `wallpapers/`** in this repo
+  (~1.7MB), referenced by relative nix path. The full gitlab repo is 687MB; a
+  `flake = false` input clones all of it (no sparse-checkout for inputs), so for
+  4 images it's not worth it. Move to a small dedicated input if the set grows.
 
 ## Discovered constraints
 
