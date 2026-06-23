@@ -6,7 +6,8 @@
   ];
 
   services.printing.enable = true;
-  # services.flatpak.enable = true;  # disabled until DE/compositor is re-added
+  # Add the Flathub remote once: flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  services.flatpak.enable = true;
 
   boot.kernelPackages = pkgs.linuxPackages_cachyos;
 

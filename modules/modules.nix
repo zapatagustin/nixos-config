@@ -5,7 +5,7 @@
     ./containers/containers.nix
     ./dev/dev_dependencies.nix
     ./hardware/hardware.nix
-    # ./gaming/gaming.nix         # disabled until DE/compositor is re-added
+    ./gaming/gaming.nix
     ./performance/performance.nix
     ./theme/stylix.nix
     ./wm/hyprland.nix
