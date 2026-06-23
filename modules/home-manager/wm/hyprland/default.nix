@@ -35,7 +35,6 @@ in
     settings = {
       "$mainMod" = "SUPER";
       "$terminal" = "kitty";
-      "$fileManager" = "kitty -e yazi";
 
       env = [
         "WALLPAPER_DIR,${walls}"
@@ -59,7 +58,6 @@ in
 
       decoration = {
         rounding = 0;
-        rounding_power = 0;
         active_opacity = 1.0;
         inactive_opacity = 1.0;
         shadow.enabled = false;
@@ -90,10 +88,6 @@ in
 
       gesture = "4, horizontal, workspace";
       binds.allow_workspace_cycles = true;
-      device = [{
-        name = "epic-mouse-v1";
-        sensitivity = -0.5;
-      }];
 
       exec-once = [
         "uwsm finalize HYPRLAND_INSTANCE_SIGNATURE"
