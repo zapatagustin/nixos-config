@@ -20,6 +20,10 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    wallpapers = {
+      url = "gitlab:zapatagustin/wallpapers";
+      flake = false;
+    };
   };
 
   outputs = { nixpkgs, home-manager, chaotic, ... }@inputs:

@@ -4,6 +4,7 @@
     ./shells/shells.nix
     ./terminals/terminals.nix
     ./editors/neovim
+    ./wm/hyprland
   ];
 
   home.username = username;

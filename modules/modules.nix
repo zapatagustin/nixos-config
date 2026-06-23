@@ -8,6 +8,7 @@
     # ./gaming/gaming.nix         # disabled until DE/compositor is re-added
     ./performance/performance.nix
     ./theme/stylix.nix
+    ./wm/hyprland.nix
     # ./secrets/sops.nix          # enable after creating secrets/secrets.yaml (see README)
   ];
 }
