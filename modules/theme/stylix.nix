@@ -8,7 +8,8 @@
     image = config.lib.stylix.pixel "base00";
 
     fonts = {
-      monospace = { package = pkgs.terminus_font_ttf; name = "Terminus (TTF)"; };
+      # Terminess = Terminus patched by Nerd Fonts: same look + glyphs (bar/prompt icons)
+      monospace = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font Mono"; };
       sansSerif = { package = pkgs.udev-gothic; name = "UDEV Gothic"; };
       serif = { package = pkgs.udev-gothic; name = "UDEV Gothic"; };
     };
