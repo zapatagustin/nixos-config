@@ -2,7 +2,7 @@
   networking = {
     networkmanager = {
       enable = true;
-      wifi.backend = "iwd";
+      wifi.backend = "wpa_supplicant";
     };
     nftables.enable = true;                            # modern firewall backend
     firewall.trustedInterfaces = [ "tailscale0" ];     # don't filter tailnet traffic

@@ -1,5 +1,9 @@
 { lib, config, ... }: {
   boot = {
+    # swap partition from hardware-configuration.nix — needed so HybridSleep
+    # (upower criticalPowerAction) can actually resume after hibernation.
+    resumeDevice = "/dev/disk/by-uuid/a1f5ac54-4984-4d83-aaef-cbd6a2e1f179";
+
     loader = {
       timeout = 1;
       efi.canTouchEfiVariables = true;
@@ -15,7 +19,16 @@
     initrd = {
       systemd.enable = true;
       compressor = "zstd";
-      compressorArgs = [ "-19" "-T0" ];
+      # -6 over -19: much faster initrd builds (every rebuild) for a marginally
+      # larger image. zstd decompresses at ~the same speed regardless of level,
+      # so boot time is unaffected.
+      compressorArgs = [ "-6" "-T0" ];
+      # early KMS: load i915 in initrd so the native 1366x768 i915 framebuffer
+      # comes up in the initrd instead of ~18s into boot (currently fbcon only
+      # takes over the i915 console late; until then the firmware GOP framebuffer
+      # is in charge). Helps if early boot text renders at a sub-native firmware
+      # resolution; harmless otherwise. Panel only mode is 1366x768.
+      kernelModules = [ "i915" ];
     };
 
     consoleLogLevel = 0;

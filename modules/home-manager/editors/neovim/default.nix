@@ -25,7 +25,7 @@ in
       nixpkgs-fmt
       stylua
       rustfmt
-      nodePackages.prettier
+      prettier
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -131,7 +131,7 @@ in
         type = "lua";
         config = ''
           require("conform").setup({
-            format_on_save = { timeout_ms = 2000, lsp_fallback = true },
+            format_on_save = { timeout_ms = 2000, lsp_format = "fallback" },
             formatters_by_ft = {
               nix = { "nixpkgs_fmt" },
               lua = { "stylua" },
@@ -157,7 +157,7 @@ in
     ];
 
     # options + keymaps: no plugin-load-order dependency (command-style maps)
-    extraLuaConfig = ''
+    initLua = ''
       ${luaFile "options.lua"}
       ${luaFile "keymaps.lua"}
     '';

@@ -15,12 +15,16 @@
 
   nixpkgs.config.allowUnfree = true;
 
+  # bitwarden-desktop pulls in electron-39.8.10, marked insecure (EOL)
+  nixpkgs.config.permittedInsecurePackages = [
+    "electron-39.8.10"
+  ];
+
   home.packages = with pkgs; [
-    brave
-    inputs.zen-browser.packages.${pkgs.system}.default
-    nnn
+    (callPackage ../../pkgs/brave-origin.nix { })   # Brave Origin (not in nixpkgs); see pkgs/brave-origin.nix
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     zathura
-    calibre
-    stremio
+    claude-code
+    bitwarden-desktop
   ];
 }

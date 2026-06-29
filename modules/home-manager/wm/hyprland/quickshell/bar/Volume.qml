@@ -81,7 +81,7 @@ Item {
             text: volume.muted ? "VOL:M" : "VOL:"
             color: volume.theme.fgDim
             font.pixelSize: 11
-            font.family: "Noto Sans JP"
+            font.family: "Terminess Nerd Font Mono"
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -89,7 +89,7 @@ Item {
             text: volume.muted ? "---" : volume.percent + "%"
             color: volume.volColor
             font.pixelSize: 11
-            font.family: "Noto Sans JP"
+            font.family: "Terminess Nerd Font Mono"
             font.weight: Font.Medium
             anchors.verticalCenter: parent.verticalCenter
         }

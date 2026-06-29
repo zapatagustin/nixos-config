@@ -9,10 +9,10 @@
         libpulseaudio
         libvorbis
         stdenv.cc.cc.lib
-        xorg.libXcursor
-        xorg.libXi
-        xorg.libXinerama
-        xorg.libXScrnSaver
+        libxcursor
+        libxi
+        libxinerama
+        libxscrnsaver
       ];
     };
   };
@@ -20,6 +20,6 @@
   programs.gamemode.enable = true;
 
   environment.systemPackages = with pkgs; [
-    wineWowPackages.waylandFull
+    wineWow64Packages.waylandFull
   ];
 }

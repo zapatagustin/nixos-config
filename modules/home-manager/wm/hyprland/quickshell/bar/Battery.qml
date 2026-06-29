@@ -56,7 +56,7 @@ Item {
             text: "BAT:"
             color: battery.theme.fgDim
             font.pixelSize: 11
-            font.family: "Noto Sans JP"
+            font.family: "Terminess Nerd Font Mono"
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -64,7 +64,7 @@ Item {
             text: battery.percent + "%"
             color: battery.batColor
             font.pixelSize: 11
-            font.family: "Noto Sans JP"
+            font.family: "Terminess Nerd Font Mono"
             font.weight: Font.Medium
             anchors.verticalCenter: parent.verticalCenter
         }

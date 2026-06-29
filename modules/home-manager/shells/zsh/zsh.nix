@@ -7,6 +7,12 @@
     enableCompletion = true;
     syntaxHighlighting.enable = true;
 
+    # compinit -C skips the compaudit security scan, which stat()s every
+    # completion file on each shell start (~250ms). Pointless here: completions
+    # live in the immutable, root-owned /nix/store. Drop ~/.zcompdump to force
+    # a rebuild if completions ever look stale.
+    completionInit = "autoload -U compinit && compinit -C";
+
     shellAliases = {
       ll = "eza -l";
       update = "sudo nixos-rebuild switch --flake /home/thinkpad/nixos-config#thinkpad";

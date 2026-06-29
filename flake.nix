@@ -38,6 +38,8 @@
         home-manager.nixosModules.home-manager
         {
           home-manager.useUserPackages = true;
+          # back up (instead of clobber) pre-existing unmanaged dotfiles, e.g. ~/.zshrc -> ~/.zshrc.hm-bak
+          home-manager.backupFileExtension = "hm-bak";
           home-manager.extraSpecialArgs = { inherit inputs username; };
           home-manager.users.${username} = import ./modules/home-manager/home.nix;
         }

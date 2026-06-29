@@ -71,7 +71,7 @@ model: 9   // ← cambiar a la cantidad deseada (máx 10 con números japoneses)
 
 ### Fuente
 
-La barra usa `Noto Sans JP` para el texto y `Symbols Nerd Font Mono`
+La barra usa `Terminess Nerd Font Mono` para el texto y `Symbols Nerd Font Mono`
 para los íconos de luna/sol. Si no tenés Nerd Fonts, podés reemplazar
 los íconos en `RightSection.qml`:
 ```qml

@@ -72,7 +72,7 @@ Item {
             text: "BRI:"
             color: brightness.theme.fgDim
             font.pixelSize: 11
-            font.family: "Noto Sans JP"
+            font.family: "Terminess Nerd Font Mono"
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -80,7 +80,7 @@ Item {
             text: brightness.percent + "%"
             color: brightness.theme.fg
             font.pixelSize: 11
-            font.family: "Noto Sans JP"
+            font.family: "Terminess Nerd Font Mono"
             font.weight: Font.Medium
             anchors.verticalCenter: parent.verticalCenter
         }

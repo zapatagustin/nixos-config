@@ -100,7 +100,7 @@ PanelWindow {
                         text: "Notificaciones"
                         color: center.theme.fg
                         font.pixelSize: 12
-                        font.family: "Noto Sans JP"
+                        font.family: "Terminess Nerd Font Mono"
                         font.weight: Font.Bold
                         Layout.alignment: Qt.AlignVCenter
                     }
@@ -111,7 +111,7 @@ PanelWindow {
                         text: center.notifList.length + " items"
                         color: center.theme.fgDim
                         font.pixelSize: 11
-                        font.family: "Noto Sans JP"
+                        font.family: "Terminess Nerd Font Mono"
                         Layout.alignment: Qt.AlignVCenter
                     }
 
@@ -127,7 +127,7 @@ PanelWindow {
                             anchors.centerIn: parent
                             text: "limpiar todo"
                             font.pixelSize: 10
-                            font.family: "Noto Sans JP"
+                            font.family: "Terminess Nerd Font Mono"
                             color: clearHover.containsMouse ? center.theme.accentFg : center.theme.fgDim
                         }
 
@@ -194,7 +194,7 @@ PanelWindow {
                     text: "sin notificaciones"
                     color: center.theme.fgDim
                     font.pixelSize: 12
-                    font.family: "Noto Sans JP"
+                    font.family: "Terminess Nerd Font Mono"
                     visible: center.notifList.length === 0
                 }
 
@@ -241,7 +241,7 @@ PanelWindow {
                             color: center.selectedIndex === index ? center.theme.accentFg : center.theme.accent
                             font.pixelSize: 10
                             font.weight: Font.Bold
-                            font.family: "Noto Sans JP"
+                            font.family: "Terminess Nerd Font Mono"
                         }
 
                         Text {
@@ -250,7 +250,7 @@ PanelWindow {
                             color: center.selectedIndex === index ? center.theme.accentFg : center.theme.fg
                             font.pixelSize: 12
                             font.weight: Font.Medium
-                            font.family: "Noto Sans JP"
+                            font.family: "Terminess Nerd Font Mono"
                             wrapMode: Text.WordWrap
                         }
 
@@ -259,7 +259,7 @@ PanelWindow {
                             text: modelData.body
                             color: center.selectedIndex === index ? center.theme.accentFg : center.theme.fgDim
                             font.pixelSize: 11
-                            font.family: "Noto Sans JP"
+                            font.family: "Terminess Nerd Font Mono"
                             wrapMode: Text.WordWrap
                             visible: text !== ""
                             maximumLineCount: 3
@@ -307,14 +307,14 @@ PanelWindow {
                                 text: modelData.key
                                 color: center.theme.accent
                                 font.pixelSize: 10
-                                font.family: "Noto Sans JP"
+                                font.family: "Terminess Nerd Font Mono"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
                                 text: modelData.desc
                                 color: center.theme.fgDim
                                 font.pixelSize: 10
-                                font.family: "Noto Sans JP"
+                                font.family: "Terminess Nerd Font Mono"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }
