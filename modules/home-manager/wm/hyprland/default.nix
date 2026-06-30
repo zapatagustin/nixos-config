@@ -1,7 +1,7 @@
 { pkgs, lib, ... }:
 let
-  walls = ../../../../wallpapers;                  # repo-root/wallpapers (only the used images, ~1.7MB)
-  ws = builtins.genList (i: toString (i + 1)) 9;   # ["1".."9"]
+  walls = ../../../../wallpapers; # repo-root/wallpapers (only the used images, ~1.7MB)
+  ws = builtins.genList (i: toString (i + 1)) 9; # ["1".."9"]
   # plain single-monitor workspace binds (SUPER+N switch, SUPER+SHIFT+N move window)
   mkWs = mod: dispatch: map (n: "${mod}, ${n}, ${dispatch}, ${n}") ws;
   # disabled until a second monitor is re-added: per-monitor/group workspace binds
@@ -12,7 +12,7 @@ in
     # session/wm tools used by binds, scripts and quickshell (must be on PATH)
     uwsm
     quickshell
-#    hyprpolkitagent   # hyprpaper/hyprlock installed by their HM modules below
+    #    hyprpolkitagent   # hyprpaper/hyprlock installed by their HM modules below
     cliphist
     wl-clipboard
     grim
@@ -24,11 +24,11 @@ in
     libnotify
     kitty
     yazi
-    satty   # screenshot annotation (screenshot.sh edit)
+    satty # screenshot annotation (screenshot.sh edit)
     gruvbox-gtk-theme
     papirus-icon-theme
     # bar/launcher use "Terminess Nerd Font Mono" (system monospace via stylix) — no extra font needed
-#    noto-fonts-cjk-sans   # only if hyprlock's Noto Sans JP clock is re-enabled below
+    #    noto-fonts-cjk-sans   # only if hyprlock's Noto Sans JP clock is re-enabled below
   ];
 
   wayland.windowManager.hyprland = {
@@ -49,8 +49,8 @@ in
       ];
 
       monitor = [
-        "eDP-1,preferred,auto,1"   # AU Optronics panel: only mode is 1366x768, scale 1; only built-in monitor
-        ",preferred,auto,auto"     # fallback for unknown monitors
+        "eDP-1,preferred,auto,1" # AU Optronics panel: only mode is 1366x768, scale 1; only built-in monitor
+        ",preferred,auto,auto" # fallback for unknown monitors
       ];
 
       general = {
@@ -73,14 +73,14 @@ in
         blur.enabled = false;
       };
 
-      animations.enabled = false;   # cachy disabled them ("enabled = no, please :)")
+      animations.enabled = false; # cachy disabled them ("enabled = no, please :)")
 
       master.new_status = "master";
 
       misc = {
         force_default_wallpaper = 1;
         disable_hyprland_logo = true;
-        vrr = 1;   # adaptive sync (free win on panels that support it)
+        vrr = 1; # adaptive sync (free win on panels that support it)
       };
 
       input = {
@@ -104,7 +104,7 @@ in
         "systemctl --user start hyprpolkitagent"
         "wl-paste --type text --watch cliphist store"
         "wl-paste --type image --watch cliphist store"
-        "echo dark > /tmp/qs-theme"                       # Stylix is fixed-dark; tell quickshell
+        "echo dark > /tmp/qs-theme" # Stylix is fixed-dark; tell quickshell
         # disabled until a second monitor is re-added: single built-in monitor needs no setup
         # "bash ~/.config/hypr/setup-monitors.sh"
       ];
@@ -227,13 +227,13 @@ in
     };
   };
 
-#  # idle management. On NixOS the lock works because hyprlock has a PAM entry
+  #  # idle management. On NixOS the lock works because hyprlock has a PAM entry
   # (modules/wm/hyprland.nix). lock_cmd guards against double-launch.
   services.hypridle = {
     enable = true;
     settings = {
       general = {
-#        lock_cmd = "pidof hyprlock || hyprlock";
+        #        lock_cmd = "pidof hyprlock || hyprlock";
         before_sleep_cmd = "loginctl lock-session";
         after_sleep_cmd = "hyprctl dispatch dpms on";
       };
@@ -241,78 +241,80 @@ in
         { timeout = 240; on-timeout = "brightnessctl -s set 20%"; on-resume = "brightnessctl -r"; }
         { timeout = 300; on-timeout = "loginctl lock-session"; on-resume = "hyprctl dispatch dpms on"; }
         { timeout = 360; on-timeout = "hyprctl dispatch dpms off"; on-resume = "hyprctl dispatch dpms on"; }
-        { timeout = 900; on-timeout = "systemctl suspend"; }
+        # disabled: stay always-on (Pi-hole over Tailscale). Lock + dpms-off
+        # still apply above; we just never auto-suspend. Re-enable for laptop use.
+        # { timeout = 900; on-timeout = "systemctl suspend"; }
       ];
     };
   };
 
-#  programs.hyprlock = {
-#    enable = true;
-#    settings = {
-#      general = {
-#        disable_loading_bar = true;
-#        hide_cursor = true;
-#        grace = 0;
-#        no_fade_in = false;
-#      };
-#      background = [{
-#        monitor = "";
-#        path = "${walls}/3.png";
-#        blur_passes = 2;
-#        blur_size = 4;
-#        brightness = 0.6;
-#        contrast = 0.9;
-#        vibrancy = 0.2;
-#      }];
-#      label = [
-#        {
-#          monitor = "";
-#          text = ''cmd[update:1000] echo "<b>$(date +"%H:%M")</b>"'';
-#          color = "rgba(235, 219, 178, 0.95)";
-#          font_size = 96;
-#          font_family = "Noto Sans JP Bold";
-#          position = "0, 120";
-#          halign = "center";
-#          valign = "center";
-#        }
-#        {
-#          monitor = "";
-#          text = ''cmd[update:60000] echo "$(date +"%A, %d de %B de %Y" | sed 's/\b./\u&/g')"'';
-#          color = "rgba(168, 153, 132, 0.90)";
-#          font_size = 22;
-#          font_family = "Noto Sans JP";
-#          position = "0, 30";
-#          halign = "center";
-#          valign = "center";
-#        }
-#        {
-#          monitor = "";
-#          text = "Ingresá tu contraseña para desbloquear";
-#          color = "rgba(168, 153, 132, 0.70)";
-#          font_size = 13;
-#          font_family = "Noto Sans JP";
-#          position = "0, -155";
-#          halign = "center";
-#          valign = "center";
-#        }
-#      ];
-#      # input-field colors come from stylix.targets.hyprlock (base16)
-#      "input-field" = [{
-#        monitor = "";
-#        size = "280, 42";
-#        placeholder_text = ''<span foreground="##a89984">contraseña...</span>'';
-#        hide_input = false;
-#        dots_size = 0.30;
-#        dots_spacing = 0.20;
-#        dots_center = true;
-#        fade_on_empty = true;
-#        position = "0, -100";
-#        halign = "center";
-#        valign = "center";
-#        rounding = 6;
-#      }];
-#    };
-#  };
+  #  programs.hyprlock = {
+  #    enable = true;
+  #    settings = {
+  #      general = {
+  #        disable_loading_bar = true;
+  #        hide_cursor = true;
+  #        grace = 0;
+  #        no_fade_in = false;
+  #      };
+  #      background = [{
+  #        monitor = "";
+  #        path = "${walls}/3.png";
+  #        blur_passes = 2;
+  #        blur_size = 4;
+  #        brightness = 0.6;
+  #        contrast = 0.9;
+  #        vibrancy = 0.2;
+  #      }];
+  #      label = [
+  #        {
+  #          monitor = "";
+  #          text = ''cmd[update:1000] echo "<b>$(date +"%H:%M")</b>"'';
+  #          color = "rgba(235, 219, 178, 0.95)";
+  #          font_size = 96;
+  #          font_family = "Noto Sans JP Bold";
+  #          position = "0, 120";
+  #          halign = "center";
+  #          valign = "center";
+  #        }
+  #        {
+  #          monitor = "";
+  #          text = ''cmd[update:60000] echo "$(date +"%A, %d de %B de %Y" | sed 's/\b./\u&/g')"'';
+  #          color = "rgba(168, 153, 132, 0.90)";
+  #          font_size = 22;
+  #          font_family = "Noto Sans JP";
+  #          position = "0, 30";
+  #          halign = "center";
+  #          valign = "center";
+  #        }
+  #        {
+  #          monitor = "";
+  #          text = "Ingresá tu contraseña para desbloquear";
+  #          color = "rgba(168, 153, 132, 0.70)";
+  #          font_size = 13;
+  #          font_family = "Noto Sans JP";
+  #          position = "0, -155";
+  #          halign = "center";
+  #          valign = "center";
+  #        }
+  #      ];
+  #      # input-field colors come from stylix.targets.hyprlock (base16)
+  #      "input-field" = [{
+  #        monitor = "";
+  #        size = "280, 42";
+  #        placeholder_text = ''<span foreground="##a89984">contraseña...</span>'';
+  #        hide_input = false;
+  #        dots_size = 0.30;
+  #        dots_spacing = 0.20;
+  #        dots_center = true;
+  #        fade_on_empty = true;
+  #        position = "0, -100";
+  #        halign = "center";
+  #        valign = "center";
+  #        rounding = 6;
+  #      }];
+  #    };
+  #  };
 
   # systemd user services (replace the cachy /usr/bin units)
   systemd.user.services.quickshell = {

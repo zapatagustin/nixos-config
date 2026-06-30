@@ -8,6 +8,14 @@
   powerManagement.enable = true;
 
   services = {
+    # Stay awake with the lid closed (acts as an always-on box, e.g. Pi-hole
+    # over Tailscale). Canonical option form; `lidSwitch` is a renamed alias.
+    logind.settings.Login = {
+      HandleLidSwitch = "ignore";
+      HandleLidSwitchExternalPower = "ignore";
+      HandleLidSwitchDocked = "ignore";
+    };
+
     hardware.bolt.enable = true;
     timesyncd.enable = true;
     gpm.enable = true;
@@ -60,7 +68,7 @@
 
     upower = {
       enable = true;
-      criticalPowerAction = "HybridSleep";   # safe without real swap; switch to Hibernate when swap exists
+      criticalPowerAction = "HybridSleep"; # safe without real swap; switch to Hibernate when swap exists
       percentageLow = 20;
       percentageCritical = 10;
       percentageAction = 5;
