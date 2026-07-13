@@ -2,6 +2,16 @@
 let
   mm = config.myDesktop.multiMonitor.enable;
   walls = ../../../../wallpapers;                  # repo-root/wallpapers (only the used images, ~1.7MB)
+
+  # monitor-watcher is the only monitor script behind a systemd unit, so it's the only
+  # one that needs its deps declared (the rest live in ~/.config/hypr and use the session
+  # PATH). runtimeInputs also covers setup-monitors.sh, which the watcher spawns.
+  monitorWatcher = pkgs.writeShellApplication {
+    name = "monitor-watcher";
+    runtimeInputs = with pkgs; [ socat systemd hyprland hyprpaper jq procps coreutils bash ];
+    bashOptions = [ "nounset" ];   # match the script's original `set -u`; errexit would abort best-effort hyprctl/kill calls
+    text = builtins.readFile ./scripts/monitor-watcher.sh;
+  };
   ws = builtins.genList (i: toString (i + 1)) 9;   # ["1".."9"]
   # workspace binds call scripts via `bash` so no exec-bit needed on store files
   mkWsBinds = mod: script: map (n: "${mod}, ${n}, exec, bash ~/.config/hypr/${script} ${n}") ws;
@@ -314,11 +324,12 @@ in
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${pkgs.bash}/bin/bash %h/.config/hypr/monitor-watcher.sh";
-      Environment = [
-        "WALLPAPER_DIR=${walls}"
-        "PATH=${lib.makeBinPath [ pkgs.bash pkgs.coreutils pkgs.socat pkgs.jq pkgs.procps pkgs.systemd pkgs.hyprland pkgs.hyprpaper ]}"
-      ];
+      ExecStart = "${monitorWatcher}/bin/monitor-watcher";
+      # WALLPAPER_DIR is consumed by setup-monitors.sh, which the watcher spawns on
+      # hotplug. A systemd user service does not inherit Hyprland's `env` (uwsm finalize
+      # only exports HYPRLAND_INSTANCE_SIGNATURE), so set it here. PATH is no longer set
+      # manually — runtimeInputs handles it.
+      Environment = [ "WALLPAPER_DIR=${walls}" ];
       Restart = "on-failure";
       RestartSec = 2;
     };
@@ -333,7 +344,6 @@ in
     "hypr/move-to-group.sh".source = ./scripts/move-to-group.sh;
     "hypr/move-all-to-group.sh".source = ./scripts/move-all-to-group.sh;
     "hypr/screenshot.sh".source = ./scripts/screenshot.sh;
-    "hypr/monitor-watcher.sh".source = ./scripts/monitor-watcher.sh;
     "quickshell".source = ./quickshell;
   } // lib.optionalAttrs mm {
     "hypr/setup-monitors.sh".source = ./scripts/setup-monitors.sh;

@@ -5,7 +5,7 @@
 # solo corre setup-monitors.sh una vez, 1.5s después del último evento.
 
 SOCK="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
-SETUP="$(dirname "$0")/setup-monitors.sh"
+SETUP="$HOME/.config/hypr/setup-monitors.sh"
 QS_CONFIG="$HOME/.config/quickshell/bar"
 DEBOUNCE_SEC=1.5
 
