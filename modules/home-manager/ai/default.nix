@@ -48,5 +48,19 @@ in
       run ${engram}/bin/engram setup opencode \
         || echo "warning: engram setup opencode failed (retry: engram setup opencode)"
     fi
+
+    # ponytail/caveman in opencode: no plugin marketplace there — caveman ships
+    # a native installer, ponytail is an npm entry in opencode.json's plugin
+    # array (opencode fetches it itself on startup).
+    ocjson="$HOME/.config/opencode/opencode.json"
+    if ! grep -qs caveman "$ocjson"; then
+      run ${pkgs.nodejs}/bin/npx -y github:JuliusBrussee/caveman -- --only opencode \
+        || echo "warning: caveman opencode install failed (retry: npx -y github:JuliusBrussee/caveman -- --only opencode)"
+    fi
+    if [ -f "$ocjson" ] && ! grep -qs dietrichgebert/ponytail "$ocjson"; then
+      run ${pkgs.jq}/bin/jq '.plugin = ((.plugin // []) + ["@dietrichgebert/ponytail"] | unique)' "$ocjson" > "$ocjson.tmp" \
+        && run mv "$ocjson.tmp" "$ocjson" \
+        || echo "warning: could not add ponytail plugin to opencode.json"
+    fi
   '';
 }
