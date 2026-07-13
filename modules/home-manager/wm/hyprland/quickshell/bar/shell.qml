@@ -24,28 +24,12 @@ ShellRoot {
         }
     }
 
-    // Escuchar cambios de tema desde set-theme.sh
-    Process {
-        id: themeWatcher
-        command: ["sh", "-c", "touch /tmp/qs-theme && tail -n 0 -f /tmp/qs-theme"]
-        running: true
-        stdout: SplitParser {
-            onRead: (line) => {
-                var msg = line.trim()
-                if (msg === "dark")  root.isDark = true
-                if (msg === "light") root.isDark = false
-            }
+    IpcWatcher {
+        pipePath: "/tmp/qs-theme"
+        onTriggered: (line) => {
+            if (line === "dark")  root.isDark = true
+            if (line === "light") root.isDark = false
         }
-        onRunningChanged: {
-            if (!running) themeRestartTimer.restart()
-        }
-    }
-
-    Timer {
-        id: themeRestartTimer
-        interval: 1000
-        repeat: false
-        onTriggered: themeWatcher.running = true
     }
 
     property var darkTheme: ({
@@ -143,29 +127,17 @@ ShellRoot {
         }
     }
 
-    Process {
-        id: notifIpc
-        command: ["sh", "-c", "touch /tmp/qs-notif && tail -n 0 -f /tmp/qs-notif"]
-        running: true
-        stdout: SplitParser {
-            onRead: (line) => {
-                if (line.trim() === "toggle") {
-                    if (notifCenter.open) notifCenter.doHide()
-                    else {
-                        notifCenter.screen = root.focusedScreen()
-                        notifCenter.doShow()
-                    }
+    IpcWatcher {
+        pipePath: "/tmp/qs-notif"
+        onTriggered: (line) => {
+            if (line === "toggle") {
+                if (notifCenter.open) notifCenter.doHide()
+                else {
+                    notifCenter.screen = root.focusedScreen()
+                    notifCenter.doShow()
                 }
             }
         }
-        onRunningChanged: { if (!running) notifRestartTimer.restart() }
-    }
-
-    Timer {
-        id: notifRestartTimer
-        interval: 1000
-        repeat: false
-        onTriggered: notifIpc.running = true
     }
 
     function focusedScreen() {
@@ -211,59 +183,29 @@ ShellRoot {
         }
     }
 
-    Process {
-        id: ipcWatcher
-        command: ["sh", "-c", "touch /tmp/qs-launcher && tail -n 0 -f /tmp/qs-launcher"]
-        running: true
-        stdout: SplitParser {
-            onRead: (line) => {
-                var msg = line.trim()
-                if (msg === "toggle") {
-                    if (appLauncher.open) appLauncher.doHide()
-                    else {
-                        appLauncher.screen = root.focusedScreen()
-                        appLauncher.doShow()
-                    }
+    IpcWatcher {
+        pipePath: "/tmp/qs-launcher"
+        onTriggered: (line) => {
+            if (line === "toggle") {
+                if (appLauncher.open) appLauncher.doHide()
+                else {
+                    appLauncher.screen = root.focusedScreen()
+                    appLauncher.doShow()
                 }
             }
         }
-        onRunningChanged: {
-            if (!running) launcherRestartTimer.restart()
-        }
     }
 
-    Timer {
-        id: launcherRestartTimer
-        interval: 1000
-        repeat: false
-        onTriggered: ipcWatcher.running = true
-    }
-
-    Process {
-        id: clipboardIpc
-        command: ["sh", "-c", "touch /tmp/qs-clipboard && tail -n 0 -f /tmp/qs-clipboard"]
-        running: true
-        stdout: SplitParser {
-            onRead: (line) => {
-                var msg = line.trim()
-                if (msg === "toggle") {
-                    if (clipViewer.open) clipViewer.doHide()
-                    else {
-                        clipViewer.screen = root.focusedScreen()
-                        clipViewer.doShow()
-                    }
+    IpcWatcher {
+        pipePath: "/tmp/qs-clipboard"
+        onTriggered: (line) => {
+            if (line === "toggle") {
+                if (clipViewer.open) clipViewer.doHide()
+                else {
+                    clipViewer.screen = root.focusedScreen()
+                    clipViewer.doShow()
                 }
             }
         }
-        onRunningChanged: {
-            if (!running) clipboardRestartTimer.restart()
-        }
-    }
-
-    Timer {
-        id: clipboardRestartTimer
-        interval: 1000
-        repeat: false
-        onTriggered: clipboardIpc.running = true
     }
 }
