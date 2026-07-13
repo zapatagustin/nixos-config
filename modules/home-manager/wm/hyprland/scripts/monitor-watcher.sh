@@ -6,7 +6,6 @@
 
 SOCK="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
 SETUP="$HOME/.config/hypr/setup-monitors.sh"
-QS_CONFIG="$HOME/.config/quickshell/bar"
 DEBOUNCE_SEC=1.5
 
 # Quickshell muere a veces cuando cambia la lista de monitores (PanelWindow
