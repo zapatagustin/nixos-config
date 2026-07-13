@@ -241,9 +241,7 @@ in
         { timeout = 240; on-timeout = "brightnessctl -s set 20%"; on-resume = "brightnessctl -r"; }
         { timeout = 300; on-timeout = "loginctl lock-session"; on-resume = "hyprctl dispatch dpms on"; }
         { timeout = 360; on-timeout = "hyprctl dispatch dpms off"; on-resume = "hyprctl dispatch dpms on"; }
-        # disabled: stay always-on (Pi-hole over Tailscale). Lock + dpms-off
-        # still apply above; we just never auto-suspend. Re-enable for laptop use.
-        # { timeout = 900; on-timeout = "systemctl suspend"; }
+        { timeout = 900; on-timeout = "systemctl suspend"; }
       ];
     };
   };

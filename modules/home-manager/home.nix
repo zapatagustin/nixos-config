@@ -4,7 +4,9 @@
     ./shells/shells.nix
     ./terminals/terminals.nix
     ./editors/neovim
+    ./editors/emacs
     ./wm/hyprland
+    ./ai
   ];
 
   home.username = username;
@@ -21,7 +23,7 @@
   ];
 
   home.packages = with pkgs; [
-    (callPackage ../../pkgs/brave-origin.nix { })   # Brave Origin (not in nixpkgs); see pkgs/brave-origin.nix
+    (callPackage ../../pkgs/brave-origin.nix { }) # Brave Origin (not in nixpkgs); see pkgs/brave-origin.nix
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     zathura
     claude-code

@@ -8,14 +8,6 @@
   powerManagement.enable = true;
 
   services = {
-    # Stay awake with the lid closed (acts as an always-on box, e.g. Pi-hole
-    # over Tailscale). Canonical option form; `lidSwitch` is a renamed alias.
-    logind.settings.Login = {
-      HandleLidSwitch = "ignore";
-      HandleLidSwitchExternalPower = "ignore";
-      HandleLidSwitchDocked = "ignore";
-    };
-
     hardware.bolt.enable = true;
     timesyncd.enable = true;
     gpm.enable = true;

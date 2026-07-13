@@ -26,6 +26,8 @@ in
       stylua
       rustfmt
       prettier
+      # startup pokemon sprite (lua/pokemon.lua)
+      krabby
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -42,10 +44,15 @@ in
       {
         plugin = nvim-treesitter.withAllGrammars;
         type = "lua";
+        # main-branch rewrite: no more nvim-treesitter.configs; highlight/indent
+        # are enabled per-buffer (parsers preinstalled by nix, start never downloads)
         config = ''
-          require("nvim-treesitter.configs").setup({
-            highlight = { enable = true },
-            indent = { enable = true },
+          vim.api.nvim_create_autocmd("FileType", {
+            callback = function(args)
+              if pcall(vim.treesitter.start, args.buf) then
+                vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+              end
+            end,
           })
         '';
       }
@@ -160,6 +167,7 @@ in
     initLua = ''
       ${luaFile "options.lua"}
       ${luaFile "keymaps.lua"}
+      ${luaFile "pokemon.lua"}
     '';
   };
 }
