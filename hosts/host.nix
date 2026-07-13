@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, username, ... }:
 {
   imports = [
     ./locale/locale.nix
@@ -42,7 +42,7 @@
     sessionVariables = {
       TERMINAL = "kitty";
       NIXPKGS_ALLOW_UNFREE = "1";
-      NH_FLAKE = "/home/thinkpad/nixos-config";  # nh os switch w/o passing path
+      NH_FLAKE = "/home/${username}/nixos-config";  # nh os switch w/o passing path
     };
   };
 

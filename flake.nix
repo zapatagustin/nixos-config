@@ -1,5 +1,5 @@
 {
-  description = "thinkpad NixOS flake";
+  description = "multi-host NixOS flake (surface + thinkpad)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -23,27 +23,31 @@
   };
 
   outputs = { nixpkgs, home-manager, chaotic, ... }@inputs:
-  let
-    hostname = "thinkpad";
-    username = "thinkpad";
-  in {
-    nixosConfigurations.${hostname} = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      specialArgs = { inherit inputs hostname username; };
-      modules = [
-        ./configuration.nix
-        chaotic.nixosModules.default
-        inputs.stylix.nixosModules.stylix
-        inputs.sops-nix.nixosModules.sops
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit inputs username; };
-          home-manager.users.${username} = import ./modules/home-manager/home.nix;
-        }
-      ];
-    };
+    let
+      mkHost = hostname:
+        nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          specialArgs = { inherit inputs hostname; username = hostname; };
+          modules = [
+            ./hosts/${hostname}/default.nix
+            chaotic.nixosModules.default
+            inputs.stylix.nixosModules.stylix
+            inputs.sops-nix.nixosModules.sops
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useUserPackages = true;
+              home-manager.extraSpecialArgs = { inherit inputs hostname; username = hostname; };
+              home-manager.users.${hostname} = import ./modules/home-manager/home.nix;
+            }
+          ];
+        };
+    in
+    {
+      nixosConfigurations = {
+        surface = mkHost "surface";
+        thinkpad = mkHost "thinkpad";
+      };
 
-    formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixpkgs-fmt;
-  };
+      formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixpkgs-fmt;
+    };
 }
