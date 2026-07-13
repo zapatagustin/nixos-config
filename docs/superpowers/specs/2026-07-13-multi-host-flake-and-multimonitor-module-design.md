@@ -61,27 +61,27 @@ The `cachy-config` repo stays the separate gaming-desktop config and is out of s
   - `surface`: `home-manager.users.surface.myDesktop.multiMonitor.enable = true`.
   - `thinkpad`: unset → the systemd user services and monitor `configFile`s are
     **not generated** at all (`lib.mkIf`). Zero process, zero RAM on the nomad host.
-- **Monitor daemon trio → `pkgs.writeShellApplication`:** `monitors-detect.sh`,
-  `setup-monitors.sh`, `monitor-watcher.sh`.
-  - Gains: `runtimeInputs` bakes deps into PATH (kills the manual
-    `PATH=${lib.makeBinPath …}` line in the `monitor-watcher` systemd unit),
-    build-time `shellcheck` (a broken script fails `nix flake check` before rebuild),
-    Nix values interpolated (wallpaper dir, monitor model `LF27T35`, mode
-    `1920x1080@74.97`, workspace ranges) — single source of truth, store-path immutable.
-  - **Resolving the prior "CANNOT" constraint** (`2026-06-23` design §Discovered
-    constraints): the blockers were sibling sourcing and bind-by-path calls.
-    - Sibling sourcing (`setup` sources `monitors-detect`): **inline** the detect
-      logic into `setup-monitors` (or share it as one interpolated Nix bash snippet).
-      No `$(dirname $0)` sibling lookup remains.
-    - Watcher→setup call: `monitor-watcher` references `${setup-monitors}/bin/setup-monitors`
-      by store path (interpolated), not `$(dirname $0)/setup-monitors.sh`.
-    - Neither of the trio is called from a keybind by `~/.config` path, so the
-      bind-path constraint does not apply to them.
-- **Bind-helper scripts stay as-is** (`switch-monitor.sh`, `switch-group.sh`,
-  `move-to-group.sh`, `move-all-to-group.sh`, `screenshot.sh`): still deployed via
-  `xdg.configFile` and called from binds by `~/.config/hypr/…` path, relying on the
-  session PATH (`home.packages`). The prior design's reasoning holds for these — they
-  are not behind systemd and are not the pain point. Not converted (YAGNI).
+- **Only `monitor-watcher.sh` → `pkgs.writeShellApplication`** (revised during
+  planning — see below). It is the sole script behind a systemd unit and thus the
+  only one carrying the manual `PATH=${lib.makeBinPath …}` hack.
+  - Gains: `runtimeInputs` bakes deps into PATH (kills the manual PATH line in the
+    `monitor-watcher` systemd unit), build-time `shellcheck`, store-path immutable.
+  - `bashOptions = [ "nounset" ]` to match the script's original `set -u` (avoid
+    `errexit` aborting the best-effort `hyprctl`/`kill` calls).
+  - It spawns `setup-monitors.sh`, so its `runtimeInputs` must also cover setup's
+    deps (`jq hyprland hyprpaper procps coreutils bash`) since the child inherits PATH.
+    `SETUP` changes from `$(dirname $0)/setup-monitors.sh` to `$HOME/.config/hypr/setup-monitors.sh`.
+- **`monitors-detect.sh`, `setup-monitors.sh`, and the bind helpers stay as
+  `xdg.configFile`.** DISCOVERED CONSTRAINT (revises the "trio → writeShellApplication"
+  idea): `monitors-detect.sh` is `source`d by **five** scripts — `setup-monitors.sh`
+  AND the four bind helpers `switch-monitor.sh` / `switch-group.sh` / `move-to-group.sh`
+  / `move-all-to-group.sh`. Inlining detect into a `writeShellApplication` setup would
+  either break the helpers or duplicate the detect logic. The helpers are called from
+  keybinds by `~/.config/hypr/…` path (the `2026-06-23` design's bind-path constraint
+  still holds). So detect + setup + helpers remain sibling files under `~/.config/hypr/`,
+  relying on the session PATH — exactly as the prior port designed. Converting only
+  `monitor-watcher` still achieves the real nixos-style win (no PATH hack in the unit)
+  without duplication.
 
 ### 4. Hyprland is shared (both hosts)
 
