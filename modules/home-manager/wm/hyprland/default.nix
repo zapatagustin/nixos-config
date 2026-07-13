@@ -12,6 +12,14 @@ let
     bashOptions = [ "nounset" ];   # match the script's original `set -u`; errexit would abort best-effort hyprctl/kill calls
     text = builtins.readFile ./scripts/monitor-watcher.sh;
   };
+
+  # TV 4K HDR toggle (Super+Shift+T). Invoked by store path from the bind, gated by `mm`.
+  tvScale = pkgs.writeShellApplication {
+    name = "tv-scale";
+    runtimeInputs = with pkgs; [ hyprland coreutils gnugrep gawk ];
+    bashOptions = [ "nounset" ];   # script uses `set -u`
+    text = builtins.readFile ./scripts/tv-scale.sh;
+  };
   ws = builtins.genList (i: toString (i + 1)) 9;   # ["1".."9"]
   # workspace binds call scripts via `bash` so no exec-bit needed on store files
   mkWsBinds = mod: script: map (n: "${mod}, ${n}, exec, bash ~/.config/hypr/${script} ${n}") ws;
@@ -55,7 +63,8 @@ in
       monitor = [
         "eDP-1,preferred,auto,1"   # 1920x1080 native, scale 1 (no fractional); externals via setup-monitors.sh
         ",preferred,auto,auto"     # fallback for unknown monitors
-      ];
+      ] ++ lib.optional mm
+        "HDMI-A-1,3840x2160@60,0x0,2,bitdepth,10,cm,wide";   # TV 4K: 10-bit + wide gamut (SDR desktop); tv-scale toggles game/HDR
 
       general = {
         gaps_in = 3;
@@ -156,7 +165,8 @@ in
       ++ mkWsBinds "$mainMod" "switch-monitor.sh"
       ++ mkWsBinds "ALT" "switch-group.sh"
       ++ mkWsBinds "$mainMod SHIFT" "move-to-group.sh"
-      ++ mkWsBinds "ALT SHIFT" "move-all-to-group.sh";
+      ++ mkWsBinds "ALT SHIFT" "move-all-to-group.sh"
+      ++ lib.optional mm "$mainMod SHIFT, T, exec, ${tvScale}/bin/tv-scale";
 
       bindm = [
         "$mainMod, mouse:272, movewindow"
