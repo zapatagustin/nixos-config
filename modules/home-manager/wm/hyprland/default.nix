@@ -1,5 +1,6 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, config, ... }:
 let
+  mm = config.myDesktop.multiMonitor.enable;
   walls = ../../../../wallpapers;                  # repo-root/wallpapers (only the used images, ~1.7MB)
   ws = builtins.genList (i: toString (i + 1)) 9;   # ["1".."9"]
   # workspace binds call scripts via `bash` so no exec-bit needed on store files
@@ -97,8 +98,7 @@ in
         "wl-paste --type text --watch cliphist store"
         "wl-paste --type image --watch cliphist store"
         "echo dark > /tmp/qs-theme"                       # Stylix is fixed-dark; tell quickshell
-        "bash ~/.config/hypr/setup-monitors.sh"
-      ];
+      ] ++ lib.optional mm "bash ~/.config/hypr/setup-monitors.sh";
 
       bind = [
         # apps
@@ -307,7 +307,7 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
-  systemd.user.services.monitor-watcher = {
+  systemd.user.services.monitor-watcher = lib.mkIf mm {
     Unit = {
       Description = "Hyprland monitor hotplug watcher";
       PartOf = [ "graphical-session.target" ];
@@ -328,7 +328,6 @@ in
   # scripts deployed individually so they coexist with the generated hyprland.conf
   xdg.configFile = {
     "hypr/monitors-detect.sh".source = ./scripts/monitors-detect.sh;
-    "hypr/setup-monitors.sh".source = ./scripts/setup-monitors.sh;
     "hypr/switch-monitor.sh".source = ./scripts/switch-monitor.sh;
     "hypr/switch-group.sh".source = ./scripts/switch-group.sh;
     "hypr/move-to-group.sh".source = ./scripts/move-to-group.sh;
@@ -336,5 +335,7 @@ in
     "hypr/screenshot.sh".source = ./scripts/screenshot.sh;
     "hypr/monitor-watcher.sh".source = ./scripts/monitor-watcher.sh;
     "quickshell".source = ./quickshell;
+  } // lib.optionalAttrs mm {
+    "hypr/setup-monitors.sh".source = ./scripts/setup-monitors.sh;
   };
 }

@@ -1,6 +1,7 @@
 { pkgs, inputs, username, ... }:
 {
   imports = [
+    ./options.nix
     ./shells/shells.nix
     ./terminals/terminals.nix
     ./editors/neovim
