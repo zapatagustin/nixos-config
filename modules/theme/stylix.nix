@@ -14,6 +14,14 @@
       serif = { package = pkgs.udev-gothic; name = "UDEV Gothic"; };
     };
 
+    # Cursor: stylix sets XCURSOR_SIZE + HYPRCURSOR_SIZE (was XCURSOR_SIZE/HYPRCURSOR_SIZE=24
+    # in cachy's uwsm/env) plus the theme. Name verified against the release's share/icons dirs.
+    cursor = {
+      package = pkgs.capitaine-cursors-themed;
+      name = "Capitaine Cursors (Gruvbox)";
+      size = 24;
+    };
+
     # Stylix's starship target imposes its own palette and breaks the custom
     # prompt (uses named colors). Manual palette is already gruvbox — keep it.
     targets.starship.enable = false;

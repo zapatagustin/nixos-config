@@ -86,6 +86,8 @@ in
         vrr = 1;   # adaptive sync (free win on panels that support it)
       };
 
+      render.direct_scanout = true;   # bypass compositing on fullscreen surfaces (perf; lost in the cachy port)
+
       input = {
         kb_layout = "es,us";
         kb_variant = ",dvorak";
