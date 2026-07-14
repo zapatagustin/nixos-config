@@ -1,0 +1,7 @@
+{
+  "args": [
+    "mcp",
+    "--tools=agent"
+  ],
+  "command": "/home/agustin/.local/bin/engram"
+}

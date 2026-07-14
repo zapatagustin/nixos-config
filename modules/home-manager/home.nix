@@ -6,6 +6,8 @@
     ./terminals/terminals.nix
     ./editors/neovim
     ./wm/hyprland
+    ./opencode
+    ./claude-code
   ];
 
   home.username = username;
@@ -18,10 +20,11 @@
 
   home.packages = with pkgs; [
     brave
-    inputs.zen-browser.packages.${pkgs.system}.default
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     nnn
     zathura
     calibre
-    stremio
+    # stremio removed from nixpkgs (qt5 webengine dep); use flatpak
+    # stremio
   ];
 }
