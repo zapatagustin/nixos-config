@@ -18,7 +18,7 @@
     };
     nix-ld = {
       enable = true;
-      package = pkgs.nix-ld-rs;
+      package = pkgs.nix-ld;
       libraries = with pkgs; [
         stdenv.cc.cc
         zlib
@@ -52,8 +52,9 @@
       extra-experimental-features = [
         "nix-command"
         "flakes"
+        "cgroups"   # required by use-cgroups = true on newer nix
       ];
-      auto-optimise-store = true;
+      # store dedup handled by nix.optimise.automatic (weekly) instead of on every build
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"

@@ -60,8 +60,7 @@
 
     upower = {
       enable = true;
-      allowRiskyCriticalPowerAction = true;
-      criticalPowerAction = "Suspend";   # safe without real swap; switch to Hibernate when swap exists
+      criticalPowerAction = "HybridSleep"; # safe without real swap; switch to Hibernate when swap exists
       percentageLow = 20;
       percentageCritical = 10;
       percentageAction = 5;

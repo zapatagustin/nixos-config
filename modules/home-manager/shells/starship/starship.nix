@@ -18,10 +18,14 @@
         "$nix_shell"
         "[](fg:color_blue bg:color_bg3)"
         "$cmd_duration"
-        "[](fg:color_bg3) "
+        "[](fg:color_bg3 bg:color_bg1)"
+        "$time"
+        "[](fg:color_bg1)"
+        "$line_break"
+        "$character"
       ];
 
-      palette = "gruvbox_dark";
+      palette = lib.mkForce "gruvbox_dark";
       palettes.gruvbox_dark = {
         color_fg0 = "#fbf1c7";
         color_bg1 = "#3c3836";

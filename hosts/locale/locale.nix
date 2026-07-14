@@ -24,7 +24,7 @@
   console = {
     earlySetup = true;
     keyMap = "dvorak";
-    font = "ter-v32b";
+    font = "ter-v16b";
     packages = [ pkgs.terminus_font ];
   };
 

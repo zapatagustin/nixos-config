@@ -17,6 +17,6 @@
 
   security.polkit.enable = true;
 
-  # hyprlock needs a PAM entry to authenticate — without it you can't unlock.
-  security.pam.services.hyprlock = { };
+#  # hyprlock needs a PAM entry to authenticate — without it you can't unlock.
+#  security.pam.services.hyprlock = { };
 }

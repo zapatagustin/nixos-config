@@ -12,6 +12,9 @@
 
   programs.zoxide.enable = true;
   programs.bat.enable = true;
+  # bat gets no stylix theme: homeManagerIntegration.autoImport is off (see
+  # modules/theme/stylix.nix), so bat falls back to its built-in default —
+  # which also avoids the ~2s batCache rebuild on every activation.
   programs.gh.enable = true;
   programs.nix-index.enable = true;
 
@@ -22,8 +25,10 @@
 
   programs.git = {
     enable = true;
-    settings.user.name = "zapatagustin";
-    settings.user.email = "zapatagustin4@gmail.com";
+    settings.user = {
+      name = "zapatagustin";
+      email = "zapatagustin4@gmail.com";
+    };
   };
 
   programs.delta = {

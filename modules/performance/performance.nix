@@ -19,8 +19,9 @@
     "net.core.rmem_max" = 67108864;
     "net.core.wmem_max" = 67108864;
 
-    # Memory (laptop + zram)
-    "vm.swappiness" = 10;
+    # Memory (laptop + zram). zram swap is fast/compressed, so prefer it
+    # aggressively instead of evicting page cache (low swappiness suits disk swap).
+    "vm.swappiness" = 180;
     "vm.vfs_cache_pressure" = 50;
     "vm.dirty_writeback_centisecs" = 6000;
 

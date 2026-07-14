@@ -45,7 +45,7 @@
     nvd
 
     # System info
-    glxinfo
+    mesa-demos
     imagemagick
     pciutils
   ];

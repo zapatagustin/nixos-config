@@ -3,10 +3,17 @@
 # Formato: "Nombre\tcomando"
 # Solo lee la seccion [Desktop Entry], igual que dmenu_run
 
-for dir in ~/.local/share/applications \
-           /usr/share/applications \
-           ~/.local/share/flatpak/exports/share/applications \
-           /var/lib/flatpak/exports/share/applications; do
+# Recorre los applications/ de cada entrada de XDG_DATA_DIRS (en NixOS los
+# .desktop viven en /etc/profiles/.../share/applications y
+# /run/current-system/sw/share/applications, no en /usr/share/applications).
+data_dirs="${XDG_DATA_DIRS:-/usr/share:/usr/local/share}"
+dirs=()
+IFS=':' read -ra _xdg <<< "$data_dirs"
+for base in "$HOME/.local/share" "${_xdg[@]}"; do
+    [ -n "$base" ] && dirs+=("$base/applications")
+done
+
+for dir in "${dirs[@]}"; do
     [ -d "$dir" ] || continue
     for f in "$dir"/*.desktop; do
         [ -f "$f" ] || continue

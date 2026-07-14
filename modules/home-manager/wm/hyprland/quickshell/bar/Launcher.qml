@@ -131,7 +131,7 @@ PanelWindow {
                     text: "run:"
                     color: launcher.theme.accentFg
                     font.pixelSize: 12
-                    font.family: "Noto Sans JP"
+                    font.family: "Terminess Nerd Font Mono"
                     font.weight: Font.Bold
                 }
             }
@@ -150,7 +150,7 @@ PanelWindow {
                     verticalAlignment: TextInput.AlignVCenter
                     color: launcher.theme.fg
                     font.pixelSize: 12
-                    font.family: "Noto Sans JP"
+                    font.family: "Terminess Nerd Font Mono"
                     selectionColor: launcher.theme.accent
                     selectedTextColor: launcher.theme.accentFg
 
@@ -206,7 +206,7 @@ PanelWindow {
                                     ? launcher.theme.accentFg
                                     : launcher.theme.fg
                                 font.pixelSize: 12
-                                font.family: "Noto Sans JP"
+                                font.family: "Terminess Nerd Font Mono"
                             }
                         }
 

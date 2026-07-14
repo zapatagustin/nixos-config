@@ -71,7 +71,7 @@ PanelWindow {
                     color: popup.theme.accent
                     font.pixelSize: 10
                     font.weight: Font.Bold
-                    font.family: "Noto Sans JP"
+                    font.family: "Terminess Nerd Font Mono"
                     Layout.fillWidth: true
                 }
 
@@ -92,7 +92,7 @@ PanelWindow {
                 color: popup.theme.fg
                 font.pixelSize: 12
                 font.weight: Font.Medium
-                font.family: "Noto Sans JP"
+                font.family: "Terminess Nerd Font Mono"
                 wrapMode: Text.WordWrap
             }
 
@@ -101,7 +101,7 @@ PanelWindow {
                 text: popup.current ? popup.current.body : ""
                 color: popup.theme.fgDim
                 font.pixelSize: 11
-                font.family: "Noto Sans JP"
+                font.family: "Terminess Nerd Font Mono"
                 wrapMode: Text.WordWrap
                 visible: text !== ""
                 maximumLineCount: 3

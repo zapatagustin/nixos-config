@@ -284,7 +284,7 @@ PanelWindow {
                         text: "Clipboard"
                         color: viewer.theme.fg
                         font.pixelSize: 12
-                        font.family: "Noto Sans JP"
+                        font.family: "Terminess Nerd Font Mono"
                         font.weight: Font.Bold
                         Layout.alignment: Qt.AlignVCenter
                     }
@@ -295,7 +295,7 @@ PanelWindow {
                         text: viewer.filteredItems.length + " items"
                         color: viewer.theme.fgDim
                         font.pixelSize: 11
-                        font.family: "Noto Sans JP"
+                        font.family: "Terminess Nerd Font Mono"
                         Layout.alignment: Qt.AlignVCenter
                     }
 
@@ -313,7 +313,7 @@ PanelWindow {
                             anchors.centerIn: parent
                             text: "limpiar"
                             font.pixelSize: 10
-                            font.family: "Noto Sans JP"
+                            font.family: "Terminess Nerd Font Mono"
                             color: clearHover.containsMouse
                                 ? viewer.theme.accentFg
                                 : viewer.theme.fgDim
@@ -344,7 +344,7 @@ PanelWindow {
                         text: "/"
                         color: viewer.theme.fgDim
                         font.pixelSize: 12
-                        font.family: "Noto Sans JP"
+                        font.family: "Terminess Nerd Font Mono"
                         Layout.alignment: Qt.AlignVCenter
                     }
 
@@ -353,7 +353,7 @@ PanelWindow {
                         Layout.fillWidth: true
                         color: viewer.theme.fg
                         font.pixelSize: 12
-                        font.family: "Noto Sans JP"
+                        font.family: "Terminess Nerd Font Mono"
                         verticalAlignment: TextInput.AlignVCenter
                         height: parent.height
 
@@ -467,7 +467,7 @@ PanelWindow {
                         text: viewer.query !== "" ? "sin resultados" : "historial vacío"
                         color: viewer.theme.fgDim
                         font.pixelSize: 12
-                        font.family: "Noto Sans JP"
+                        font.family: "Terminess Nerd Font Mono"
                     }
                 }
 
@@ -518,7 +518,7 @@ PanelWindow {
                                     anchors.centerIn: parent
                                     text: "anclado"
                                     font.pixelSize: 9
-                                    font.family: "Noto Sans JP"
+                                    font.family: "Terminess Nerd Font Mono"
                                     color: viewer.selectedIndex === index
                                         ? viewer.theme.fg
                                         : viewer.theme.accentFg
@@ -534,7 +534,7 @@ PanelWindow {
                                     ? viewer.theme.accentFg
                                     : viewer.theme.fg
                                 font.pixelSize: 11
-                                font.family: "Noto Sans JP"
+                                font.family: "Terminess Nerd Font Mono"
                                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                                 maximumLineCount: 3
                                 elide: Text.ElideRight
@@ -623,14 +623,14 @@ PanelWindow {
                                 text: modelData.key
                                 color: viewer.theme.accent
                                 font.pixelSize: 10
-                                font.family: "Noto Sans JP"
+                                font.family: "Terminess Nerd Font Mono"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
                                 text: modelData.desc
                                 color: viewer.theme.fgDim
                                 font.pixelSize: 10
-                                font.family: "Noto Sans JP"
+                                font.family: "Terminess Nerd Font Mono"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }

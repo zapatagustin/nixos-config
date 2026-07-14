@@ -5,7 +5,9 @@
     ./shells/shells.nix
     ./terminals/terminals.nix
     ./editors/neovim
+    ./editors/emacs
     ./wm/hyprland
+    ./ai
     ./opencode
     ./claude-code
   ];
@@ -18,12 +20,19 @@
 
   nixpkgs.config.allowUnfree = true;
 
+  # bitwarden-desktop pulls in electron-39.8.10, marked insecure (EOL)
+  nixpkgs.config.permittedInsecurePackages = [
+    "electron-39.8.10"
+  ];
+
   home.packages = with pkgs; [
-    brave
+    (callPackage ../../pkgs/brave-origin.nix { }) # Brave Origin (not in nixpkgs); see pkgs/brave-origin.nix
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     nnn
     zathura
     calibre
+    claude-code
+    bitwarden-desktop
     # stremio removed from nixpkgs (qt5 webengine dep); use flatpak
     # stremio
   ];

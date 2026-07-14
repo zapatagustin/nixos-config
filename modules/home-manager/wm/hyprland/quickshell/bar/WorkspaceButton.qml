@@ -31,7 +31,7 @@ Rectangle {
         anchors.centerIn: parent
         text: btn.jpLabel
         font.pixelSize: 12
-        font.family: "Noto Sans JP"
+        font.family: "Terminess Nerd Font Mono"
         color: btn.active
             ? btn.theme.wsActiveText
             : btn.occupied

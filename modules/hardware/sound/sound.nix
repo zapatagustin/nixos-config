@@ -1,8 +1,8 @@
-{ pkgs, ... }: {
+{ ... }: {
     # Sound settings
     security.rtkit.enable = true;
     services.pulseaudio.enable = false;
-    environment.systemPackages = with pkgs; [ pulseaudio ];
+    # CLI is wpctl (wireplumber) + pipewire's pulse shim — no full pulseaudio pkg needed
     services.pipewire = {
       enable = true;
       alsa.enable = true;

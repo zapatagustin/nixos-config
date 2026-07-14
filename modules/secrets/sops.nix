@@ -1,7 +1,7 @@
 { config, ... }:
 {
   # Encrypted secrets file, safe to commit (see README "Secrets" section).
-  sops.defaultSopsFile = ./secrets/secrets.yaml;
+  sops.defaultSopsFile = ./secrets.yaml;
 
   # Host decrypts at activation using its own SSH host key (derived to age).
   # No extra key to manage; the key already exists and persists.

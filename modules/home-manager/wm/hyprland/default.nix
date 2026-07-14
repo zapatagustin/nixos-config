@@ -1,7 +1,7 @@
 { pkgs, lib, config, ... }:
 let
   mm = config.myDesktop.multiMonitor.enable;
-  walls = ../../../../wallpapers;                  # repo-root/wallpapers (only the used images, ~1.7MB)
+  walls = ../../../../wallpapers; # repo-root/wallpapers (only the used images, ~1.7MB)
 
   # monitor-watcher is the only monitor script behind a systemd unit, so it's the only
   # one that needs its deps declared (the rest live in ~/.config/hypr and use the session
@@ -9,7 +9,7 @@ let
   monitorWatcher = pkgs.writeShellApplication {
     name = "monitor-watcher";
     runtimeInputs = with pkgs; [ socat systemd hyprland hyprpaper jq procps coreutils bash ];
-    bashOptions = [ "nounset" ];   # match the script's original `set -u`; errexit would abort best-effort hyprctl/kill calls
+    bashOptions = [ "nounset" ]; # match the script's original `set -u`; errexit would abort best-effort hyprctl/kill calls
     text = builtins.readFile ./scripts/monitor-watcher.sh;
   };
 
@@ -17,10 +17,10 @@ let
   tvScale = pkgs.writeShellApplication {
     name = "tv-scale";
     runtimeInputs = with pkgs; [ hyprland coreutils gnugrep gawk ];
-    bashOptions = [ "nounset" ];   # script uses `set -u`
+    bashOptions = [ "nounset" ]; # script uses `set -u`
     text = builtins.readFile ./scripts/tv-scale.sh;
   };
-  ws = builtins.genList (i: toString (i + 1)) 9;   # ["1".."9"]
+  ws = builtins.genList (i: toString (i + 1)) 9; # ["1".."9"]
   # workspace binds call scripts via `bash` so no exec-bit needed on store files
   mkWsBinds = mod: script: map (n: "${mod}, ${n}, exec, bash ~/.config/hypr/${script} ${n}") ws;
 in
@@ -29,7 +29,7 @@ in
     # session/wm tools used by binds, scripts and quickshell (must be on PATH)
     uwsm
     quickshell
-    hyprpolkitagent   # hyprpaper/hyprlock installed by their HM modules below
+    hyprpolkitagent # hyprpaper/hyprlock installed by their HM modules below
     cliphist
     wl-clipboard
     grim
@@ -41,10 +41,10 @@ in
     libnotify
     kitty
     yazi
-    satty   # screenshot annotation (screenshot.sh edit)
+    satty # screenshot annotation (screenshot.sh edit)
     gruvbox-gtk-theme
     papirus-icon-theme
-    noto-fonts-cjk-sans   # hyprlock clock font (Noto Sans JP)
+    noto-fonts-cjk-sans # hyprlock clock font (Noto Sans JP)
   ];
 
   wayland.windowManager.hyprland = {
@@ -61,10 +61,10 @@ in
       ];
 
       monitor = [
-        "eDP-1,preferred,auto,1"   # 1920x1080 native, scale 1 (no fractional); externals via setup-monitors.sh
-        ",preferred,auto,auto"     # fallback for unknown monitors
+        "eDP-1,preferred,auto,1" # 1920x1080 native, scale 1 (no fractional); externals via setup-monitors.sh
+        ",preferred,auto,auto" # fallback for unknown monitors
       ] ++ lib.optional mm
-        "HDMI-A-1,3840x2160@60,0x0,2,bitdepth,10,cm,wide";   # TV 4K: 10-bit + wide gamut (SDR desktop); tv-scale toggles game/HDR
+        "HDMI-A-1,3840x2160@60,0x0,2,bitdepth,10,cm,wide"; # TV 4K: 10-bit + wide gamut (SDR desktop); tv-scale toggles game/HDR
 
       general = {
         gaps_in = 3;
@@ -85,17 +85,17 @@ in
         blur.enabled = false;
       };
 
-      animations.enabled = false;   # cachy disabled them ("enabled = no, please :)")
+      animations.enabled = false; # cachy disabled them ("enabled = no, please :)")
 
       master.new_status = "master";
 
       misc = {
         force_default_wallpaper = 1;
         disable_hyprland_logo = true;
-        vrr = 1;   # adaptive sync (free win on panels that support it)
+        vrr = 1; # adaptive sync (free win on panels that support it)
       };
 
-      render.direct_scanout = true;   # bypass compositing on fullscreen surfaces (perf; lost in the cachy port)
+      render.direct_scanout = true; # bypass compositing on fullscreen surfaces (perf; lost in the cachy port)
 
       input = {
         kb_layout = "es,us";
@@ -118,7 +118,7 @@ in
         "systemctl --user start hyprpolkitagent"
         "wl-paste --type text --watch cliphist store"
         "wl-paste --type image --watch cliphist store"
-        "echo dark > /tmp/qs-theme"                       # Stylix is fixed-dark; tell quickshell
+        "echo dark > /tmp/qs-theme" # Stylix is fixed-dark; tell quickshell
       ] ++ lib.optional mm "bash ~/.config/hypr/setup-monitors.sh";
 
       bind = [

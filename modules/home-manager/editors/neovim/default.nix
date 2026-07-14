@@ -17,15 +17,17 @@ in
       pyright
       ruff
       typescript-language-server
-      vscode-langservers-extracted   # eslint, cssls, jsonls, html
+      vscode-langservers-extracted # eslint, cssls, jsonls, html
       tailwindcss-language-server
-      clang-tools                     # clangd + clang-format
+      clang-tools # clangd + clang-format
       lua-language-server
       # formatters (conform)
       nixpkgs-fmt
       stylua
       rustfmt
       prettier
+      # startup pokemon sprite (lua/pokemon.lua)
+      krabby
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -42,14 +44,19 @@ in
       {
         plugin = nvim-treesitter.withAllGrammars;
         type = "lua";
+        # main-branch rewrite: no more nvim-treesitter.configs; highlight/indent
+        # are enabled per-buffer (parsers preinstalled by nix, start never downloads)
         config = ''
-          require("nvim-treesitter.configs").setup({
-            highlight = { enable = true },
-            indent = { enable = true },
+          vim.api.nvim_create_autocmd("FileType", {
+            callback = function(args)
+              if pcall(vim.treesitter.start, args.buf) then
+                vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+              end
+            end,
           })
         '';
       }
-      telescope-fzf-native-nvim  # built by nix, no :make
+      telescope-fzf-native-nvim # built by nix, no :make
       {
         plugin = telescope-nvim;
         type = "lua";
@@ -131,7 +138,7 @@ in
         type = "lua";
         config = ''
           require("conform").setup({
-            format_on_save = { timeout_ms = 2000, lsp_fallback = true },
+            format_on_save = { timeout_ms = 2000, lsp_format = "fallback" },
             formatters_by_ft = {
               nix = { "nixpkgs_fmt" },
               lua = { "stylua" },
@@ -160,6 +167,7 @@ in
     initLua = ''
       ${luaFile "options.lua"}
       ${luaFile "keymaps.lua"}
+      ${luaFile "pokemon.lua"}
     '';
   };
 }

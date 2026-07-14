@@ -13,7 +13,7 @@ ShellRoot {
     // Leer el tema actual al iniciar (Quickshell resetea isDark al reiniciar)
     Process {
         id: themeInit
-        command: ["sh", "-c", "cat /tmp/current-theme-mode 2>/dev/null"]
+        command: ["sh", "-c", "cat /tmp/qs-theme 2>/dev/null"]
         running: true
         stdout: SplitParser {
             onRead: (line) => {

@@ -7,11 +7,26 @@
     enableCompletion = true;
     syntaxHighlighting.enable = true;
 
+    # compinit -C skips the compaudit security scan, which stat()s every
+    # completion file on each shell start (~250ms). Pointless here: completions
+    # live in the immutable, root-owned /nix/store. Drop ~/.zcompdump to force
+    # a rebuild if completions ever look stale.
+    completionInit = "autoload -U compinit && compinit -C";
+
     shellAliases = {
       ll = "eza -l";
-      update = "sudo nixos-rebuild switch --flake /home/thinkpad/nixos-config#thinkpad";
-      upgrade = "cd /home/thinkpad/nixos-config && nix flake update && sudo nixos-rebuild switch --flake .#thinkpad";
-      gc = "sudo nix-collect-garbage -d";
+      # nixos-rebuild-ng runs nix as us and only elevates the activation step,
+      # but ONLY if told how: --ask-sudo-password (= --elevate=sudo + prompt).
+      # Without it, it never elevates → "Permission denied" on the profile
+      # symlink. Do NOT prefix `sudo` (ng reexecs down to us and still won't
+      # reelevate). Run as the user, let ng handle the sudo prompt itself.
+      nixos-install = "nixos-rebuild switch --flake /home/thinkpad/nixos-config#thinkpad --ask-sudo-password";
+
+      cl = "claude --dangerously-skip-permissions";
+      # full system update: bump flake inputs (as user — flake.lock is ours) + rebuild
+      nixos-update = "cd /home/thinkpad/nixos-config && nix flake update && nixos-rebuild switch --flake .#thinkpad --ask-sudo-password";
+      # wipe garbage: delete old generations (system + user), collect garbage, dedup the store
+      nixos-garbage = "sudo nix-collect-garbage -d && nix-collect-garbage -d && sudo nix store optimise";
     };
 
     history = {

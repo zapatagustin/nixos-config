@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Single-host NixOS flake for a ThinkPad. Host/user/hostname are all `thinkpad`. CachyOS kernel, Home Manager as a NixOS module, no desktop environment (DE/compositor removed — gaming and flatpak modules are commented out until one is re-added).
+Single-host NixOS flake for a ThinkPad. Host/user/hostname are all `thinkpad`. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar; gaming and flatpak are enabled.
 
 ## Commands
 
@@ -23,18 +23,19 @@ Import tree, not a flat config. Each `.nix` is imported by its parent — adding
 
 ```
 flake.nix
-  → configuration.nix          # users, imports /etc/nixos/hardware-configuration.nix (NOT in repo)
+  → configuration.nix          # users, imports ./hardware-configuration.nix (in repo, git-tracked)
     → default.nix              # ssh, fonts, printing, kernel
       → modules/modules.nix    # imports the system modules below
       → hosts/host.nix         # nix settings, programs, gc, firewall, stateVersion
   + home-manager module → modules/home-manager/home.nix
 ```
 
-- **System modules** live under `modules/` and are wired via `modules/modules.nix` (boot, containers, dev, hardware, performance). `gaming/` exists but is commented out.
-- **Home Manager** is configured inline in `flake.nix` for user `thinkpad`. Its root is `modules/home-manager/home.nix`, which only imports `shells/` and `terminals/`.
-- **Orphaned configs:** `modules/home-manager/editors/` (neovim + full lua config, zed) is NOT imported anywhere. Editing it has no effect until added to an `imports`. The neovim setup is a standalone lua config (mason/lsp/dap), not Nix-managed plugins.
+- **System modules** live under `modules/` and are wired via `modules/modules.nix` (boot, containers, dev, hardware, gaming, performance, theme/stylix, wm/hyprland). `secrets/sops.nix` exists but is commented out until `secrets/secrets.yaml` is created.
+- **Home Manager** is configured inline in `flake.nix` for user `thinkpad`. Its root is `modules/home-manager/home.nix`, which imports `shells/`, `terminals/`, `editors/neovim`, and `wm/hyprland`.
+- **neovim** (`modules/home-manager/editors/neovim`) is Nix-managed: `programs.neovim` with nixpkgs plugins and LSP servers on PATH (no Mason). The per-plugin lua lives inline plus `lua/*.lua` files loaded via `initLua`/`fileContents`.
+- **Hyprland HM module** (`modules/home-manager/wm/hyprland`) deploys the `quickshell/` bar config (only `bar/` is actually run, via the `quickshell.service` user unit) and `scripts/`. Several monitor/group scripts are disabled until a second monitor is re-added.
 
-`hardware-configuration.nix` is referenced from `/etc/nixos/` and is intentionally outside the repo — don't try to create it here.
+`hardware-configuration.nix` is copied into the repo (git-tracked) and imported via a relative path, so rebuilds work without `--impure`. If hardware changes, regenerate it (`nixos-generate-config --show-hardware-config`) and overwrite the repo copy.
 
 ## Inputs
 

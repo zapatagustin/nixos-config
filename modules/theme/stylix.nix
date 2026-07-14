@@ -31,5 +31,14 @@
     # HM options that don't exist; condition=false doesn't prevent validation.
     homeManagerIntegration.autoImport = false;
     targets.gnome.enable = false;
+
+    # Stylix's starship target imposes its own palette and breaks the custom
+    # prompt (uses named colors). Manual palette is already gruvbox — keep it.
+    #targets.starship.enable = false;
+    # bat's stylix theme is a home-manager target, disabled in shells/shells.nix
+
+    # Let stylix drive hyprlock's input-field colors (base16). Layout/fonts/bg
+    # stay in programs.hyprlock; the hardcoded input-field rgba were removed.
+    #targets.hyprlock.enable = true;
   };
 }

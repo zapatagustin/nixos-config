@@ -31,7 +31,7 @@ Item {
         text: root.title
         color: root.theme.fg
         font.pixelSize: 12
-        font.family: "Noto Sans JP"
+        font.family: "Terminess Nerd Font Mono"
 
         Behavior on text {
             SequentialAnimation {
