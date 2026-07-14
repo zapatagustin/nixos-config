@@ -51,6 +51,10 @@ in
     enable = true;
     # uwsm manages the session (programs.hyprland.withUWSM at system level)
     systemd.enable = false;
+    # stateVersion 26.05 flips the HM default to configType="lua", whose generator
+    # emits invalid Lua for hyprlang-style keys ($mainMod, exec-once) -> Hyprland
+    # falls back to emergency mode. Our settings are hyprlang; pin the format.
+    configType = "hyprlang";
 
     settings = {
       "$mainMod" = "SUPER";
