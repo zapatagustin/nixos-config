@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Single-host NixOS flake for a ThinkPad. Host/user/hostname are all `thinkpad`. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar; gaming and flatpak are enabled.
+Multi-host NixOS flake: `surface` (work laptop, docks to external monitors) and `thinkpad` (nomad laptop, never docks). Per host, user and hostname equal the host name. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar; gaming and flatpak are enabled.
 
 ## Commands
 
@@ -22,18 +22,20 @@ There are no tests. Validation is `nix flake check` + a build.
 Import tree, not a flat config. Each `.nix` is imported by its parent — adding a file does nothing until you wire it into the parent's `imports`.
 
 ```
-flake.nix
-  → configuration.nix          # users, imports ./hardware-configuration.nix (in repo, git-tracked)
-    → default.nix              # ssh, fonts, printing, kernel
-      → modules/modules.nix    # imports the system modules below
-      → hosts/host.nix         # nix settings, programs, gc, firewall, stateVersion
+flake.nix                      # mkHost builds nixosConfigurations.{surface,thinkpad}
+  → hosts/${host}/default.nix  # per-host: imports configuration.nix, sets myDesktop.multiMonitor (surface=true)
+    → configuration.nix        # users, imports ./hardware-configuration.nix (in repo, git-tracked)
+      → default.nix            # ssh, fonts, printing, kernel
+        → modules/modules.nix  # imports the system modules below
+        → hosts/host.nix       # nix settings, programs, gc, firewall, stateVersion
   + home-manager module → modules/home-manager/home.nix
 ```
 
 - **System modules** live under `modules/` and are wired via `modules/modules.nix` (boot, containers, dev, hardware, gaming, performance, theme/stylix, wm/hyprland). `secrets/sops.nix` exists but is commented out until `secrets/secrets.yaml` is created.
-- **Home Manager** is configured inline in `flake.nix` for user `thinkpad`. Its root is `modules/home-manager/home.nix`, which imports `shells/`, `terminals/`, `editors/neovim`, and `wm/hyprland`.
+- **Home Manager** is wired via `flake.nix` (`mkHost`) per host. Its root is `modules/home-manager/home.nix`, which imports `shells/`, `terminals/`, `editors/neovim`, `editors/emacs`, `wm/hyprland`, `ai/`, `opencode/`, and `claude-code/`. `options.nix` declares `myDesktop.multiMonitor.enable`, read by the hyprland module.
 - **neovim** (`modules/home-manager/editors/neovim`) is Nix-managed: `programs.neovim` with nixpkgs plugins and LSP servers on PATH (no Mason). The per-plugin lua lives inline plus `lua/*.lua` files loaded via `initLua`/`fileContents`.
-- **Hyprland HM module** (`modules/home-manager/wm/hyprland`) deploys the `quickshell/` bar config (only `bar/` is actually run, via the `quickshell.service` user unit) and `scripts/`. Several monitor/group scripts are disabled until a second monitor is re-added.
+- **Hyprland HM module** (`modules/home-manager/wm/hyprland`) deploys the `quickshell/` bar config (only `bar/` is actually run, via the `quickshell.service` user unit) and `scripts/`. The monitor-watcher unit + per-monitor/group scripts + TV-scale bind are gated behind `myDesktop.multiMonitor.enable` (surface only).
+- **AI agent stack**: `ai/` installs the `opencode`/`gentle-ai`/`engram` binaries (the latter two from `pkgs/`) and idempotently installs Claude Code + opencode plugins on activation. `opencode/` and `claude-code/` manage the *declarative* config (opencode.json settings, CLAUDE.md, hooks, agents, commands, skills) via `programs.opencode`/`programs.claude-code`. Claude's `settings.json` is intentionally left manual (Claude writes it at runtime).
 
 `hardware-configuration.nix` is copied into the repo (git-tracked) and imported via a relative path, so rebuilds work without `--impure`. If hardware changes, regenerate it (`nixos-generate-config --show-hardware-config`) and overwrite the repo copy.
 

@@ -2,11 +2,10 @@
 let
   homeDir = config.home.homeDirectory;
 
-  # settings.json and mcp/engram.json were authored on an Arch box: they hardcode
-  # /home/agustin and /usr/bin/node. Rewrite to the target host's home and to a
-  # PATH-resolved `node` so the config works on any NixOS host.
+  # mcp/engram.json was authored on an Arch box: it hardcodes /home/agustin and
+  # /usr/bin/node. Rewrite to the target host's home and to a PATH-resolved
+  # `node` so the config works on any NixOS host.
   patch = builtins.replaceStrings [ "/home/agustin" "/usr/bin/node" ] [ homeDir "node" ];
-  readSettings = f: builtins.fromJSON (patch (builtins.readFile f));
 in
 {
   # Hook scripts (caveman/ponytail) are Node scripts invoked as `node ...`.
@@ -16,7 +15,10 @@ in
     enable = true;
     # Manage config only; bring your own claude binary (avoids pinning pkgs.claude-code).
     package = null;
-    settings = readSettings ./claude/settings.json;
+    # settings.json is intentionally NOT managed: Claude Code writes it at
+    # runtime (theme, model, /config), which a read-only store symlink would
+    # break. Kept manual — ./claude/settings.json is a reference template to
+    # copy into ~/.claude on a fresh host.
     context = ./claude/CLAUDE.md;
   };
 
