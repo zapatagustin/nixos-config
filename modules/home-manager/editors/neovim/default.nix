@@ -25,7 +25,7 @@ in
       nixpkgs-fmt
       stylua
       rustfmt
-      nodePackages.prettier
+      prettier
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -157,7 +157,7 @@ in
     ];
 
     # options + keymaps: no plugin-load-order dependency (command-style maps)
-    extraLuaConfig = ''
+    initLua = ''
       ${luaFile "options.lua"}
       ${luaFile "keymaps.lua"}
     '';

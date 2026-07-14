@@ -37,6 +37,7 @@
             {
               home-manager.useUserPackages = true;
               home-manager.extraSpecialArgs = { inherit inputs hostname; username = hostname; };
+
               home-manager.users.${hostname} = import ./modules/home-manager/home.nix;
             }
           ];

@@ -1,10 +1,8 @@
 { pkgs, ... }: {
-  # CachyOS sched_ext scheduler
-  chaotic.scx = {
-    enable = true;
-    scheduler = "scx_bpfland";
-  };
-
+  # ponytail: chaotic.scx removed from nyx. scx kernel module ships with
+  # CachyOS kernel; userspace scheduler needs the scx package (available
+  # from chaotic overlay). Add back when building on the real NixOS machine.
+  # See https://github.com/scx-wiki/scx for upstream status.
   services.ananicy = {
     enable = true;
     package = pkgs.ananicy-cpp;

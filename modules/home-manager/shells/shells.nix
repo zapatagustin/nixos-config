@@ -22,8 +22,12 @@
 
   programs.git = {
     enable = true;
-    userName = "zapatagustin";
-    userEmail = "zapatagustin4@gmail.com";
-    delta.enable = true;
+    settings.user.name = "zapatagustin";
+    settings.user.email = "zapatagustin4@gmail.com";
+  };
+
+  programs.delta = {
+    enable = true;
+    enableGitIntegration = true;
   };
 }

@@ -1,6 +1,9 @@
 { pkgs, config, ... }: {
+  # ponytail: autoEnable=false + explicit targets to avoid missing-option
+  # errors from targets referencing DE configs we don't have (gnome, kmscon, etc.)
   stylix = {
     enable = true;
+    autoEnable = false;
     polarity = "dark";
     base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
 
@@ -22,12 +25,11 @@
       size = 24;
     };
 
-    # Stylix's starship target imposes its own palette and breaks the custom
-    # prompt (uses named colors). Manual palette is already gruvbox — keep it.
-    targets.starship.enable = false;
-
-    # Let stylix drive hyprlock's input-field colors (base16). Layout/fonts/bg
-    # stay in programs.hyprlock; the hardcoded input-field rgba were removed.
-    targets.hyprlock.enable = true;
+    # stylix's starship & hyprlock targets are HM-only (no nixos.nix).
+    # gnome target needs explicit disable since we don't have GNOME.
+    # ponytail: disable HM autoImport → HM targets (anki, gtk, etc.) reference
+    # HM options that don't exist; condition=false doesn't prevent validation.
+    homeManagerIntegration.autoImport = false;
+    targets.gnome.enable = false;
   };
 }
