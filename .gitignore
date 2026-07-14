@@ -1,0 +1,6 @@
+# nix build outputs
+result
+result-*
+
+# agent tooling cache
+.atl/*.cache.json
