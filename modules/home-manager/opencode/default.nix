@@ -37,6 +37,9 @@ in
     "opencode/plugins/cyndaquill".source = ./config/plugins/cyndaquill;
     "opencode/plugins/model-variants.ts".source = ./config/plugins/model-variants.ts;
     "opencode/plugins/skill-registry.ts".source = ./config/plugins/skill-registry.ts;
+    # cave-compress.ts — tool-output token compression (ported from
+    # caveman-code, MIT). opencode auto-loads .ts files from plugins/.
+    "opencode/plugins/cave-compress.ts".source = ./config/plugins/cave-compress.ts;
     # engram.ts hardcodes /home/agustin as a last-resort binary fallback — patch it.
     "opencode/plugins/engram.ts".text = patch (builtins.readFile ./config/plugins/engram.ts);
     "opencode/tui-plugins".source = ./config/tui-plugins;
