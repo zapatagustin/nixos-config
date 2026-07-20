@@ -12,9 +12,9 @@
 
   programs.zoxide.enable = true;
   programs.bat.enable = true;
-  # bat gets no stylix theme: homeManagerIntegration.autoImport is off (see
-  # modules/theme/stylix.nix), so bat falls back to its built-in default —
-  # which also avoids the ~2s batCache rebuild on every activation.
+  # bat theme (base16-stylix) comes from stylix.targets.bat
+  # (modules/home-manager/stylix.nix). Trade-off: adds a ~2s batCache rebuild on
+  # activation, accepted for a palette that matches the rest of the system.
   programs.gh.enable = true;
   programs.nix-index.enable = true;
 
@@ -23,13 +23,49 @@
     enableZshIntegration = true;
   };
 
+  # Two GitHub identities routed by directory: personal is the default,
+  # anything under ~/work/ uses the work identity. Auth (which SSH key) is
+  # routed separately by remote host alias — see programs.ssh below.
   programs.git = {
     enable = true;
     settings.user = {
       name = "zapatagustin";
       email = "zapatagustin4@gmail.com";
     };
+    includes = [
+      {
+        condition = "gitdir:~/work/";
+        contents.user = {
+          name = "zapataagustin";
+          email = "agustin.zapata@atlas.red";
+        };
+      }
+    ];
   };
+
+  # Multi-account GitHub over SSH. Personal is the plain github.com host
+  # (default key); work repos clone from the `github-work` alias so pushes use
+  # the work key. GitHub requires a distinct key per account. Keys are
+  # generated imperatively into ~/.ssh (id_ed25519_personal / _work) and each
+  # public key must be added to its own GitHub account.
+  #
+  # Written as a plain config file rather than via programs.ssh: that module's
+  # matchBlocks/default-config schema is mid-deprecation on this HM version, so
+  # a direct file avoids the churn. ssh accepts the store symlink (root-owned,
+  # not world-writable).
+  home.file.".ssh/config".text = ''
+    Host github.com
+      HostName github.com
+      User git
+      IdentityFile ~/.ssh/id_ed25519_personal
+      IdentitiesOnly yes
+
+    Host github-work
+      HostName github.com
+      User git
+      IdentityFile ~/.ssh/id_ed25519_work
+      IdentitiesOnly yes
+  '';
 
   programs.delta = {
     enable = true;
