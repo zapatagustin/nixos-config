@@ -1,10 +1,10 @@
 # Engram Artifact Convention (reference documentation)
 
-NOTE: Critical engram calls (`mem_search`, `mem_save`, `mem_get_observation`) are inlined directly in each skill's SKILL.md. This document is supplementary reference — sub-agents do NOT need to read it to function.
+NOTE: Critical engram calls (`mem_search`, `mem_save`, `mem_get_observation`) inlined in each SKILL.md. This doc is supplementary — sub-agents don't need it to function.
 
 ## Naming Rules
 
-ALL SDD artifacts persisted to Engram MUST follow this deterministic naming:
+ALL SDD artifacts persisted to Engram MUST follow deterministic naming:
 
 ```
 title:     sdd/{change-name}/{artifact-type}
@@ -15,23 +15,21 @@ scope:     project
 capture_prompt: false
 ```
 
-Set `capture_prompt: false` when the Engram tool schema supports it; if an older schema rejects or does not expose the field, omit it rather than failing.
+Set `capture_prompt: false` when schema supports it. Older schema lacks field? Omit, don't fail.
 
 ### Artifact Types
 
-| Artifact Type | Produced By | Description |
-|---------------|-------------|-------------|
+| Type | Produced By | Description |
+|------|-------------|-------------|
 | `explore` | sdd-explore | Exploration analysis |
 | `proposal` | sdd-propose | Change proposal |
-| `spec` | sdd-spec | Delta specifications (all domains concatenated) |
+| `spec` | sdd-spec | Delta specs (all domains concatenated) |
 | `design` | sdd-design | Technical design |
 | `tasks` | sdd-tasks | Task breakdown |
-| `apply-progress` | sdd-apply | Implementation progress (one per batch) |
+| `apply-progress` | sdd-apply | Impl progress (one per batch) |
 | `verify-report` | sdd-verify | Verification report |
 | `archive-report` | sdd-archive | Archive closure with lineage |
-| `state` | orchestrator | DAG state for recovery after compaction |
-
-
+| `state` | orchestrator | DAG state for compaction recovery |
 
 ### State Artifact
 
@@ -46,32 +44,31 @@ mem_save(
 )
 ```
 
-Recovery: `mem_search("sdd/{change-name}/state")` → `mem_get_observation(id)` → parse YAML → restore state.
+Recovery: `mem_search("sdd/{change-name}/state")` → `mem_get_observation(id)` → parse YAML → restore.
 
 ## Recovery Protocol (2 steps)
 
-Memory lifecycle rule (when Engram exposes lifecycle metadata/tooling):
-- At session start or before architecture-sensitive work, call `mem_review` with action `list` for the current project when the tool is available.
-- If `mem_review` is unavailable, do not fail the task. Continue with normal `mem_context`/`mem_search`, and still apply lifecycle metadata from any returned observations when present.
-- `active` memories may be used normally.
-- `needs_review` memories are stale context, not trusted facts.
-- Surface `needs_review` context and verify it against current evidence before relying on it.
-- Do NOT call `mem_review` with action `mark_reviewed` automatically. Only call `mark_reviewed` after explicit user confirmation or through a dedicated memory maintenance command.
+Lifecycle (when Engram exposes metadata/tooling):
+- At session start or before arch-sensitive work: `mem_review(action: "list")` for current project.
+- `mem_review` unavailable? Don't fail. Continue with `mem_context`/`mem_search`. Apply lifecycle metadata from returned observations when present.
+- `active` memories: use normally.
+- `needs_review` memories: stale context. Surface, verify against current evidence before relying.
+- Do NOT auto-call `mark_reviewed`. Only after explicit user confirmation or via dedicated memory maintenance command.
 
 ```
-Step 1: mem_search(query: "sdd/{change-name}/{artifact-type}", project: "{project}") → truncated preview + ID
+Step 1: mem_search(query: "sdd/{change-name}/{artifact-type}", project: "{project}") → preview + ID
 Step 2: mem_get_observation(id: {observation-id}) → complete content
 ```
 
-When retrieving multiple artifacts, group all searches first, then all retrievals:
+For multiple artifacts, group all searches, then all retrievals:
 
 ```
-STEP A — SEARCH (get IDs only):
-  mem_search(query: "sdd/{change-name}/proposal", ...) → save ID
-  mem_search(query: "sdd/{change-name}/spec", ...) → save ID
-  mem_search(query: "sdd/{change-name}/design", ...) → save ID
+STEP A — SEARCH (get IDs):
+  mem_search(query: "sdd/{change-name}/proposal") → ID
+  mem_search(query: "sdd/{change-name}/spec") → ID
+  mem_search(query: "sdd/{change-name}/design") → ID
 
-STEP B — RETRIEVE FULL CONTENT (mandatory):
+STEP B — RETRIEVE (mandatory):
   mem_get_observation(id: {proposal_id})
   mem_get_observation(id: {spec_id})
   mem_get_observation(id: {design_id})
@@ -79,8 +76,8 @@ STEP B — RETRIEVE FULL CONTENT (mandatory):
 
 Loading project context:
 ```
-mem_search(query: "sdd-init/{project}", project: "{project}") → get ID
-mem_get_observation(id) → full project context
+mem_search(query: "sdd-init/{project}", project: "{project}") → ID
+mem_get_observation(id) → full context
 ```
 
 ## Writing Artifacts
@@ -97,7 +94,7 @@ mem_save(
 )
 ```
 
-Concrete example — saving a proposal for `add-dark-mode`:
+Example — saving proposal for `add-dark-mode`:
 ```
 mem_save(
   title: "sdd/add-dark-mode/proposal",
@@ -109,14 +106,14 @@ mem_save(
 )
 ```
 
-`capture_prompt: false` is REQUIRED for SDD artifacts when the Engram tool schema supports it. Engram v1.15.3 captures user prompts by default for human/proactive saves, but SDD artifacts are automated pipeline outputs. Do not infer this from `type` because both SDD artifacts and human architecture decisions use `architecture`. If an older schema rejects or does not expose `capture_prompt`, omit it rather than failing.
+`capture_prompt: false` REQUIRED for SDD artifacts when schema supports it. Engram v1.15.3 captures prompts by default for human saves, but SDD = automated pipeline. Don't infer from `type` (both SDD and human decisions use `architecture`). Older schema lacks field? Omit, don't fail.
 
-Update existing artifact (when you have the observation ID):
+Update existing (when you have observation ID):
 ```
-mem_update(id: {observation-id}, content: "{updated full content}")
+mem_update(id: {observation-id}, content: "{updated content}")
 ```
 
-Use `mem_update` when you have the exact ID. Use `mem_save` with same `topic_key` for upserts.
+Use `mem_update` with exact ID. Use `mem_save` with same `topic_key` for upsert.
 
 ### Browsing All Artifacts for a Change
 
@@ -127,18 +124,18 @@ mem_search(query: "sdd/{change-name}/", project: "{project}")
 
 ## Project Name Resolution (engram v1.11.0+)
 
-Engram auto-detects the project name from the git remote at MCP startup. The `--project` flag and `ENGRAM_PROJECT` env var can override detection. All project names are normalized to lowercase and trimmed.
+Engram auto-detects from git remote at MCP startup. `--project` flag and `ENGRAM_PROJECT` env var override. All names normalized to lowercase + trimmed.
 
-If the agent saves a memory under a project name that doesn't match existing observations, engram warns about potential name drift. Use `mem_merge_projects` (MCP tool) or `engram projects consolidate` (CLI) to merge variants.
+Name mismatch? engram warns. Use `mem_merge_projects` (MCP) or `engram projects consolidate` (CLI) to merge variants.
 
 ## Upsert Behavior
 
-Same `topic_key` + `project` + `scope` → UPDATE (overwrite), not INSERT. Previous content is lost — `revision_count` increments but old content is NOT saved. This is by design — engram is working memory, not an audit trail. For iteration history or team collaboration, use `openspec` or `hybrid` mode.
+Same `topic_key` + `project` + `scope` → UPDATE (overwrite), not INSERT. Previous content lost — `revision_count` increments but old content NOT saved. By design: engram = working memory, not audit trail. For iteration history or team collab, use `openspec` or `hybrid` mode.
 
 ## Why This Convention
 
 - Deterministic titles → recovery works by exact match
-- `topic_key` → enables upserts without duplicates
+- `topic_key` → upserts without duplicates
 - `sdd/` prefix → namespaces all SDD artifacts
-- Two-step recovery → search previews are always truncated; `mem_get_observation` is the only way to get full content
+- Two-step recovery → search previews truncated; `mem_get_observation` is only way to full content
 - Lineage → archive-report includes all observation IDs for complete traceability

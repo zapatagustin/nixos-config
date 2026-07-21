@@ -10,16 +10,15 @@ metadata:
   delegate_only: true
 ---
 
+## Executor Override
+
+If you ARE the sub-agent (NOT the orchestrator), the gate below does NOT apply to you. Continue with the phase work below. Do NOT delegate. Do NOT call the Skill tool. You are the executor — execute.
+
 > **ORCHESTRATOR GATE**: If you loaded this skill via the `skill()` tool, you are
 > the ORCHESTRATOR — STOP. Do NOT execute these instructions inline. Delegate to
 > the dedicated `sdd-propose` sub-agent using your platform's delegation primitive
 > (e.g., `task(...)`, sub-agent invocation, etc.). This skill is for EXECUTORS
 > only.
-
-## Executor Override
-
-If you ARE the `sdd-propose` sub-agent (NOT the orchestrator), the gate above does NOT apply to you. Continue with the phase work below. Do NOT delegate. Do NOT call the Skill tool. You are the executor — execute.
-
 
 ## Language Domain Contract
 
@@ -31,64 +30,64 @@ Public/contextual comments follow the target context language by default. Explic
 
 ## Purpose
 
-You are a sub-agent responsible for creating PROPOSALS. You take the exploration analysis (or direct user input) and produce a structured `proposal.md` document inside the change folder.
+PROPOSAL sub-agent. Take exploration analysis (or direct input), produce structured `proposal.md` inside change folder.
 
 ## What You Receive
 
-From the orchestrator:
+From orchestrator:
 - Change name (e.g., "add-dark-mode")
-- Exploration analysis (from sdd-explore) OR direct user description
+- Exploration (from sdd-explore) OR direct user description
 - Artifact store mode (`engram | openspec | hybrid | none`)
 
 ## Execution and Persistence Contract
 
 > Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/_shared/sdd-phase-common.md`.
 
-- **engram**: Read `sdd/{change-name}/explore` (optional) and `sdd-init/{project}` (optional). Save artifact as `sdd/{change-name}/proposal`.
-- **openspec**: Read and follow `skills/_shared/openspec-convention.md`.
-- **hybrid**: Follow BOTH conventions — persist to Engram AND write to filesystem. Retrieve dependencies from Engram (primary) with filesystem fallback.
-- **none**: Return result only. Never create or modify project files.
-- Never force `openspec/` creation unless user requested file-based persistence or mode is `hybrid`.
+- **engram**: Read `sdd/{change-name}/explore` (optional), `sdd-init/{project}` (optional). Save as `sdd/{change-name}/proposal`.
+- **openspec**: Read + follow `skills/_shared/openspec-convention.md`.
+- **hybrid**: Follow BOTH — persist to Engram AND filesystem. Retrieve deps from Engram (primary), filesystem fallback.
+- **none**: Return result only. No files.
+- Never force `openspec/` unless user requested file-based persistence or mode is `hybrid`.
 
 ## What to Do
 
-### Step 0: Shape the Proposal in Interactive Mode
+### Step 0: Shape Proposal in Interactive Mode
 
-- In interactive SDD mode, do not make the executor decide silently whether the proposal is "clear enough". Offer the user a proposal question round before finalizing the proposal: explain that the questions are meant to improve the PRD/proposal by uncovering business rules, implications, impact, edge cases, and product tradeoffs. Let the user answer, skip, correct the framing, or ask for a second question round.
-- Proposal-shaping questions should uncover business/product/PRD understanding, not harness mechanics. Cover the smallest useful subset of:
-  1. business problem: what pain, opportunity, user confusion, or operational cost makes this change worth doing now;
-  2. target users and situations: who is affected, in which workflow, at what moment, and with what level of urgency;
-  3. business rules: policies, permissions, thresholds, lifecycle rules, compliance/security expectations, or domain invariants the proposal must respect;
-  4. product outcome: what should feel, work, or become possible after the change;
-  5. current-state gap: what is wrong, inconsistent, missing, ad hoc, or hard to explain today;
-  6. implications and impact: which teams, workflows, data, UX expectations, support burden, or operational processes may be affected;
-  7. edge cases: empty states, partial data, failures, permissions, slow paths, unusual customers, migration states, or conflicting user needs;
-  8. decision gaps: which product unknowns would make the proposal ambiguous, risky, or easy to overbuild;
-  9. scope boundaries and non-goals: what belongs in the first product slice, what is later refinement, and what must stay unchanged even if related;
-  10. business risk or tradeoff: what downside matters most if the proposal chooses the wrong direction.
-- Prefer 3–5 concrete product questions per round. After the first answers, summarize the resulting proposal assumptions and ask whether the user wants to correct anything or run a second question round. Do not ask about test commands, PR shape, changed-line budget, or other harness decisions unless the user explicitly asks to discuss delivery. If blocked from asking directly, write a `## Proposal question round` section in the proposal result with the proposed questions and assumptions needing user review.
+- Interactive mode: do NOT let executor silently decide proposal is "clear enough". Offer proposal question round before finalizing. Questions improve PRD/proposal — uncover business rules, implications, impact, edge cases, tradeoffs. Let user answer, skip, correct framing, or request second round.
+- Focus on business/product/PRD understanding, not harness mechanics. Cover smallest useful subset of:
+   1. Business problem — pain, opportunity, cost making change worth doing now
+   2. Target users/situations — who affected, when, urgency
+   3. Business rules — policies, permissions, thresholds, compliance/security invariants
+   4. Product outcome — what should feel/work/be possible after change
+   5. Current-state gap — what is wrong/inconsistent/missing/ad hoc today
+   6. Implications/impact — teams, workflows, UX, support, ops affected
+   7. Edge cases — empty states, partial data, failures, permissions, migrations, conflicting needs
+   8. Decision gaps — unknowns making proposal ambiguous/risky/easy to overbuild
+   9. Scope boundaries/non-goals — first slice, later refinement, related but unchanged
+   10. Business risk/tradeoff — downside if wrong direction chosen
+- Prefer 3-5 questions per round. After first answers, summarize assumptions, ask if user wants correction or second round. Do NOT ask about test commands, PR shape, budget, or harness decisions unless user explicitly asks. Blocked from direct asking? Write `## Proposal question round` in proposal result with questions + assumptions needing review.
 
 ### Step 1: Load Skills
 Follow **Section A** from `skills/_shared/sdd-phase-common.md`.
 
 ### Step 2: Create Change Directory
 
-**IF mode is `openspec` or `hybrid`:** create the change folder structure:
+**IF mode is `openspec` or `hybrid`:** create change folder:
 
 ```
 openspec/changes/{change-name}/
 └── proposal.md
 ```
 
-**IF mode is `engram` or `none`:** Do NOT create any `openspec/` directories. Skip this step.
+**IF mode is `engram` or `none`:** No `openspec/` dirs. Skip.
 
 ### Step 3: Read Existing Specs
 
-**IF mode is `openspec` or `hybrid`:** If `openspec/specs/` has relevant specs, read them to understand current behavior that this change might affect.
+**IF mode is `openspec` or `hybrid`:** `openspec/specs/` has relevant specs? Read them to understand current behavior.
 
-**IF mode is `engram`:** Existing context was already retrieved from Engram in the Persistence Contract. Skip filesystem reads.
+**IF mode is `engram`:** Context already retrieved from Engram in Persistence Contract. Skip filesystem reads.
 
-**IF mode is `none`:** Skip — no existing specs to read.
+**IF mode is `none`:** Skip — no existing specs.
 
 ### Step 4: Write proposal.md
 
@@ -191,16 +190,15 @@ Ready for specs (sdd-spec) or design (sdd-design).
 
 ## Rules
 
-- In `openspec` mode, ALWAYS create the `proposal.md` file
-- If the change directory already exists with a proposal, READ it first and UPDATE it
-- Keep the proposal CONCISE - it's a thinking tool, not a novel
-- Every proposal MUST have a rollback plan
-- Every proposal MUST have success criteria
-- Use concrete file paths in "Affected Areas" when possible
-- Apply any `rules.proposal` from `openspec/config.yaml`
-- **ALWAYS fill in the Capabilities section** — this is the contract with sdd-spec. Research `openspec/specs/` first to use correct existing capability names.
-- New Capabilities → each will become `openspec/specs/<name>/spec.md` (new full spec)
-- Modified Capabilities → each will become a delta spec in the change folder
-- If nothing changes at the spec level (pure refactor, config change), explicitly write "None" under both sub-sections — don't leave them as template placeholders
-- **Size budget**: Proposal artifact MUST be under 450 words. Use bullet points and tables over prose. Headers organize, not explain.
+- `openspec` mode: ALWAYS create `proposal.md`
+- Change dir exists with proposal? READ first, then UPDATE
+- Proposal CONCISE — thinking tool, not novel
+- Every proposal needs rollback plan + success criteria
+- Concrete file paths in "Affected Areas" when possible
+- Apply `rules.proposal` from `openspec/config.yaml`
+- **ALWAYS fill Capabilities section** — contract with sdd-spec. Research `openspec/specs/` first for correct capability names.
+- New Capabilities → `openspec/specs/<name>/spec.md` (new full spec)
+- Modified Capabilities → delta spec in change folder
+- Nothing changes at spec level (refactor/config)? Write "None" under both sub-sections — no template placeholders
+- **Size budget**: Proposal ≤ 450 words. Bullets + tables over prose. Headers organize, not explain.
 - Return envelope per **Section D** from `skills/_shared/sdd-phase-common.md`.

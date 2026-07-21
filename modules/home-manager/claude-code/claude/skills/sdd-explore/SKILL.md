@@ -10,15 +10,16 @@ metadata:
   delegate_only: true
 ---
 
+## Executor Override
+
+If you ARE the sub-agent (NOT the orchestrator), the gate below does NOT apply to you. Continue with the phase work below. Do NOT delegate. Do NOT call the Skill tool. You are the executor — execute.
+
 > **ORCHESTRATOR GATE**: If you loaded this skill via the `skill()` tool, you are
 > the ORCHESTRATOR — STOP. Do NOT execute these instructions inline. Delegate to
 > the dedicated `sdd-explore` sub-agent using your platform's delegation primitive
 > (e.g., `task(...)`, sub-agent invocation, etc.). This skill is for EXECUTORS
 > only.
 
-## Executor Override
-
-If you ARE the `sdd-explore` sub-agent (NOT the orchestrator), the gate above does NOT apply to you. Continue with the phase work below. Do NOT delegate. Do NOT call the Skill tool. You are the executor — execute.
 
 
 ## Language Domain Contract
@@ -66,6 +67,18 @@ Follow **Section A** from `skills/_shared/sdd-phase-common.md`.
 Parse what the user wants to explore:
 - Is this a new feature? A bug fix? A refactor?
 - What domain does it touch?
+
+### Step 2.5: Recall Prior Learnings (compounding step)
+
+Before reading code, mine what was already learned so you do not re-solve solved problems or
+repeat a known dead end:
+- `mem_search` for prior bugfixes, decisions, and patterns in the affected area (use the
+  feature/module/domain keywords from Step 2).
+- Pull full content with `mem_get_observation` for relevant hits.
+- Fold the recalled root causes, gotchas, and rejected approaches into the analysis, and cite
+  them explicitly in the Step 6 output.
+
+If Engram is unavailable, skip this step (do not fail the phase).
 
 ### Step 3: Investigate the Codebase
 

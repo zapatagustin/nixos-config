@@ -1,11 +1,20 @@
-{ config, pkgs, ... }:
+{ pkgs, ... }:
 let
-  homeDir = config.home.homeDirectory;
-
-  # mcp/engram.json was authored on an Arch box: it hardcodes /home/agustin and
-  # /usr/bin/node. Rewrite to the target host's home and to a PATH-resolved
-  # `node` so the config works on any NixOS host.
-  patch = builtins.replaceStrings [ "/home/agustin" "/usr/bin/node" ] [ homeDir "node" ];
+  # Claude Code skills = the real ./claude/skills tree PLUS the caveman skills,
+  # whose canonical source is ../opencode/agents-skills (shared with opencode).
+  # Merged into ONE store dir so ~/.claude/skills is a single symlink whose
+  # children are real content that resolves. The caveman skills can't be
+  # relative symlinks inside ./claude/skills (a "../../.agents/..." link escapes
+  # the store and breaks), and they can't be per-child home.file entries either
+  # (home-manager can't create a child inside the read-only store symlink that
+  # .claude/skills becomes). Building the merged dir here sidesteps both.
+  claudeSkills = pkgs.runCommand "claude-code-skills" { } ''
+    mkdir -p $out
+    cp -r ${./claude/skills}/. $out/
+    for s in caveman caveman-commit caveman-compress caveman-help caveman-review; do
+      cp -r ${../opencode/agents-skills}/$s $out/$s
+    done
+  '';
 in
 {
   # Hook scripts (caveman/ponytail) are Node scripts invoked as `node ...`.
@@ -22,16 +31,18 @@ in
     context = ./claude/CLAUDE.md;
   };
 
-  # Dirs/files not covered by programs.claude-code options. All are clean of
-  # host-specific paths except mcp/engram.json, which is patched.
+  # Dirs/files not covered by programs.claude-code options.
+  # MCP servers are NOT declared here: Claude Code doesn't read arbitrary
+  # files under .claude/mcp/ (that was dead config). User-scope MCP servers
+  # live in the runtime-managed ~/.claude.json, so they're registered
+  # imperatively in ai/default.nix's activation script instead, the same way
+  # plugins are.
   home.file = {
     ".claude/agents".source = ./claude/agents;
     ".claude/commands".source = ./claude/commands;
     ".claude/hooks".source = ./claude/hooks;
     ".claude/output-styles".source = ./claude/output-styles;
     ".claude/themes".source = ./claude/themes;
-    ".claude/skills".source = ./claude/skills;
-    ".claude/mcp/context7.json".source = ./claude/mcp/context7.json;
-    ".claude/mcp/engram.json".text = patch (builtins.readFile ./claude/mcp/engram.json);
+    ".claude/skills".source = claudeSkills;
   };
 }

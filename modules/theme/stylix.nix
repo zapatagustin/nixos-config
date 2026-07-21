@@ -11,10 +11,12 @@
     image = config.lib.stylix.pixel "base00";
 
     fonts = {
-      # Terminess = Terminus patched by Nerd Fonts: same look + glyphs (bar/prompt icons)
+      # Terminess = Terminus patched by Nerd Fonts: same look + glyphs (bar/prompt
+      # icons). Used for all three roles so stylix targets that pick sansSerif for
+      # UI (gtk.font, zed ui_font) render Terminess too, not a different family.
       monospace = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font Mono"; };
-      sansSerif = { package = pkgs.udev-gothic; name = "UDEV Gothic"; };
-      serif = { package = pkgs.udev-gothic; name = "UDEV Gothic"; };
+      sansSerif = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font"; };
+      serif = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font"; };
     };
 
     # Cursor: stylix sets XCURSOR_SIZE + HYPRCURSOR_SIZE (was XCURSOR_SIZE/HYPRCURSOR_SIZE=24

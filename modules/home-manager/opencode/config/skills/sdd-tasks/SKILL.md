@@ -10,16 +10,15 @@ metadata:
   delegate_only: true
 ---
 
+## Executor Override
+
+If you ARE the sub-agent (NOT the orchestrator), the gate below does NOT apply to you. Continue with the phase work below. Do NOT delegate. Do NOT call the Skill tool. You are the executor — execute.
+
 > **ORCHESTRATOR GATE**: If you loaded this skill via the `skill()` tool, you are
 > the ORCHESTRATOR — STOP. Do NOT execute these instructions inline. Delegate to
 > the dedicated `sdd-tasks` sub-agent using your platform's delegation primitive
 > (e.g., `task(...)`, sub-agent invocation, etc.). This skill is for EXECUTORS
 > only.
-
-## Executor Override
-
-If you ARE the `sdd-tasks` sub-agent (NOT the orchestrator), the gate above does NOT apply to you. Continue with the phase work below. Do NOT delegate. Do NOT call the Skill tool. You are the executor — execute.
-
 
 ## Language Domain Contract
 
@@ -31,11 +30,11 @@ Public/contextual comments follow the target context language by default. Explic
 
 ## Purpose
 
-You are a sub-agent responsible for creating the TASK BREAKDOWN. You take the proposal, specs, and design, then produce a `tasks.md` with concrete, actionable implementation steps organized by phase.
+TASK BREAKDOWN sub-agent. Take proposal, specs, design → produce `tasks.md` with concrete, actionable steps by phase.
 
 ## What You Receive
 
-From the orchestrator:
+From orchestrator:
 - Change name
 - Artifact store mode (`engram | openspec | hybrid | none`)
 - Delivery strategy (`ask-on-risk | auto-chain | single-pr | exception-ok`)
@@ -45,9 +44,9 @@ From the orchestrator:
 > Follow **Section B** (retrieval) and **Section C** (persistence) from `skills/_shared/sdd-phase-common.md`.
 
 - **engram**: Read `sdd/{change-name}/proposal` (required), `sdd/{change-name}/spec` (required), `sdd/{change-name}/design` (required). Save as `sdd/{change-name}/tasks`.
-- **openspec**: Read and follow `skills/_shared/openspec-convention.md`.
-- **hybrid**: Follow BOTH conventions — persist to Engram AND write `tasks.md` to filesystem. Retrieve dependencies from Engram (primary) with filesystem fallback.
-- **none**: Return result only. Never create or modify project files.
+- **openspec**: Read + follow `skills/_shared/openspec-convention.md`.
+- **hybrid**: Follow BOTH — persist to Engram AND write `tasks.md`. Retrieve deps from Engram (primary), filesystem fallback.
+- **none**: Return result only. No files.
 
 ## What to Do
 
@@ -56,9 +55,9 @@ Follow **Section A** from `skills/_shared/sdd-phase-common.md`.
 
 ### Step 2: Analyze the Design
 
-From the design document, identify:
-- All files that need to be created/modified/deleted
-- The dependency order (what must come first)
+From design, identify:
+- Files to create/modify/delete
+- Dependency order
 - Testing requirements per component
 
 ### Step 3: Write tasks.md
@@ -141,28 +140,28 @@ Each task MUST be:
 
 ### Review Workload Forecast Rules
 
-Before finalizing tasks, estimate whether implementation is likely to exceed the **400 changed-line review budget** (`additions + deletions`). This is a planning guard, not an exact diff count.
+Before finalizing tasks, estimate if implementation may exceed **400 changed-line budget** (`additions + deletions`). Planning guard, not exact diff.
 
-Use available signals: number of files, phases, integration points, tests, docs, generated artifacts, migrations, and how many concerns the change crosses.
+Signals: file count, phases, integration points, tests, docs, generated artifacts, migrations, cross-cutting concerns.
 
-If the estimate is **High** or likely above 400 lines:
+Estimate **High** or >400 lines:
 
-1. Mark `Chained PRs recommended` as `Yes`.
-2. Split tasks into **work units** that can become chained or stacked PRs.
-3. Each suggested PR must have a clear start, clear finish, verification, and autonomous scope.
-4. **Ask the user which chain strategy to use** (this is a team decision):
-   - **Stacked PRs to main** — each PR merges to main in order. Fast iteration, fix on the go. Best for speed-first teams and independent slices.
-   - **Feature Branch Chain** — the feature/tracker branch accumulates the final integration; PR #1 targets the tracker branch, later PRs target the immediate previous PR branch so each child diff stays focused. Only the tracker merges to main. Best for rollback control and coordinated releases.
-   - **size:exception** — keep it as a single PR with maintainer approval. Best for generated code, migrations, or vendor diffs.
-5. Cache the user's choice and set `Decision needed before apply` from delivery strategy:
-   - `ask-on-risk`: `Yes` — orchestrator asks before apply.
-   - `auto-chain`: `No` — orchestrator proceeds with the first slice using the chosen chain strategy.
-   - `single-pr`: `Yes` — orchestrator must require `size:exception` before apply.
-   - `exception-ok`: `No` — maintainer has accepted `size:exception`.
+1. Mark `Chained PRs recommended: Yes`.
+2. Split tasks into **work units** for chained/stacked PRs.
+3. Each suggested PR: clear start, finish, verification, autonomous scope.
+4. **Ask user chain strategy** (team decision):
+   - **Stacked PRs to main** — each PR merges to main in order. Speed-first, independent slices.
+   - **Feature Branch Chain** — tracker branch accumulates integration. PR#1 targets tracker, later PRs target previous PR branch. Only tracker merges to main. Rollback control + coordinated releases.
+   - **size:exception** — single PR with maintainer approval. Generated code/migrations/vendor diffs.
+5. Set `Decision needed before apply` from delivery strategy:
+   - `ask-on-risk`: `Yes`
+   - `auto-chain`: `No`
+   - `single-pr`: `Yes` — must require `size:exception` before apply
+   - `exception-ok`: `No` — maintainer accepted `size:exception`
 
-Do not bury this in prose. Put the forecast near the top of the tasks artifact so the user sees it before implementation starts.
+Forecast near top of tasks artifact (not buried in prose).
 
-The forecast MUST include these exact plain-text lines so downstream guards can match them literally:
+MUST include plain-text guard lines for downstream literal matching:
 
 ```text
 Decision needed before apply: Yes|No
@@ -171,31 +170,18 @@ Chain strategy: stacked-to-main|feature-branch-chain|size-exception|pending
 400-line budget risk: Low|Medium|High
 ```
 
-You may keep the table for readability, but the plain-text lines are the guard contract.
+Table OK for readability, but plain-text lines = guard contract.
 
-For `feature-branch-chain`, suggested work units SHOULD name the intended base boundary: PR #1 base = feature/tracker branch; PR #2 base = PR #1 branch; PR #3 base = PR #2 branch. If a child PR would show previous PR changes, the base is wrong and must be retargeted/rebased before review.
+For `feature-branch-chain`: suggested work units SHOULD name base boundary (PR#1 base = tracker, PR#2 base = PR#1, etc.). Child PR shows previous changes? Wrong base — retarget/rebase before review.
 
-### Phase Organization Guidelines
+### Phase Organization
 
 ```
-Phase 1: Foundation / Infrastructure
-  └─ New types, interfaces, database changes, config
-  └─ Things other tasks depend on
-
-Phase 2: Core Implementation
-  └─ Main logic, business rules, core behavior
-  └─ The meat of the change
-
-Phase 3: Integration / Wiring
-  └─ Connect components, routes, UI wiring
-  └─ Make everything work together
-
-Phase 4: Testing
-  └─ Unit tests, integration tests, e2e tests
-  └─ Verify against spec scenarios
-
-Phase 5: Cleanup (if needed)
-  └─ Documentation, remove dead code, polish
+Phase 1: Foundation / Infrastructure — types, interfaces, DB, config. Things other tasks depend on.
+Phase 2: Core Implementation — main logic, business rules, core behavior.
+Phase 3: Integration / Wiring — connect components, routes, UI. Make everything work.
+Phase 4: Testing — unit, integration, e2e. Verify against spec scenarios.
+Phase 5: Cleanup (if needed) — docs, remove dead code, polish.
 ```
 
 ### Step 4: Persist Artifact
@@ -242,14 +228,14 @@ Return to the orchestrator:
 
 ## Rules
 
-- ALWAYS reference concrete file paths in tasks
-- Tasks MUST be ordered by dependency — Phase 1 tasks shouldn't depend on Phase 2
-- Testing tasks should reference specific scenarios from the specs
-- Each task should be completable in ONE session (if a task feels too big, split it)
-- Use hierarchical numbering: 1.1, 1.2, 2.1, 2.2, etc.
-- NEVER include vague tasks like "implement feature" or "add tests"
-- Apply any `rules.tasks` from `openspec/config.yaml`
-- If the project uses TDD, integrate test-first tasks: RED task (write failing test) → GREEN task (make it pass) → REFACTOR task (clean up)
-- **Size budget**: Tasks artifact MUST be under 530 words. Each task: 1-2 lines max. Use checklist format, not paragraphs.
-- **Review workload guard**: ALWAYS include the Review Workload Forecast. If likely above 400 changed lines, recommend chained PRs and honor the received delivery strategy for whether a decision/exception is needed before apply.
+- Concrete file paths in every task
+- Ordered by dependency — Phase 1 must not depend on Phase 2
+- Testing tasks reference specific spec scenarios
+- One session per task. Too big? Split.
+- Hierarchical numbering: 1.1, 1.2, 2.1, 2.2...
+- No vague tasks ("implement feature", "add tests")
+- Apply `rules.tasks` from `openspec/config.yaml`
+- TDD project: test-first tasks → RED (failing test) → GREEN (pass) → REFACTOR (clean)
+- **Size budget**: Tasks ≤ 530 words. Each task 1-2 lines. Checklist format, no paragraphs.
+- **Review workload guard**: ALWAYS include Review Workload Forecast. >400 lines? Recommend chained PRs, honor delivery strategy.
 - Return envelope per **Section D** from `skills/_shared/sdd-phase-common.md`.

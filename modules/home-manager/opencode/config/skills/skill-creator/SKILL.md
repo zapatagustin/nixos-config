@@ -9,13 +9,13 @@ metadata:
 
 ## Activation Contract
 
-Create a skill when:
-- A pattern is used repeatedly and AI needs guidance
-- Project-specific conventions differ from generic best practices
+Create when:
+- Repeated pattern, AI needs guidance
+- Project conventions differ from generic best practices
 - Complex workflows need step-by-step instructions
-- Decision trees help AI choose the right approach
+- Decision trees help AI choose approach
 
-Do not create a skill when the pattern is trivial, one-off, or better served by normal documentation.
+Don't create for trivial, one-off, or normal-doc patterns.
 
 ## Hard Rules
 

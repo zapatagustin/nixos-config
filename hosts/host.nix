@@ -58,16 +58,18 @@
       substituters = [
         "https://cache.nixos.org"
         "https://nix-community.cachix.org"
+	"https://nyx-cache.chaotic.cx/"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+	"nyx-cache.chaotic.cx:dJxTrgMC3v3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
       ];
       builders-use-substitutes = true;
       warn-dirty = false;
       keep-going = true;
       fallback = true;
-      connect-timeout = 5;
+      connect-timeout = 15;
       log-lines = 50;
       use-xdg-base-directories = true;
       use-cgroups = true;
@@ -90,11 +92,14 @@
       enable = true;
       nssmdns4 = true;
     };
-    journald.extraConfig = "SystemMaxUse=500M";
+    journald.extraConfig = "SystemMaxUse=500M\nStorage=persistent";
     dbus.implementation = "broker";
   };
 
-  security.protectKernelImage = true;
+  # disabled: adds `nohibernate` to kernelParams, which breaks hibernation and
+  # upower's HybridSleep criticalPowerAction. Swap (17G ≥ RAM) + per-host
+  # boot.resumeDevice make real hibernation the intended behaviour here.
+  # security.protectKernelImage = true;
 
   networking.firewall.enable = true;
 

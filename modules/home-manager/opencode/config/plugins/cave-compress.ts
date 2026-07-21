@@ -14,8 +14,14 @@
  *   3. ANSI stripping + blank-line collapse + hard line-count truncation
  *   4. Read deduplication (re-reading an unchanged file returns a stub)
  *
- * Not yet ported: the messages-transform and compaction layers — those are
- * follow-on hooks.
+ * Compaction: handled natively by opencode's `compaction` config (auto +
+ * prune drops old tool outputs). This plugin only styles the compaction
+ * summary terse via the `experimental.session.compacting` hook below.
+ *
+ * Not ported: the messages-transform layer (experimental.chat.messages.transform).
+ * Redundant here — tool outputs are already compressed on entry by the
+ * tool.execute.after hook, and native prune drops old ones at compaction, so a
+ * per-turn re-transform would cost latency for marginal gain.
  *
  * The pure compression functions below are ported from
  * @juliusbrussee/caveman-code (dist/core/cave-tool-compression.js and
@@ -370,6 +376,22 @@ async function logStats(tool: string, before: number, after: number): Promise<vo
 // ── Plugin ───────────────────────────────────────────────────────────────────
 
 export const CaveCompress: Plugin = async () => ({
+  // Compaction summaries persist for the rest of the session and are re-sent
+  // every turn, so compressing their *style* pays off on every subsequent
+  // request. We only tighten style — substance (decisions, active files, task
+  // state, identifiers) must survive verbatim or session continuity breaks.
+  // Additive via output.context; we deliberately do NOT replace output.prompt,
+  // which would drop opencode's built-in preservation instructions.
+  "experimental.session.compacting": async (_input, output) => {
+    if (process.env.CAVE_COMPRESS === "off") return
+    output.context.push(
+      "Write the summary in compressed caveman style: drop articles, filler, and " +
+        "hedging; fragments are fine; use short synonyms. Preserve ALL substance " +
+        "verbatim — decisions made, files being worked on, task state, open problems, " +
+        "and exact identifiers/paths/error strings. Compress the prose, never the facts.",
+    )
+  },
+
   "tool.execute.after": async (input, output) => {
     if (process.env.CAVE_COMPRESS === "off") return
     if (typeof output.output !== "string" || output.output.length === 0) return

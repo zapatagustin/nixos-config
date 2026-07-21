@@ -35,7 +35,10 @@
     recursive = true;
   };
 
-  # clone doom core once; first-time setup is `doom install` (needs network).
+  # clone doom core once; first-time setup is `doom sync` (needs network).
+  # NOTE: use `doom sync`, NOT `doom install`/`doom-install` — on Doom v3 core
+  # the install CLI evaluates init.el's `doom!` before doom-modules-initialize
+  # runs, crashing with "(hash-table-p nil)". `doom sync` takes the correct path.
   # doom v3 keeps its modules in a submodule (sources/doom+), hence --recurse-submodules.
   home.activation.cloneDoomEmacs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ ! -d "${config.xdg.configHome}/emacs" ]; then

@@ -12,9 +12,9 @@ echo "=== $(date '+%F %T') LEFT=$LEFT_SAMSUNG RIGHT=$RIGHT_SAMSUNG EDP=$EDP ==="
 
 # WALLPAPER_DIR set by nix (store path of the wallpapers flake input).
 WALL_DIR="${WALLPAPER_DIR:-$HOME/Pictures/wallpapers}"
-WALL_LEFT="$WALL_DIR/gruv-kanji.png"
-WALL_RIGHT="$WALL_DIR/dragon.png"
-WALL_EDP="$WALL_DIR/great-wave-of-kanagawa-gruvbox.png"
+WALL_LEFT="$WALL_DIR/View_of_Vent_in_the_Ventertal.jpg"
+WALL_RIGHT="$WALL_DIR/morning-field.png"
+WALL_EDP="$WALL_DIR/keyboard.jpg"
 
 # Posiciones: Samsungs side-by-side arriba (1920px c/u, scale 1), eDP-1 abajo centrado
 if [ -n "$LEFT_SAMSUNG" ]; then
@@ -23,8 +23,12 @@ fi
 if [ -n "$RIGHT_SAMSUNG" ]; then
     hyprctl keyword monitor "$RIGHT_SAMSUNG,1920x1080@74.97,1920x0,1"
 fi
-# eDP-1 1366x768 native, scale 1 (no fractional), centered below the 3840-wide Samsung row
-hyprctl keyword monitor "$EDP,preferred,1237x1080,1"
+# eDP-1 at the per-host fractional scale (EDP_SCALE, from nix), centered below the
+# 3840-wide Samsung row. Logical width = 2256/scale; x = (3840 - width)/2.
+EDP_SCALE="${EDP_SCALE:-1}"
+edp_w=$(awk "BEGIN{printf \"%d\", 2256 / $EDP_SCALE}")
+edp_x=$(awk "BEGIN{printf \"%d\", (3840 - $edp_w) / 2}")
+hyprctl keyword monitor "$EDP,preferred,${edp_x}x1080,$EDP_SCALE"
 
 # Workspace rules dinámicas: 1-9 → LEFT, 10-18 → RIGHT, 19-27 → eDP-1
 apply_ws_rules() {

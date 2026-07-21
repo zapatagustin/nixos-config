@@ -1,11 +1,11 @@
 { lib, config, ... }: {
   boot = {
-    # swap partition from hardware-configuration.nix — needed so HybridSleep
+    # NOTE: boot.resumeDevice is per-host (swap UUID differs per machine) and
+    # lives in hosts/<host>/default.nix — needed so HybridSleep
     # (upower criticalPowerAction) can actually resume after hibernation.
-    resumeDevice = "/dev/disk/by-uuid/a1f5ac54-4984-4d83-aaef-cbd6a2e1f179";
 
     loader = {
-      timeout = 1;
+      timeout = 5;
       efi.canTouchEfiVariables = true;
       systemd-boot = {
         enable = true;
@@ -32,7 +32,8 @@
     };
 
     consoleLogLevel = 0;
-    kernelParams = [ "quiet" "splash" "loglevel=3" "udev.log_level=3" ];
+    # splash removed: no plymouth configured, kernel ignores it silently.
+    kernelParams = [ "quiet" "loglevel=3" "udev.log_level=3" ];
   };
 
   systemd.services.NetworkManager-wait-online.enable = false;

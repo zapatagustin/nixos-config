@@ -12,7 +12,8 @@ in
 {
   home.packages = with pkgs; [
     opencode
-    nodejs # ponytail/caveman plugin hooks expect node on PATH
+    opencode-desktop
+    nodejs # skill-registry refresh script expects node on PATH
     gentle-ai
     engram
   ];
@@ -34,9 +35,6 @@ in
     }
 
     ensurePlugin Gentleman-Programming/engram engram
-    ensurePlugin DietrichGebert/ponytail ponytail
-    ensurePlugin JuliusBrussee/caveman caveman
-    ensurePlugin JuliusBrussee/cavekit ck cavekit-marketplace
 
     # User-scope MCP servers (~/.claude.json, runtime-managed by Claude Code
     # itself — Nix can't own that file). The engram plugin above already
@@ -66,19 +64,6 @@ in
         || echo "warning: engram setup opencode failed (retry: engram setup opencode)"
     fi
 
-    # ponytail/caveman in opencode: no plugin marketplace there — caveman ships
-    # a native installer, ponytail is an npm entry in opencode.json's plugin
-    # array (opencode fetches it itself on startup).
-    ocjson="$HOME/.config/opencode/opencode.json"
-    if ! grep -qs caveman "$ocjson"; then
-      run ${pkgs.nodejs}/bin/npx -y github:JuliusBrussee/caveman -- --only opencode \
-        || echo "warning: caveman opencode install failed (retry: npx -y github:JuliusBrussee/caveman -- --only opencode)"
-    fi
-    if [ -f "$ocjson" ] && ! grep -qs dietrichgebert/ponytail "$ocjson"; then
-      run ${pkgs.jq}/bin/jq '.plugin = ((.plugin // []) + ["@dietrichgebert/ponytail"] | unique)' "$ocjson" > "$ocjson.tmp" \
-        && run mv "$ocjson.tmp" "$ocjson" \
-        || echo "warning: could not add ponytail plugin to opencode.json"
-    fi
   '';
 
   # caveman-code and cavemem were removed once opencode reached compression

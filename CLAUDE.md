@@ -31,7 +31,7 @@ flake.nix                      # mkHost builds nixosConfigurations.{surface,thin
   + home-manager module → modules/home-manager/home.nix
 ```
 
-- **System modules** live under `modules/` and are wired via `modules/modules.nix` (boot, containers, dev, hardware, gaming, performance, theme/stylix, wm/hyprland). `secrets/sops.nix` exists but is commented out until `secrets/secrets.yaml` is created.
+- **System modules** live under `modules/` and are wired via `modules/modules.nix` (boot, containers, dev, hardware, gaming, performance, theme/stylix, wm/hyprland). `secrets/sops.nix` is active (declares SOPS-backed secrets — `secrets.yaml` exists in the repo).
 - **Home Manager** is wired via `flake.nix` (`mkHost`) per host. Its root is `modules/home-manager/home.nix`, which imports `shells/`, `terminals/`, `editors/neovim`, `editors/emacs`, `wm/hyprland`, `ai/`, `opencode/`, and `claude-code/`. `options.nix` declares `myDesktop.multiMonitor.enable`, read by the hyprland module.
 - **neovim** (`modules/home-manager/editors/neovim`) is Nix-managed: `programs.neovim` with nixpkgs plugins and LSP servers on PATH (no Mason). The per-plugin lua lives inline plus `lua/*.lua` files loaded via `initLua`/`fileContents`.
 - **Hyprland HM module** (`modules/home-manager/wm/hyprland`) deploys the `quickshell/` bar config (only `bar/` is actually run, via the `quickshell.service` user unit) and `scripts/`. The monitor-watcher unit + per-monitor/group scripts + TV-scale bind are gated behind `myDesktop.multiMonitor.enable` (surface only).
@@ -48,3 +48,4 @@ flake.nix                      # mkHost builds nixosConfigurations.{surface,thin
 - Two git identities exist: flake commits use `zapatagustin`; the HM `programs.git` block sets `zapatagustin4@gmail.com` for the built system.
 - Disabled-not-deleted: dead config is left in place with a `# disabled until ...` comment rather than removed. Follow that pattern.
 - `stateVersion` is `26.05` in both system and HM — don't bump casually.
+- Skills are duplicated per agent (`claude-code/claude/skills/` and `opencode/config/skills/`) and hand-maintained; the copies legitimately differ (opencode has an orchestrator-gate preamble, different frontmatter). After editing any skill, run `scripts/skill-drift.sh` and mirror the change to the other copy — the script reports which skills diverge and by how much (small drifts are usually accidental).

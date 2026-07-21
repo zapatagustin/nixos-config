@@ -9,14 +9,14 @@ metadata:
 
 ## When to Use
 
-Load this skill whenever you write a comment that another human will read.
+Any comment another human reads.
 
-Use it for:
+Use for:
 
-- GitHub PR or issue comments.
-- Review feedback and requested changes.
-- Maintainer replies.
-- Slack, Discord, or async project updates.
+- GitHub PR/issue comments
+- Review feedback, requested changes
+- Maintainer replies
+- Slack, Discord, async project updates
 
 ## Voice Rules
 

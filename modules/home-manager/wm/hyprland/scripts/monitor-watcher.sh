@@ -1,6 +1,9 @@
 #!/bin/bash
 # Daemon: escucha eventos de hyprland (socket2) y re-corre setup-monitors.sh
-# cuando se conecta o desconecta un monitor.
+# cuando se conecta o desconecta un monitor, o cuando se recarga la config
+# (configreloaded) — p.ej. el `hyprctl reload` que dispara cada nixos-rebuild,
+# que si no re-aplicamos deja los externos en el fallback y pierde las
+# workspace rules dinámicas.
 # Debounce: si varios eventos llegan en ráfaga (típico al conectar un dock),
 # solo corre setup-monitors.sh una vez, 1.5s después del último evento.
 
@@ -33,6 +36,8 @@ ensure_hyprpaper() {
 }
 
 run_setup() {
+    # DDC bus list (brightness.sh) is stale after a hotplug; rebuilt on next keypress.
+    rm -f /tmp/ddc-buses
     ensure_hyprpaper
     bash "$SETUP"
     ensure_quickshell
@@ -42,7 +47,7 @@ pending_pid=0
 
 socat -U - "UNIX-CONNECT:$SOCK" | while IFS= read -r line; do
     case "$line" in
-        monitoradded*|monitorremoved*)
+        monitoradded*|monitorremoved*|configreloaded*)
             if [ "$pending_pid" -ne 0 ] && kill -0 "$pending_pid" 2>/dev/null; then
                 kill "$pending_pid" 2>/dev/null
             fi

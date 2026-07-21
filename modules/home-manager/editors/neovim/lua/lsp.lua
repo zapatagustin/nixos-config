@@ -19,7 +19,12 @@ local servers = {
   nixd = {},
   rust_analyzer = {},
   pyright = {},
-  ruff = {},
+  -- ruff handles lint/format; let pyright own hover to avoid duplicate popups
+  ruff = {
+    on_attach = function(client)
+      client.server_capabilities.hoverProvider = false
+    end,
+  },
   ts_ls = {},
   eslint = {},
   cssls = {},

@@ -43,6 +43,10 @@ vim.api.nvim_create_autocmd("VimEnter", {
 
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_win_set_buf(0, buf)
+    -- no line numbers / signcolumn on the start screen
+    vim.wo.number = false
+    vim.wo.relativenumber = false
+    vim.wo.signcolumn = "no"
     -- terminal buffer only so krabby's ANSI colors render; no process behind it
     local chan = vim.api.nvim_open_term(buf, {})
     vim.api.nvim_chan_send(chan, table.concat(lines, "\r\n"))

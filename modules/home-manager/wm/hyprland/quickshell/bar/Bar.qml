@@ -16,9 +16,9 @@ PanelWindow {
         right: true
     }
 
-    implicitHeight: 28
+    // Base (logical) bar height; scaled up on hidpi laptop panels below.
+    readonly property int baseHeight: 28
     color: "transparent"
-    exclusiveZone: implicitHeight
 
     // Monitor de Hyprland correspondiente a esta pantalla
     readonly property var hyprMonitor: {
@@ -29,8 +29,22 @@ PanelWindow {
         return null
     }
 
+    // The bar renders in the compositor's logical space, so 28px looks the same
+    // on every monitor — but on a small hidpi laptop panel (fractional scale >1)
+    // that's physically tiny. Bump the whole bar there; externals (scale 1) stay
+    // as before. Tune the 1.25 if the laptop bar feels off.
+    readonly property real uiScale: (bar.hyprMonitor && bar.hyprMonitor.scale > 1.05) ? 1.25 : 1.0
+
+    implicitHeight: Math.round(baseHeight * uiScale)
+    exclusiveZone: implicitHeight
+
     Rectangle {
-        anchors.fill: parent
+        // Sized in base logical px, then scaled from the top-left so fonts,
+        // spacing and separators all grow uniformly by uiScale.
+        width: bar.width / bar.uiScale
+        height: bar.baseHeight
+        transformOrigin: Item.TopLeft
+        scale: bar.uiScale
         color: bar.theme.bg
 
         Rectangle {

@@ -1,9 +1,13 @@
-{ ... }: {
+{ pkgs, hostname, lib, ... }: {
   imports = [
     ./bluetooth/bluetooth.nix
     ./network/network.nix
     ./sound/sound.nix
   ];
+
+  # brightnessctl udev rules: make /sys/class/backlight writable by `video`
+  # group so XF86MonBrightness keys work without root.
+  services.udev.packages = [ pkgs.brightnessctl ];
 
   powerManagement.enable = true;
 
@@ -30,9 +34,9 @@
         PLATFORM_PROFILE_ON_AC = "performance";
         PLATFORM_PROFILE_ON_BAT = "low-power";
 
-        # Battery longevity (ThinkPad charge thresholds)
-        START_CHARGE_THRESH_BAT0 = 40;
-        STOP_CHARGE_THRESH_BAT0 = 80;
+        # Battery longevity (ThinkPad charge thresholds) — ThinkPad-only
+        START_CHARGE_THRESH_BAT0 = lib.mkIf (hostname == "thinkpad") 40;
+        STOP_CHARGE_THRESH_BAT0 = lib.mkIf (hostname == "thinkpad") 80;
 
         # WiFi / WoL / USB power
         WIFI_PWR_ON_AC = "off";
@@ -51,8 +55,12 @@
       };
     };
 
-    # Intel BD PROCHOT throttling fix (massive perf bug on ThinkPads)
-    throttled.enable = true;
+    # Intel BD PROCHOT throttling fix — for Skylake/Kaby-era ThinkPads (T480/X1C6).
+    # disabled: measured no-op on this i7-1185G7 (Tiger Lake). Under all-core load
+    # the package caps at ~32W / 86-93C (thermal-bound), never reaching the 44W PL1
+    # throttled maintains; forcing PL1=28W changed sustained clocks <2%. 11th-gen
+    # isn't affected by the BD PROCHOT bug, and the config didn't disable it anyway.
+    # throttled.enable = true;
 
     thermald.enable = true;
     power-profiles-daemon.enable = false;
@@ -60,7 +68,7 @@
 
     upower = {
       enable = true;
-      criticalPowerAction = "HybridSleep"; # safe without real swap; switch to Hibernate when swap exists
+      criticalPowerAction = "HybridSleep"; # suspend + hibernation image; needs swap (17G) + resumeDevice + hibernation enabled (protectKernelImage off)
       percentageLow = 20;
       percentageCritical = 10;
       percentageAction = 5;
@@ -95,10 +103,13 @@
 
   hardware = {
     cpu.intel.updateMicrocode = true;
-    enableAllFirmware = true;
+    # was enableAllFirmware: measured — every firmware this machine loads (i915,
+    # iwlwifi, intel-bluetooth) is in linux-firmware (redistributable). All-firmware
+    # only added non-redistributable blobs this hardware never requests.
+    enableRedistributableFirmware = true;
     graphics.enable = true;
     trackpoint = {
-      enable = true;
+      enable = lib.mkDefault true;
       speed = 200;
       emulateWheel = true;
     };

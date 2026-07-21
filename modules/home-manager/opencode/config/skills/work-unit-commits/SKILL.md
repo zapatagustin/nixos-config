@@ -9,15 +9,14 @@ metadata:
 
 ## When to Use
 
-Load this skill when deciding what belongs in each commit or PR.
+Load when deciding what belongs in each commit or PR.
 
-Use it for:
-
-- Splitting a feature into reviewable work.
-- Preparing commits before opening a PR.
-- Turning a large change into chained or stacked PRs.
-- Keeping reviewer cognitive load healthy.
-- Applying SDD tasks without accidentally producing a PR above 400 changed lines.
+Use for:
+- Splitting feature into reviewable work
+- Preparing commits before PR
+- Turning large change into chained/stacked PRs
+- Keeping reviewer load healthy
+- Applying SDD tasks without exceeding 400 changed lines
 
 ## Critical Rules
 
@@ -52,27 +51,31 @@ Before committing, confirm:
 
 ## PR Relationship
 
-Use work-unit commits as the foundation for chained PRs:
+Work-unit commits = foundation for chained PRs:
 
-1. Build the smallest independent work unit.
-2. Include verification for that unit.
-3. Commit it with a Conventional Commit message.
-4. If the PR approaches 400 changed lines, promote commits or groups of commits into chained PRs.
+1. Build smallest independent work unit.
+2. Include verification.
+3. Commit with Conventional Commit message.
+4. PR approaches 400 lines? Promote commits/groups into chained PRs.
+
+## Output Compression
+
+Compress narrative in commit/PR planning output. Keep structural fields (file paths, commands, commit hashes, task IDs, line counts) EXACT. Drop articles/filler/hedging in explanations. Code blocks, commands, paths exact.
 
 ## SDD Relationship
 
-When `sdd-tasks` produces a Review Workload Forecast:
+When `sdd-tasks` produces Review Workload Forecast:
 
-- Low risk: keep work-unit commits inside one PR.
-- Medium risk: commit by work unit and monitor changed lines before PR creation.
-- High risk: follow SDD `delivery_strategy` — ask on `ask-on-risk`, auto-slice on `auto-chain`, require `size:exception` on over-budget `single-pr`, or record accepted `size:exception` on `exception-ok`.
+- Low risk: work-unit commits inside one PR.
+- Medium risk: commit by unit, monitor changed lines before PR.
+- High risk: follow `delivery_strategy` — ask on `ask-on-risk`, auto-slice on `auto-chain`, require `size:exception` on over-budget `single-pr`, record accepted on `exception-ok`.
 
-Each SDD work unit should map cleanly to a commit or PR with:
+Each SDD work unit maps to commit/PR with:
 
-- clear start state,
-- clear finished state,
-- verification in the same unit,
-- rollback that does not remove unrelated work.
+- clear start state
+- clear finished state
+- verification in same unit
+- rollback that does not remove unrelated work
 
 ## Commands
 

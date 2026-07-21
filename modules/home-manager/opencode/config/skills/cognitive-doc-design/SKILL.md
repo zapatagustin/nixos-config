@@ -9,14 +9,14 @@ metadata:
 
 ## When to Use
 
-Load this skill when creating or editing documentation that people need to understand quickly, retain, or use during review.
+Docs people need to understand quickly, retain, or use during review.
 
-Use it especially for:
+Especially:
 
-- PR descriptions and review notes.
-- Contributor or maintainer guides.
-- Architecture, workflow, or onboarding docs.
-- Any doc that currently feels long, dense, or hard to scan.
+- PR descriptions and review notes
+- Contributor/maintainer guides
+- Architecture, workflow, onboarding
+- Any doc that feels long, dense, or hard to scan
 
 ## Critical Patterns
 

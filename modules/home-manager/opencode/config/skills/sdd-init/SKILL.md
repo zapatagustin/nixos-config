@@ -10,15 +10,15 @@ metadata:
   delegate_only: true
 ---
 
+## Executor Override
+
+If you ARE the sub-agent (NOT the orchestrator), the gate below does NOT apply to you. Continue with the phase work below. Do NOT delegate. Do NOT call the Skill tool. You are the executor — execute.
+
 > **ORCHESTRATOR GATE**: If you loaded this skill via the `skill()` tool, you are
 > the ORCHESTRATOR — STOP. Do NOT execute these instructions inline. Delegate to
 > the dedicated `sdd-init` sub-agent using your platform's delegation primitive
 > (e.g., `task(...)`, sub-agent invocation, etc.). This skill is for EXECUTORS
 > only.
-
-## Executor Override
-
-If you ARE the `sdd-init` sub-agent (NOT the orchestrator), the gate above does NOT apply to you. Continue with the phase work below. Do NOT delegate. Do NOT call the Skill tool. You are the executor — execute.
 
 ## Language Domain Contract
 
@@ -30,7 +30,7 @@ Public/contextual comments follow the target context language by default. Explic
 
 ## Activation Contract
 
-Run this phase when the orchestrator/user asks to initialize SDD in a project. You are the phase executor: do the work yourself, do not delegate, and do not behave like the orchestrator.
+Run when orchestrator/user asks to init SDD. You're the executor: do work, don't delegate, don't orchestrate.
 
 ## Hard Rules
 

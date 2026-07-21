@@ -1,31 +1,30 @@
 # SDD Status and Instructions Contract
 
-Shared OpenSpec-style contract for SDD commands and phase skills. Use this before acting on a change so orchestration does not guess state, paths, or edit scope.
+Shared contract for SDD commands and phase skills. Use before acting on change — no guessing state, paths, or edit scope.
 
 ## Purpose
 
-Commands that select, continue, apply, verify, or archive an SDD change MUST first produce or consume structured status. The status is the handoff between orchestrator and phase executor.
+Commands that select, continue, apply, verify, or archive an SDD change MUST produce or consume structured status. Status = handoff between orchestrator and phase executor.
 
 ## Change Selection
 
-- If a change name is provided, use that exact change after confirming it exists in the selected artifact store.
-- If no change name is provided, infer only when the active change is unambiguous from session state or there is exactly one active change.
-- If multiple active changes match or the active change is unclear, ask the user to choose. Do not guess.
-- If no active changes exist, report that no SDD change is active and suggest `/sdd-new <change>`.
+- Name provided? Confirm exists in artifact store, then use.
+- No name? Infer only when unambiguous from session state or exactly one active change.
+- Multiple/unclear? Ask user. No guessing.
+- None active? Report, suggest `/sdd-new <change>`.
 
 ## Native Engine
 
-- When the session artifact store is `openspec` or `hybrid` and the `gentle-ai` binary is available, prefer `gentle-ai sdd-status [change] --cwd <repo> --json --instructions` for read-only status and `gentle-ai sdd-continue [change] --cwd <repo>` for dispatcher output. When the store is `engram`, do not invoke the binary at all (see the next bullet).
-- The native engine reads only OpenSpec file artifacts and always emits `artifactStore: openspec`; it cannot observe Engram-backed changes. Treat native status as authoritative only when the selected artifact store is `openspec` or `hybrid`. When the selected store is `engram`, do not invoke the native dispatcher at all — resolve status from Engram (`mem_search` + `mem_get_observation` on the change topic keys) using the manual status schema below, and disregard any `blocked`, `Active OpenSpec change not found`, or `nextRecommended: sdd-new` it emits for an Engram change that exists.
-- For `openspec` and `hybrid` stores, treat native status JSON as authoritative over prompt inference or manually reconstructed state.
-- When `blockedReasons` is non-empty, do not proceed to terminal, archive, or apply work. Return or report `blockedReasons` and stop unless `nextRecommended` is `verify`, in which case verification may run only to remediate or refresh evidence for the blockers. When `nextRecommended` is `resolve-blockers`, always report `blockedReasons` and stop. When `nextRecommended` is a planning token (`propose`, `spec`, `design`, or `tasks`), launch the corresponding planning phase — missing planning artifacts are the expected output of those phases, not genuine blockers.
-- `nextRecommended` is a bounded machine token for routing, not human prose. Route only by `nextRecommended` and dependency states.
-- Human-readable explanation belongs in `blockedReasons`, not `nextRecommended`.
-- If the binary is unavailable, fall back to this prompt contract and the manual status schema below. Manual fallback status MUST stay shape-compatible with native `gentle-ai.sdd-status` JSON even when values are reconstructed manually.
+- Store `openspec`/`hybrid` AND `gentle-ai` binary available? Prefer `gentle-ai sdd-status [change] --cwd <repo> --json --instructions` for status, `gentle-ai sdd-continue [change] --cwd <repo>` for dispatcher. Store `engram`? Do NOT invoke binary.
+- Native engine reads only OpenSpec file artifacts, emits `artifactStore: openspec` — cannot observe Engram changes. Authoritative only when store is `openspec`/`hybrid`. Store `engram`? Resolve from Engram (`mem_search` + `mem_get_observation`). Disregard `blocked`, `Active OpenSpec change not found`, `nextRecommended: sdd-new` for an Engram change that exists.
+- For `openspec`/`hybrid`: native JSON authoritative over prompt inference or manual state.
+- `blockedReasons` non-empty? Do NOT proceed to terminal/archive/apply. Report, stop — unless `nextRecommended` is `verify` (may run only to remediate/refresh evidence). `nextRecommended` is `resolve-blockers`? Report, stop. Planning token (`propose`, `spec`, `design`, `tasks`)? Launch corresponding phase — missing artifacts = expected output, not blockers.
+- `nextRecommended` = bounded machine token. Route only by it + dependency states. Human explanation goes in `blockedReasons`.
+- Binary unavailable? Fall back to this contract + manual schema. Manual MUST stay shape-compatible with `gentle-ai.sdd-status` JSON.
 
 ## Status Schema
 
-Return status as markdown with these fields, or as equivalent JSON when the host supports it:
+Return markdown with fields below, or equivalent JSON:
 
 ```yaml
 schemaName: gentle-ai.sdd-status
@@ -48,7 +47,6 @@ contextFiles:
   specs: [<absolute readable files>]
   design: [<absolute readable files>]
   tasks: [<absolute readable files>]
-  applyProgress: [<absolute readable files>]
   verifyReport: [<absolute readable files>]
 artifacts:
   proposal: missing | done | partial
@@ -89,35 +87,35 @@ nextRecommended: propose | spec | design | tasks | apply | verify | archive | sd
 blockedReasons: []
 ```
 
-`phaseInstructions` is optional and appears only when instructions are requested. It carries only execution-phase keys (`apply`, `verify`, `archive`); planning-phase instructions (`propose`, `spec`, `design`, `tasks`) are surfaced in the dispatcher markdown, not this JSON map, so a consumer routing on a planning `nextRecommended` MUST NOT expect a matching `phaseInstructions` entry. Empty path fields MUST be arrays, not null. `changeName` and `changeRoot` are nullable; all other sections should be present in fallback output so consumers can parse native and manual status the same way. Native status currently emits `artifactStore: openspec`; manual fallback output MUST set `artifactStore` to the session's actual store (`openspec`, `engram`, or `hybrid`), not blindly mirror the native token.
+`phaseInstructions` optional, appears only when requested. Carries only `apply`/`verify`/`archive` keys; planning tokens (`propose`, `spec`, `design`, `tasks`) surface in dispatcher markdown, NOT this map. Empty path fields = arrays, not null. `changeName`/`changeRoot` nullable. Native emits `artifactStore: openspec`; manual MUST set actual session store (`openspec`, `engram`, or `hybrid`).
 
 ## Apply State
 
-- `blocked`: Required apply artifacts are missing, task selection is ambiguous, or action context makes edits unsafe.
-- `all_done`: Tasks artifact exists and every implementation task is checked `[x]`.
-- `ready`: Tasks artifact exists, at least one implementation task remains unchecked, and edit scope is safe.
+- `blocked`: Required artifacts missing, task ambiguity, or unsafe edit context.
+- `all_done`: Tasks exist, every task checked `[x]`.
+- `ready`: Tasks exist, ≥1 unchecked, edit scope safe.
 
 ## Dependency States
 
-- `proposal`, `specs`, `design`, and `tasks` report whether prerequisite artifacts are blocked, ready, or all done.
-- `apply` is `ready` only when specs, design, and tasks are available and task progress is not all done.
-- `verify` is `ready` when tasks exist and either apply-progress exists or the tasks artifact shows all intended implementation work complete. Incomplete tasks remain blockers for full verification.
-- `archive` is `ready` only when verify-report exists, is clearly passing, and tasks are complete. A clearly passing report needs an explicit PASS/SUCCESS signal and no blocker or negation signals such as FAIL, FAILURE, BLOCKED, CRITICAL, PENDING, TODO, verification blockers, `not passed`, or `pass: no`. CRITICAL verification issues have no override. Explicit recorded exceptions are limited to non-critical partial archives or stale-checkbox reconciliation when apply-progress/verify-report prove completion.
+- `proposal`, `specs`, `design`, `tasks`: report if prereqs blocked/ready/all_done.
+- `apply` ready: specs + design + tasks available, progress not all_done.
+- `verify` ready: tasks exist, and apply-progress exists OR tasks show all impl complete. Incomplete tasks block full verification.
+- `archive` ready: verify-report exists, clearly passing, tasks complete. Passing = explicit PASS/SUCCESS, no FAIL/FAILURE/BLOCKED/CRITICAL/PENDING/TODO/verification-blockers/`not passed`/`pass: no`. CRITICAL: no override. Exceptions: non-critical partial archives or stale-checkbox reconciliation when apply-progress/verify-report prove completion.
 
 ## Action Context Guard
 
-The orchestrator MUST carry `actionContext` into any phase launch.
+Orchestrator MUST carry `actionContext` into any phase launch.
 
-- If manually reconstructed context cannot prove edit ownership or allowed edit roots, stop before editing.
-- If `allowedEditRoots` is present, only edit files within those roots.
-- If a command cannot prove a file is inside the authoritative workspace or allowed edit roots, stop and ask for clarification.
+- Manual context cannot prove ownership/allowed roots? Stop.
+- `allowedEditRoots` present? Edit only within those roots.
+- Cannot prove file inside workspace/allowed roots? Stop, ask.
 
 ## Status Output
 
-Every command that acts on a change MUST show status before launching an executor or performing archive work:
+Every command acting on a change MUST show status before executor/archive:
 
-- Active change selection and how it was resolved.
-- Artifact statuses and paths/topics used as context.
-- Task progress and unchecked task list when tasks exist.
+- Active change + resolution method.
+- Artifact statuses + paths/topics.
+- Task progress + unchecked list.
 - Next recommended action.
-- `blockedReasons` when `nextRecommended` is not `verify`, plus any edit-root blockers.
+- `blockedReasons` (when not `verify`) + edit-root blockers.

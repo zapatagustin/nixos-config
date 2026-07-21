@@ -9,7 +9,7 @@ metadata:
 
 ## Activation Contract
 
-Use this skill after installing, removing, creating, moving, or renaming skills, or when a delegator needs a fresh skill index.
+After installing, removing, creating, moving, or renaming skills, or when a delegator needs a fresh index.
 
 ## Hard Rules
 

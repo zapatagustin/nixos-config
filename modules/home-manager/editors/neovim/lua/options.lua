@@ -1,6 +1,10 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+-- disable netrw so nvim-tree / oil own directory buffers (nvim-tree requires this)
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
 local opt = vim.opt
 opt.number = true
 opt.relativenumber = true
@@ -20,6 +24,7 @@ opt.wrap = false
 opt.splitbelow = true
 opt.splitright = true
 opt.completeopt = { "menuone", "noselect" }
+opt.updatetime = 250
 
 -- dvorak: normal/visual/operator commands land on QWERTY physical positions;
 -- insert mode, cmdline text and telescope prompts stay dvorak (langmap only

@@ -4,12 +4,12 @@
 
 ```
 openspec/
-├── config.yaml              <- Project-specific SDD config
+├── config.yaml              <- Project SDD config
 ├── specs/                   <- Source of truth (main specs)
 │   └── {domain}/
 │       └── spec.md
 └── changes/                 <- Active changes
-    ├── archive/             <- Completed changes (YYYY-MM-DD-{change-name}/)
+    ├── archive/             <- Completed (YYYY-MM-DD-{change-name}/)
     └── {change-name}/       <- Active change folder
         ├── state.yaml       <- DAG state (survives compaction)
         ├── exploration.md   <- (optional) from sdd-explore
@@ -52,14 +52,14 @@ Main specs: openspec/specs/{domain}/spec.md
 
 ## Writing Rules
 
-- Always create the change directory before writing artifacts
-- If a file already exists, READ it first and UPDATE it (don't overwrite blindly)
-- If the change directory already exists with artifacts, the change is being CONTINUED
-- Use `openspec/config.yaml` `rules` section for project-specific constraints per phase
+- Create change dir before writing artifacts
+- File exists? READ then UPDATE, don't overwrite
+- Change dir exists with artifacts? Change is CONTINUED
+- Use `openspec/config.yaml` `rules` for phase-specific constraints
 
 ## Delta Spec Sections
 
-Delta specs MAY include these sections:
+Delta specs MAY include:
 
 ```markdown
 ## ADDED Requirements
@@ -68,10 +68,10 @@ Delta specs MAY include these sections:
 ## RENAMED Requirements
 ```
 
-- `ADDED` appends new requirements to the main spec.
-- `MODIFIED` replaces the full matching requirement block in the main spec. The delta MUST contain the entire updated requirement, including unchanged scenarios that must be preserved.
-- `REMOVED` deletes the matching requirement from the main spec. Each removed requirement MUST include `(Reason: ...)` and SHOULD include `(Migration: ...)` when consumers or persisted behavior are affected.
-- `RENAMED` changes a requirement heading/name without changing behavior unless the delta also includes a `MODIFIED` block for the new requirement. Each rename MUST state old and new names explicitly.
+- `ADDED`: appends new requirements to main spec.
+- `MODIFIED`: replaces full matching requirement block in main spec. Delta MUST contain entire updated requirement, including unchanged scenarios to preserve.
+- `REMOVED`: deletes matching requirement from main spec. Each MUST include `(Reason: ...)`. SHOULD include `(Migration: ...)` when consumers/persisted behavior affected.
+- `RENAMED`: changes heading/name without behavior change — unless delta also has `MODIFIED` for new requirement. Each MUST state old + new names explicitly.
 
 ## Config File Reference
 
@@ -99,7 +99,7 @@ rules:
     - Keep tasks completable in one session
   apply:
     - Follow existing code patterns
-    tdd: false           # Set to true to enable RED-GREEN-REFACTOR
+    tdd: false           # Set true for RED-GREEN-REFACTOR
     test_command: ""
   verify:
     test_command: ""
@@ -111,9 +111,9 @@ rules:
 
 ## Archive Structure
 
-When archiving, the change folder moves to:
+Archive moves change folder to:
 ```
 openspec/changes/archive/YYYY-MM-DD-{change-name}/
 ```
 
-Use today's date in ISO format. The archive is an AUDIT TRAIL — never delete or modify archived changes.
+Today's date in ISO format. Archive = AUDIT TRAIL — never delete/modify.

@@ -4,3 +4,7 @@ result-*
 
 # agent tooling cache
 .atl/*.cache.json
+
+# local Claude Code overrides (WiFi passwords, per-machine config)
+.claude/settings.local.json
+.claude/settings.local.*

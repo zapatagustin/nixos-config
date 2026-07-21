@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/agustin/.claude/hooks/check-diff-size.sh",
+            "command": "$HOME/.claude/hooks/check-diff-size.sh",
             "if": "Bash(git push*)",
             "statusMessage": "Checking diff size (review-4R gate)"
           }
@@ -47,36 +47,28 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/agustin/.claude/hooks/check-diff-size.sh",
+            "command": "$HOME/.claude/hooks/check-diff-size.sh",
             "if": "Bash(gh pr create*)",
             "statusMessage": "Checking diff size (review-4R gate)"
           }
         ]
       }
     ],
-    "SessionStart": [
+    "PostToolUse": [
       {
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "\"/usr/bin/node\" \"/home/agustin/.claude/hooks/caveman-activate.js\"",
-            "timeout": 5,
-            "statusMessage": "Loading caveman mode..."
+            "command": "node \"$HOME/.claude/hooks/ecomono-compress.js\"",
+            "timeout": 10
           }
         ]
       }
     ],
+    "SessionStart": [],
+    "SubagentStart": [],
     "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"/usr/bin/node\" \"/home/agustin/.claude/hooks/caveman-mode-tracker.js\"",
-            "timeout": 5,
-            "statusMessage": "Tracking caveman mode..."
-          }
-        ]
-      },
       {
         "matcher": "",
         "hooks": [
@@ -88,43 +80,19 @@
       }
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bash \"/home/agustin/.claude/hooks/caveman-statusline.sh\""
-  },
   "enabledPlugins": {
-    "caveman@caveman": true,
-    "claude-md-management@claude-plugins-official": false,
-    "code-review@claude-plugins-official": false,
     "engram@engram": true,
-    "frontend-design@claude-plugins-official": false,
-    "linear@claude-plugins-official": false,
-    "ponytail@ponytail": true,
-    "pyright-lsp@claude-plugins-official": false,
-    "slack@claude-plugins-official": false,
     "superpowers@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
-      }
-    },
     "engram": {
       "source": {
         "source": "github",
         "repo": "Gentleman-Programming/engram"
       }
-    },
-    "ponytail": {
-      "source": {
-        "source": "github",
-        "repo": "DietrichGebert/ponytail"
-      }
     }
   },
-  "outputStyle": "Gentleman",
+  "outputStyle": "Ecomono",
   "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
   "theme": "auto",

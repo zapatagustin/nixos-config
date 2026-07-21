@@ -1,8 +1,9 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, inputs, ... }:
 let
   luaFile = name: lib.fileContents (./lua + "/${name}");
 in
 {
+  # stylix neovim target is enabled in ../../stylix.nix (central HM instance).
   programs.neovim = {
     enable = true;
     defaultEditor = true;
@@ -40,7 +41,7 @@ in
       cmp_luasnip
       friendly-snippets
 
-      # colorscheme managed by stylix (modules/theme/stylix.nix)
+      # colorscheme driven by stylix.targets.neovim (enabled in modules/theme/stylix.nix)
       {
         plugin = nvim-treesitter.withAllGrammars;
         type = "lua";

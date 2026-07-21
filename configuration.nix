@@ -10,7 +10,7 @@
   users.users.${username} = {
     isNormalUser = true;
     description = username;
-    extraGroups = [ "networkmanager" "wheel" "docker" "audio" "tss" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" "audio" "video" "tss" ];
     shell = pkgs.zsh;
   };
 }

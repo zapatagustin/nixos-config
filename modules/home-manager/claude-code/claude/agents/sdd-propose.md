@@ -31,6 +31,10 @@ Also read shared conventions at `~/.claude/skills/_shared/sdd-phase-common.md`.
 
 Execute all steps from the skill directly in this context window:
 1. Read exploration artifact (optional): `mem_search("sdd/{change-name}/explore")` → `mem_get_observation`
+1b. **Recall prior learnings (compounding step):** if the explore artifact did not already surface
+   them, `mem_search` for prior bugfixes, decisions, and patterns in the affected area and fold the
+   relevant constraints and rejected approaches into intent/scope, so the proposal does not
+   re-propose a known dead end.
 2. Define intent (what problem, why now, what success looks like)
 3. Define scope (in-scope / out-of-scope explicit)
 4. Outline approach with rationale

@@ -1,6 +1,7 @@
 { pkgs, lib, config, ... }:
 let
   mm = config.myDesktop.multiMonitor.enable;
+  iscale = toString config.myDesktop.internalScale; # eDP-1 fractional scale (per host)
   walls = ../../../../wallpapers; # repo-root/wallpapers (only the used images, ~1.7MB)
 
   # monitor-watcher is the only monitor script behind a systemd unit, so it's the only
@@ -8,7 +9,7 @@ let
   # PATH). runtimeInputs also covers setup-monitors.sh, which the watcher spawns.
   monitorWatcher = pkgs.writeShellApplication {
     name = "monitor-watcher";
-    runtimeInputs = with pkgs; [ socat systemd hyprland hyprpaper jq procps coreutils bash ];
+    runtimeInputs = with pkgs; [ socat systemd hyprland hyprpaper jq procps coreutils bash gawk ];
     bashOptions = [ "nounset" ]; # match the script's original `set -u`; errexit would abort best-effort hyprctl/kill calls
     text = builtins.readFile ./scripts/monitor-watcher.sh;
   };
@@ -20,6 +21,38 @@ let
     bashOptions = [ "nounset" ]; # script uses `set -u`
     text = builtins.readFile ./scripts/tv-scale.sh;
   };
+  # Brightness keys: internal backlight always, external DDC monitors only when
+  # multiMonitor (dock) is enabled — ddcutil is only pulled in then, so on the
+  # nomad host `command -v ddcutil` fails and the script stays internal-only.
+  brightnessScript = pkgs.writeShellApplication {
+    name = "brightness";
+    runtimeInputs = with pkgs; [ brightnessctl coreutils gnugrep util-linux ]
+      ++ lib.optional mm ddcutil;
+    bashOptions = [ "nounset" ]; # script uses `set -u`; errexit would abort best-effort ddcutil calls
+    text = builtins.readFile ./scripts/brightness.sh;
+  };
+
+  # Audio device watcher: notifies when sinks/sources change (USB headset, HDMI, etc.)
+  audioDeviceWatcher = pkgs.writeShellApplication {
+    name = "audio-device-watcher";
+    runtimeInputs = with pkgs; [ coreutils libnotify ];
+    bashOptions = [ "nounset" ]; # script uses `set -u`
+    text = builtins.readFile ./scripts/audio-device-watcher.sh;
+  };
+
+  # hyprpaper 0.8.4 ignores config-file `wallpaper=`/`preload=` (hyprtoolkit-rewrite
+  # regression: logs "Monitor eDP-1 has no target" at every startup, sets nothing).
+  # Only the IPC path works, so apply the built-in-display wallpaper via
+  # `hyprctl hyprpaper wallpaper` once the daemon's IPC socket is up. External monitors
+  # are applied separately by setup-monitors.sh (also over IPC).
+  setEdpWallpaper = pkgs.writeShellScript "hyprpaper-set-edp" ''
+    for _ in $(seq 1 20); do
+      ${pkgs.hyprland}/bin/hyprctl hyprpaper listactive >/dev/null 2>&1 && break
+      sleep 0.3
+    done
+    ${pkgs.hyprland}/bin/hyprctl hyprpaper wallpaper "eDP-1,${walls}/keyboard.jpg"
+  '';
+
   ws = builtins.genList (i: toString (i + 1)) 9; # ["1".."9"]
   # workspace binds call scripts via `bash` so no exec-bit needed on store files
   mkWsBinds = mod: script: map (n: "${mod}, ${n}, exec, bash ~/.config/hypr/${script} ${n}") ws;
@@ -40,9 +73,9 @@ in
     socat
     libnotify
     kitty
-    yazi
+    # yazi -> programs.yazi (home.nix), so stylix.targets.yazi themes it
     satty # screenshot annotation (screenshot.sh edit)
-    gruvbox-gtk-theme
+    # gruvbox-gtk-theme dropped: GTK now themed by stylix.targets.gtk
     papirus-icon-theme
     noto-fonts-cjk-sans # hyprlock clock font (Noto Sans JP)
   ];
@@ -62,10 +95,11 @@ in
 
       env = [
         "WALLPAPER_DIR,${walls}"
+        "EDP_SCALE,${iscale}" # setup-monitors.sh reuses the per-host eDP scale on dock
       ];
 
       monitor = [
-        "eDP-1,preferred,auto,1" # 1920x1080 native, scale 1 (no fractional); externals via setup-monitors.sh
+        "eDP-1,preferred,auto,${iscale}" # scale per host (myDesktop.internalScale); externals via setup-monitors.sh
         ",preferred,auto,auto" # fallback for unknown monitors
       ] ++ lib.optional mm
         "HDMI-A-1,3840x2160@60,0x0,2,bitdepth,10,cm,wide"; # TV 4K: 10-bit + wide gamut (SDR desktop); tv-scale toggles game/HDR
@@ -92,6 +126,11 @@ in
       animations.enabled = false; # cachy disabled them ("enabled = no, please :)")
 
       master.new_status = "master";
+
+      # HW cursor plane renders at a fixed size and ignores per-monitor scale, so
+      # the pointer looks a different size on the fractional-scaled eDP (1.57) vs
+      # the scale-1 externals. Software cursors rescale correctly per output.
+      cursor.no_hardware_cursors = true;
 
       misc = {
         force_default_wallpaper = 1;
@@ -178,12 +217,12 @@ in
       ];
 
       bindel = [
-        ",XF86AudioRaiseVolume, exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"
-        ",XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
-        ",XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+        ",XF86AudioRaiseVolume, exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ && echo . >> /tmp/qs-volume"
+        ",XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && echo . >> /tmp/qs-volume"
+        ",XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && echo . >> /tmp/qs-volume"
         ",XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
-        ",XF86MonBrightnessUp, exec, brightnessctl -e4 -n2 set 5%+ && echo . >> /tmp/qs-brightness"
-        ",XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%- && echo . >> /tmp/qs-brightness"
+        ",XF86MonBrightnessUp, exec, ${brightnessScript}/bin/brightness up"
+        ",XF86MonBrightnessDown, exec, ${brightnessScript}/bin/brightness down"
       ];
 
       bindl = [
@@ -221,15 +260,19 @@ in
     '';
   };
 
-  # hyprpaper: built-in display here; external monitors set at runtime by setup-monitors.sh
+  # hyprpaper: built-in display here; external monitors set at runtime by setup-monitors.sh.
+  # NOTE: `wallpaper=` below is dead on hyprpaper 0.8.4 (config-file wallpapers are
+  # ignored — see setEdpWallpaper); it stays as documented intent. The eDP wallpaper is
+  # actually applied by the ExecStartPost IPC call wired below.
   services.hyprpaper = {
     enable = true;
     settings = {
       splash = false;
       ipc = "on";
-      wallpaper = [ "eDP-1,${walls}/great-wave-of-kanagawa-gruvbox.png" ];
+      wallpaper = [ "eDP-1,${walls}/keyboard.jpg" ];
     };
   };
+  systemd.user.services.hyprpaper.Service.ExecStartPost = "${setEdpWallpaper}";
 
   # idle management. On NixOS the lock works because hyprlock has a PAM entry
   # (modules/wm/hyprland.nix). lock_cmd guards against double-launch.
@@ -345,7 +388,22 @@ in
       # hotplug. A systemd user service does not inherit Hyprland's `env` (uwsm finalize
       # only exports HYPRLAND_INSTANCE_SIGNATURE), so set it here. PATH is no longer set
       # manually — runtimeInputs handles it.
-      Environment = [ "WALLPAPER_DIR=${walls}" ];
+      Environment = [ "WALLPAPER_DIR=${walls}" "EDP_SCALE=${iscale}" ];
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.services.audio-device-watcher = {
+    Unit = {
+      Description = "PipeWire audio device hotplug watcher";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" "pipewire.service" "wireplumber.service" ];
+      BindsTo = [ "pipewire.service" ];
+    };
+    Service = {
+      ExecStart = "${audioDeviceWatcher}/bin/audio-device-watcher";
       Restart = "on-failure";
       RestartSec = 2;
     };

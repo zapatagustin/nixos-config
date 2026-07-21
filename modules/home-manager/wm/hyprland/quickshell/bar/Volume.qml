@@ -11,47 +11,34 @@ Item {
 
     property int percent: 0
     property bool muted: false
+    property bool isExternal: false
 
-    // Usar pactl para leer volumen del sink por defecto
+    // Leer volumen + mute del sink por defecto con wpctl (pipewire nativo; este
+    // sistema no tiene pactl/pulseaudio). "Volume: 0.30" o "Volume: 0.30 [MUTED]".
     Process {
         id: volProcess
-        command: ["sh", "-c", "pactl get-sink-volume @DEFAULT_SINK@ | grep -oP '\\d+(?=%)' | head -1"]
+        command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@"]
         running: false
         stdout: SplitParser {
             onRead: (line) => {
-                var v = parseInt(line)
-                if (!isNaN(v)) volume.percent = v
-            }
-        }
-    }
-
-    Process {
-        id: muteProcess
-        command: ["sh", "-c", "pactl get-sink-mute @DEFAULT_SINK@"]
-        running: false
-        stdout: SplitParser {
-            onRead: (line) => {
-                volume.muted = line.indexOf("yes") !== -1
+                var m = line.match(/Volume: ([0-9.]+)/)
+                if (m) volume.percent = Math.round(parseFloat(m[1]) * 100)
+                volume.muted = line.indexOf("MUTED") !== -1
             }
         }
     }
 
     function refresh() {
         volProcess.running = true
-        muteProcess.running = true
     }
 
-    // Event-driven: `pactl subscribe` emite una línea por cada cambio de sink
-    // (incluye las teclas XF86Audio*). Reemplaza el polling cada 3s → cero forks
-    // en idle, y la UI refleja el cambio al instante.
+    // Refresh instantáneo: los binds de volumen (binds.conf) escriben en este
+    // pipe tras correr wpctl. wpctl no tiene `subscribe`, así que el push
+    // explícito reemplaza al viejo `pactl subscribe`.
     Process {
-        id: subscribeProc
-        command: ["sh", "-c", "pactl subscribe"]
         running: true
-        stdout: SplitParser {
-            // "Event 'change' on sink #N" → refrescar. "on sink-input #" NO matchea.
-            onRead: (line) => { if (line.indexOf("on sink #") !== -1) debounce.restart() }
-        }
+        command: ["sh", "-c", "touch /tmp/qs-volume && tail -n 0 -f /tmp/qs-volume"]
+        stdout: SplitParser { onRead: () => debounce.restart() }
     }
 
     // Coalesce ráfagas (mantener apretada la tecla de volumen dispara muchos
@@ -61,10 +48,37 @@ Item {
         id: debounce
         interval: 60
         repeat: false
-        onTriggered: volume.refresh()
+        onTriggered: { volume.refresh(); volume.refreshSinkType() }
     }
 
-    Component.onCompleted: volume.refresh()
+    // Detect if default audio sink is external (USB/HDMI) vs built-in
+    Process {
+        id: sinkTypeProcess
+        command: [
+            "sh", "-c",
+            "wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep -q 'Built-in' && echo internal || echo external"
+        ]
+        running: false
+        stdout: SplitParser {
+            onRead: (line) => {
+                volume.isExternal = (line.trim() === "external")
+            }
+        }
+    }
+
+    function refreshSinkType() {
+        sinkTypeProcess.running = true
+    }
+
+    // Refresh volume + sink type every 5s (backstop for changes outside key binds)
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        onTriggered: { volume.refresh(); volume.refreshSinkType() }
+    }
+
+    Component.onCompleted: { volume.refresh(); volume.refreshSinkType() }
 
     property string volColor: {
         if (volume.muted) return volume.theme.fgDim
@@ -92,6 +106,17 @@ Item {
             font.family: "Terminess Nerd Font Mono"
             font.weight: Font.Medium
             anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // External audio indicator (USB headset, HDMI, etc.)
+        Text {
+            text: "EXT"
+            color: volume.theme.accent
+            font.pixelSize: 10
+            font.family: "Terminess Nerd Font Mono"
+            font.weight: Font.Bold
+            anchors.verticalCenter: parent.verticalCenter
+            visible: volume.isExternal
         }
     }
 }

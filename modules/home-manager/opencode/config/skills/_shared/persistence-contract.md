@@ -2,17 +2,17 @@
 
 ## Mode Resolution
 
-The orchestrator passes `artifact_store.mode` with one of: `engram | openspec | hybrid | none`.
+Orchestrator passes `artifact_store.mode`: `engram | openspec | hybrid | none`.
 
-The orchestrator ASKs the user which mode they want when `/sdd-new`, `/sdd-ff`, or `/sdd-continue` is invoked for the first time in a session. The choice is cached for the session.
+Orchestrator ASKs user on first `/sdd-new`, `/sdd-ff`, or `/sdd-continue` per session. Choice cached.
 
-Default (if user doesn't specify): if Engram is available → `engram`. Otherwise → `none`.
+Default: Engram available → `engram`. Otherwise → `none`.
 
 ## Mode Roles
 
-- **`engram`**: Working memory between sessions. Upserts overwrite — no iteration history. Local only, not shareable.
+- **`engram`**: Working memory between sessions. Upserts overwrite. No iteration history. Local only.
 - **`openspec`**: Source of truth. Files in repo, git history, team-shareable, full audit trail.
-- **`hybrid`**: Both — files for team + engram for recovery. Higher token cost.
+- **`hybrid`**: Both. Files for team + engram for recovery. Higher token cost.
 - **`none`**: Ephemeral. Lost when conversation ends.
 
 ### Mode Comparison
@@ -21,14 +21,14 @@ Default (if user doesn't specify): if Engram is available → `engram`. Otherwis
 |------------|----------|------------|----------|--------|
 | Cross-session recovery | ✅ | ❌ (needs git) | ✅ | ❌ |
 | Compaction survival | ✅ | ❌ | ✅ | ❌ |
-| Shareable with team | ❌ (local DB) | ✅ (committed files) | ✅ (files) | ❌ |
-| Full iteration history | ❌ (upsert overwrites) | ✅ (git history) | ✅ (files + git) | ❌ |
-| Audit trail (archive) | Partial (report only) | ✅ (full folder) | ✅ (both) | ❌ |
+| Shareable with team | ❌ (local DB) | ✅ (files) | ✅ (files) | ❌ |
+| Full iteration history | ❌ (upsert) | ✅ (git) | ✅ (files+git) | ❌ |
+| Audit trail (archive) | Partial (report) | ✅ (folder) | ✅ (both) | ❌ |
 | Project files created | Never | Yes | Yes | Never |
 
 ### `engram` mode limitation
 
-Engram uses `topic_key`-based upserts. Re-running a phase for the same change **overwrites** the previous version — no revision history is kept. The archive phase saves a summary report, not the full artifact folder. For iteration history or team collaboration, use `openspec` or `hybrid`.
+Engram uses `topic_key`-based upserts. Re-running same phase for same change **overwrites** previous version — no revision history. Archive saves summary report, not full folder. For iteration history or team collab, use `openspec` or `hybrid`.
 
 ## Behavior Per Mode
 
@@ -41,81 +41,77 @@ Engram uses `topic_key`-based upserts. Re-running a phase for the same change **
 
 ### Hybrid Mode
 
-Persists every artifact to BOTH Engram and OpenSpec simultaneously:
-- Engram: cross-session recovery, compaction survival, deterministic search
-- OpenSpec: human-readable files, version-controllable artifacts
+Persists every artifact to BOTH Engram + OpenSpec:
+- Engram: recovery, compaction survival, deterministic search
+- OpenSpec: human-readable files, version-controlled
 
-Write to Engram (per `engram-convention.md`) AND to filesystem (per `openspec-convention.md`) for every artifact.
+Write to Engram (`engram-convention.md`) AND filesystem (`openspec-convention.md`) for every artifact.
 
-Read priority: Engram first; fall back to filesystem if Engram returns no results.
-Write behavior: both writes MUST succeed for the operation to be complete.
-Token cost warning: hybrid consumes MORE tokens per operation. Use only when you need both cross-session persistence AND local file artifacts.
+Read: Engram first, filesystem fallback.
+Write: both MUST succeed for completion.
+Token cost: hybrid consumes MORE per op. Use only when both cross-session + file artifacts needed.
 
 ## State Persistence (Orchestrator)
 
-The orchestrator persists DAG state after each phase transition to enable SDD recovery after compaction.
+Orchestrator persists DAG state after each phase transition for SDD recovery after compaction.
 
-| Mode | Persist State | Recover State |
-|------|--------------|---------------|
+| Mode | Persist | Recover |
+|------|---------|---------|
 | `engram` | `mem_save(topic_key: "sdd/{change-name}/state", capture_prompt: false*)` | `mem_search("sdd/*/state")` → `mem_get_observation(id)` |
-| `openspec` | Write `openspec/changes/{change-name}/state.yaml` | Read `openspec/changes/{change-name}/state.yaml` |
-| `hybrid` | Both: `mem_save` AND write `state.yaml` | Engram first; filesystem fallback |
-| `none` | Not possible — warn user | Not possible |
+| `openspec` | Write `state.yaml` | Read `state.yaml` |
+| `hybrid` | Both | Engram first; filesystem fallback |
+| `none` | Not possible | Not possible |
 
-*For state automated artifacts, set `capture_prompt: false` when the Engram tool schema supports it; if an older schema rejects or does not expose the field, omit it rather than failing.
+*State automated artifacts: set `capture_prompt: false`. Older schema lacks field? Omit rather than fail.
 
 ## Common Rules
 
-- `none` → do NOT create or modify any project files; return results inline only
-- `engram` → do NOT write any project files; persist to Engram and return observation IDs
-- `openspec` → write files ONLY to paths defined in `openspec-convention.md`
-- `hybrid` → persist to BOTH Engram AND filesystem; follow both conventions
-- NEVER force `openspec/` creation unless orchestrator explicitly passed `openspec` or `hybrid`
-- If unsure which mode to use, default to `none`
+- `none` → no project files, inline only
+- `engram` → no project files, persist to Engram, return IDs
+- `openspec` → files only to paths in `openspec-convention.md`
+- `hybrid` → persist to BOTH, follow both conventions
+- NEVER force `openspec/` unless orchestrator passed `openspec` or `hybrid`
+- Unsure? Default `none`
 
 ## Sub-Agent Context Rules
 
-Sub-agents launch with a fresh context and NO access to the orchestrator's instructions or memory protocol.
+Sub-agents launch fresh — NO access to orchestrator's instructions or memory protocol.
 
-Who reads, who writes:
-- Non-SDD (general task): orchestrator searches engram, passes summary in prompt; sub-agent saves discoveries via `mem_save`
-- SDD (phase with dependencies): sub-agent reads artifacts directly from backend; sub-agent saves its artifact
-- SDD (phase without dependencies, e.g. explore): nobody reads; sub-agent saves its artifact
+Read/write by type:
+- Non-SDD: orchestrator searches engram, passes summary in prompt. Sub-agent saves discoveries via `mem_save`.
+- SDD (with deps): sub-agent reads artifacts from backend directly, saves its artifact.
+- SDD (no deps, e.g. explore): nobody reads. Sub-agent saves its artifact.
 
-Why this split:
-- Orchestrator reads for non-SDD: it knows what context is relevant; sub-agents doing their own searches waste tokens on irrelevant results
-- Sub-agents read for SDD: SDD artifacts are large; inlining them in the orchestrator prompt would consume the entire context window
-- Sub-agents always write: they have the complete detail on what happened; nuance is lost by the time results flow back to the orchestrator
+Rationale:
+- Orchestrator reads for non-SDD: knows what context is relevant. Sub-agents searching themselves waste tokens on irrelevant results.
+- Sub-agents read for SDD: SDD artifacts are large; inlining in orchestrator prompt would consume entire context window.
+- Sub-agents always write: they have complete detail. Nuance lost by time results flow back.
 
 ## Orchestrator Prompt Instructions for Sub-Agents
 
 Non-SDD:
 ```
 PERSISTENCE (MANDATORY):
-If you make important discoveries, decisions, or fix bugs, you MUST save them to engram before returning:
-  mem_save(title: "{short description}", type: "{decision|bugfix|discovery|pattern}",
+Important discoveries, decisions, or bugs? MUST save to engram before returning:
+  mem_save(title: "{short}", type: "{decision|bugfix|discovery|pattern}",
            project: "{project}", content: "{What, Why, Where, Learned}")
-Do NOT return without saving what you learned. This is how the team builds persistent knowledge across sessions.
 ```
 
 SDD (with dependencies):
 ```
 Artifact store mode: {engram|openspec|hybrid|none}
-Read these artifacts before starting (search returns truncated previews):
-  mem_search(query: "sdd/{change-name}/{type}", project: "{project}") → get ID
+Read before starting (search returns truncated previews):
+  mem_search(query: "sdd/{change-name}/{type}", project: "{project}") → ID
   mem_get_observation(id: {id}) → full content (REQUIRED)
 
 PERSISTENCE (MANDATORY — do NOT skip):
-After completing your work, you MUST call:
-  mem_save(
-    title: "sdd/{change-name}/{artifact-type}",
+After work, MUST call:
+  mem_save(title: "sdd/{change-name}/{artifact-type}",
     topic_key: "sdd/{change-name}/{artifact-type}",
-    type: "architecture",
-    project: "{project}",
+    type: "architecture", project: "{project}",
     capture_prompt: false,
-    content: "{your full artifact markdown}"
-  )
-If you return without calling mem_save, the next phase CANNOT find your artifact and the pipeline BREAKS.
+    content: "{full artifact markdown}")
+Return without mem_save → next phase CANNOT find artifact → pipeline BREAKS.
 ```
 
 SDD (no dependencies):
@@ -123,36 +119,33 @@ SDD (no dependencies):
 Artifact store mode: {engram|openspec|hybrid|none}
 
 PERSISTENCE (MANDATORY — do NOT skip):
-After completing your work, you MUST call:
-  mem_save(
-    title: "sdd/{change-name}/{artifact-type}",
+After work, MUST call:
+  mem_save(title: "sdd/{change-name}/{artifact-type}",
     topic_key: "sdd/{change-name}/{artifact-type}",
-    type: "architecture",
-    project: "{project}",
+    type: "architecture", project: "{project}",
     capture_prompt: false,
-    content: "{your full artifact markdown}"
-  )
-If you return without calling mem_save, the next phase CANNOT find your artifact and the pipeline BREAKS.
+    content: "{full artifact markdown}")
+Return without mem_save → next phase CANNOT find artifact → pipeline BREAKS.
 ```
 
-For SDD artifacts, `capture_prompt: false` is explicit and mandatory when the Engram tool schema supports it. Engram v1.15.3 defaults `capture_prompt` to true for normal human/proactive saves, but automated pipeline artifacts must not capture the user's prompt. Do not infer this from `type` because SDD artifacts and real human architecture decisions both use `architecture`. If an older schema rejects or does not expose `capture_prompt`, omit it rather than failing.
+SDD artifacts: `capture_prompt: false` mandatory when schema supports it. Engram v1.15.3 defaults `capture_prompt: true` for human saves, but SDD = automated pipeline. Don't infer from `type` (both SDD and human decisions use `architecture`). Older schema lacks field? Omit, don't fail.
 
 ## Sub-Agent Response Ordering
 
-When a sub-agent persists artifacts (via `mem_save` or file writes), the persistence call MUST happen BEFORE the final text response. The sub-agent's absolute last output must be text, never a tool call.
+Persistence (`mem_save`/file writes) MUST happen BEFORE final text response. Sub-agent's last output = text, never tool call.
 
-**Why**: The Task tool returns the sub-agent's final output to the parent. If the sub-agent ends with a tool call, the parent receives only the tool result (e.g., `"Observation saved"`) — the sub-agent's text analysis is lost. Always: do your work → save → respond with text envelope.
+**Why**: Task tool returns sub-agent's final output to parent. Ends with tool call → parent gets only tool result (e.g., `"Observation saved"`) — text analysis lost. Always: work → save → respond with text envelope.
 
-Sub-agents must NOT call `mem_session_summary` — that's reserved for top-level agents only.
+Sub-agents must NOT call `mem_session_summary` — top-level agents only.
 
 ## Skill Registry
 
-The orchestrator pre-resolves skill paths from the skill registry and injects them as `## Skills to load before work` in your launch prompt. Sub-agents read those exact `SKILL.md` files before task-specific work.
+Orchestrator pre-resolves skill paths from registry, injects as `## Skills to load before work`. Sub-agents read exact `SKILL.md` files before task-specific work.
 
-To generate/update: run the `skill-registry` skill, or run `sdd-init`.
+Generate/update: run `skill-registry` skill or `sdd-init`.
 
-Sub-agent skill loading: check for a `## Skills to load before work` block in your prompt — if present, read those exact files. If not present, check for `SKILL: Load` instructions as a fallback. If neither exists, proceed without — this is not an error.
+Sub-agent skill loading: `## Skills to load before work` present? Read exact files. Not present? Check `SKILL: Load` fallback. Neither? Proceed without — not an error.
 
 ## Detail Level
 
-The orchestrator may pass `detail_level`: `concise | standard | deep`. This controls output verbosity but does NOT affect what gets persisted — always persist the full artifact.
+Orchestrator may pass `detail_level`: `concise | standard | deep`. Controls output verbosity, NOT what gets persisted — always persist full artifact.

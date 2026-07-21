@@ -3,10 +3,12 @@
   # CachyOS kernel; userspace scheduler needs the scx package (available
   # from chaotic overlay). Add back when building on the real NixOS machine.
   # See https://github.com/scx-wiki/scx for upstream status.
-  services.ananicy = {
-    enable = true;
-    package = pkgs.ananicy-cpp;
-  };
+  # disabled: CachyOS kernel's BORE scheduler already prioritizes interactive
+  # processes; ananicy adds a daemon without measurable benefit here.
+  # services.ananicy = {
+  #   enable = true;
+  #   package = pkgs.ananicy-cpp;
+  # };
 
   services.earlyoom.enable = true;
   services.irqbalance.enable = true;

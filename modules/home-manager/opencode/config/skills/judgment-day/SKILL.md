@@ -9,43 +9,45 @@ metadata:
 
 ## Activation Contract
 
-Load this skill only when the user explicitly asks for Judgment Day, dual/adversarial review, or equivalent Spanish trigger (`juzgar`, `que lo juzguen`). Review a specific target: files, feature, PR, or architecture slice.
+Load only when user explicitly requests Judgment Day, dual/adversarial review, or `juzgar`/`que lo juzguen`. Target: files, feature, PR, or architecture slice.
 
 ## Hard Rules
 
-- Resolve project skills before launching agents: read skill registry, match skill paths by target files/task, and inject the same `Skills to load before work` block into both judge prompts and fix prompts.
-- Launch **two blind judges in parallel** with identical target and criteria; never review the code yourself.
-- Wait for both judges before synthesis; never accept a partial verdict.
-- Classify warnings as `WARNING (real)` only if normal intended use can trigger them; otherwise downgrade to INFO as `WARNING (theoretical)`.
-- Ask before fixing Round 1 confirmed issues.
-- After any fix agent runs, immediately re-launch both judges in parallel before commit/push/done/session summary.
-- Terminal states are only `JUDGMENT: APPROVED` or `JUDGMENT: ESCALATED`.
-- After 2 fix iterations with remaining issues, ask the user whether to continue.
+- Resolve skills before launching: read registry, match by target files/task, inject `Skills to load before work` into judge + fix prompts.
+- Launch **two blind judges in parallel** — same target, same criteria. You never review code yourself.
+- Wait for both judges before synthesis. No partial verdicts.
+- `WARNING (real)` only if normal intended use triggers it. Otherwise → INFO as `WARNING (theoretical)`.
+- Ask before Round 1 fixes.
+- After fix agent runs → immediately re-judge both judges in parallel before commit/push/done/session-summary.
+- Terminal states: only `JUDGMENT: APPROVED` or `JUDGMENT: ESCALATED`.
+- After 2 fix iterations with remaining issues, ask user to continue or stop.
 
 ## Decision Gates
 
 | Condition | Action |
 |---|---|
-| Target unclear | Ask for scope; do not launch judges. |
-| No skill registry | Warn, proceed with generic criteria, and record `Skill Resolution: none`. |
-| Both judges find same CRITICAL/real WARNING | Confirmed; ask/fix according to round rules. |
-| One judge finds issue | Suspect; report and triage, do not auto-fix. |
+| Target unclear | Ask scope. No judges. |
+| No skill registry | Warn, proceed with generic criteria, record `Skill Resolution: none`. |
+| Both judges find same CRITICAL/real WARNING | Confirmed. Ask/fix per round rules. |
+| One judge finds issue | Suspect. Report + triage. No auto-fix. |
 | Judges contradict | Escalate for manual decision. |
-| Round 2+ has only theoretical warnings/suggestions | Report as INFO; do not re-judge. |
+| Round 2+ only theoretical warnings/suggestions | Report as INFO. No re-judge. |
 
 ## Execution Steps
 
-1. Confirm target and optional custom criteria.
-2. Resolve exact skill paths from registry or warn if missing.
-3. Start Judge A and Judge B concurrently via delegation.
-4. Synthesize findings into confirmed, suspect, contradiction, and INFO buckets.
-5. Ask before Round 1 fixes; delegate a separate fix agent for confirmed approved fixes only.
-6. Re-judge in parallel after fixes; repeat until approved, escalated, or user asks to stop.
-7. Before any terminal action, verify every active Judgment Day has a terminal state.
+1. Confirm target + optional custom criteria.
+2. Resolve skill paths from registry (or warn).
+3. Start Judge A + Judge B concurrently via delegation.
+4. Synthesize findings → confirmed, suspect, contradiction, INFO buckets.
+5. Ask before Round 1 fixes. Delegate separate fix agent for confirmed approved fixes only.
+6. Re-judge in parallel after fixes. Repeat until approved, escalated, or user stops.
+7. Before terminal action: verify every active Judgment Day has terminal state.
 
 ## Output Contract
 
 Return `## Judgment Day — {target}` with round number, verdict table, confirmed/suspect/contradiction counts, fixes applied, re-judgment result, `Skill Resolution`, and final `JUDGMENT: APPROVED ✅` or `JUDGMENT: ESCALATED ⚠️`.
+
+**Output compression**: Compress narrative (descriptions, evidence, rationale, finding context). Keep structural fields (severity, file:line, verdict labels) EXACT. Code blocks/paths exact. Drop articles/filler/hedging in prose.
 
 ## References
 

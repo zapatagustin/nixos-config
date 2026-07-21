@@ -9,6 +9,6 @@
     ./performance/performance.nix
     ./theme/stylix.nix
     ./wm/hyprland.nix
-    # ./secrets/sops.nix          # enable after creating secrets/secrets.yaml (see README)
+    ./secrets/sops.nix
   ];
 }

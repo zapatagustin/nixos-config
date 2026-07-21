@@ -17,6 +17,22 @@
 
   security.polkit.enable = true;
 
+  # Thunar file manager + volman (auto-mount/manage removable media). volman
+  # needs udisks2 to mount and polkit (above) to authorize; gvfs adds trash +
+  # network/MTP mounts; tumbler renders thumbnails. Enable auto-mount in
+  # Thunar > Edit > Preferences > Removable Media after first launch.
+  programs.thunar = {
+    enable = true;
+    plugins = with pkgs; [ thunar-volman thunar-archive-plugin ];
+  };
+  # thunar-archive-plugin is only the context-menu hook; it needs a real archiver
+  # backend to actually compress/extract.
+  environment.systemPackages = [ pkgs.xarchiver ];
+
+  services.gvfs.enable = true;
+  # udisks2 enabled in modules/hardware/hardware.nix (removed redundant enable here)
+  services.tumbler.enable = true;
+
 #  # hyprlock needs a PAM entry to authenticate — without it you can't unlock.
 #  security.pam.services.hyprlock = { };
 }

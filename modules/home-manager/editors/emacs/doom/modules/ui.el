@@ -2,7 +2,7 @@
 ;; Theme, fonts, frame.
 
 ;; stylix doesn't manage doom; theme is set here.
-(setq doom-theme 'doom-one)
+(setq doom-theme 'doom-gruvbox)
 
 ;; same mono font stylix uses everywhere else (Terminess Nerd Font)
 (setq doom-font (font-spec :family "Terminess Nerd Font Mono" :size 16)
