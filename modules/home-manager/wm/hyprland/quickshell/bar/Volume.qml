@@ -43,7 +43,7 @@ Item {
 
     // Coalesce ráfagas (mantener apretada la tecla de volumen dispara muchos
     // eventos); refresca una sola vez 60ms después del último.
-    // ponytail: debounce fijo 60ms; subir si se siente laggy al soltar la tecla.
+    // ecomono: debounce fijo 60ms; subir si se siente laggy al soltar la tecla.
     Timer {
         id: debounce
         interval: 60

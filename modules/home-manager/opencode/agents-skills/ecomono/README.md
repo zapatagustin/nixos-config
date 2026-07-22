@@ -36,13 +36,13 @@ Question: "Why does my React component re-render?"
 Normal prose:
 > Your component re-renders because you create a new object reference each render. Wrapping it in `useMemo` will fix the issue.
 
-Caveman (full):
+ecomono (full):
 > New object ref each render. Inline object prop = new ref = re-render. Wrap in `useMemo`.
 
-Caveman (ultra):
+ecomono (ultra):
 > Inline obj prop → new ref → re-render. `useMemo`.
 
 ## See also
 
 - [`SKILL.md`](./SKILL.md) — full LLM-facing instructions
-- [Caveman README](../../README.md) — repo overview, install, benchmarks
+- [ecomono README](../../README.md) — repo overview, install, benchmarks

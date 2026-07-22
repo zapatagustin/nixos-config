@@ -62,7 +62,7 @@ function opencodeConfigDir() {
 const flagPath = path.join(opencodeConfigDir(), '.ecomono-active');
 
 function reinforcementLine(mode) {
-  return 'CAVEMAN MODE ACTIVE (' + mode + '). ' +
+  return 'ECOMONO MODE ACTIVE (' + mode + '). ' +
     'Drop articles/filler/pleasantries/hedging. Fragments OK. ' +
     'Code/commits/security: write normal.';
 }
@@ -122,7 +122,7 @@ function applyModeChange(mode) {
   safeWriteFlag(flagPath, mode);
 }
 
-export const CavemanPlugin = async (_ctx) => ({
+export const EcomonoPlugin = async (_ctx) => ({
   'session.created': async () => {
     const mode = getDefaultMode();
     if (mode === 'off') {
@@ -151,4 +151,4 @@ export const CavemanPlugin = async (_ctx) => ({
   },
 });
 
-export default CavemanPlugin;
+export default EcomonoPlugin;

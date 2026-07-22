@@ -30,7 +30,7 @@ for _ in 1 2 3; do
     sleep 1
 done
 
-# ponytail: 2s poll. Perceptually instant for hand-plugged audio, cheap enough.
+# ecomono: 2s poll. Perceptually instant for hand-plugged audio, cheap enough.
 while sleep 2; do
     cur=$(snapshot)
     [ -z "$cur" ] && continue

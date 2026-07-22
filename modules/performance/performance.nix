@@ -1,5 +1,5 @@
 { pkgs, ... }: {
-  # ponytail: chaotic.scx removed from nyx. scx kernel module ships with
+  # ecomono: chaotic.scx removed from nyx. scx kernel module ships with
   # CachyOS kernel; userspace scheduler needs the scx package (available
   # from chaotic overlay). Add back when building on the real NixOS machine.
   # See https://github.com/scx-wiki/scx for upstream status.

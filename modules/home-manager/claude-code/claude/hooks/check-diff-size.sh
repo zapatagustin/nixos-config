@@ -3,7 +3,7 @@
 # default-branch merge-base exceeds THRESHOLD changed lines, remind (do NOT block)
 # to run the review-4R agents first. Soft nudge by design — see notes below.
 #
-# ponytail: deliberately a reminder, not a wall. A client-side hook can be bypassed
+# ecomono: deliberately a reminder, not a wall. A client-side hook can be bypassed
 # in one line, and the party it gates writes its own approval — real enforcement
 # belongs in CI / branch protection. This catches the common case: forgetting.
 set -euo pipefail

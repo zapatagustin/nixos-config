@@ -1,5 +1,5 @@
 # AI agent stack: opencode + gentle-ai + engram binaries, plus the Claude Code
-# plugins (engram, ponytail, ecomono). The plugins live as imperative state
+# plugins (engram, ecomono). The plugins live as imperative state
 # under ~/.claude/plugins — Nix can't manage them declaratively — so they're
 # installed idempotently on HM activation instead: already-installed plugins
 # are skipped, and failures (e.g. offline rebuild) warn without aborting.

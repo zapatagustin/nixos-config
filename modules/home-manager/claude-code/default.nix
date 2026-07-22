@@ -17,7 +17,7 @@ let
   '';
 in
 {
-  # Hook scripts (ecomono/ponytail) are Node scripts invoked as `node ...`.
+  # Hook scripts (ecomono) are Node scripts invoked as `node ...`.
   home.packages = [ pkgs.nodejs ];
 
   programs.claude-code = {

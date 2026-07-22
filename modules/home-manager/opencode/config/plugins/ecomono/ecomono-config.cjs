@@ -2,7 +2,7 @@
 // ecomono — shared configuration resolver
 //
 // Resolution order for default mode:
-//   1. CAVEMAN_DEFAULT_MODE environment variable
+//   1. ECOMONO_DEFAULT_MODE environment variable
 //   2. Config file defaultMode field:
 //      - $XDG_CONFIG_HOME/ecomono/config.json (any platform, if set)
 //      - ~/.config/ecomono/config.json (macOS / Linux fallback)
@@ -38,7 +38,7 @@ function getConfigPath() {
 
 function getDefaultMode() {
   // 1. Environment variable (highest priority)
-  const envMode = process.env.CAVEMAN_DEFAULT_MODE;
+  const envMode = process.env.ECOMONO_DEFAULT_MODE;
   if (envMode && VALID_MODES.includes(envMode.toLowerCase())) {
     return envMode.toLowerCase();
   }
@@ -75,11 +75,11 @@ function getDefaultMode() {
 //
 // The flag file itself must never be a symlink (that's the actual clobber vector).
 //
-// Set CAVEMAN_DEBUG=1 to emit stderr diagnostics when flag writes are refused.
+// Set ECOMONO_DEBUG=1 to emit stderr diagnostics when flag writes are refused.
 //
 // Silent-fails on any filesystem error — the flag is best-effort.
 function safeWriteFlag(flagPath, content) {
-  const debug = process.env.CAVEMAN_DEBUG === '1';
+  const debug = process.env.ECOMONO_DEBUG === '1';
   try {
     const flagDir = path.dirname(flagPath);
     fs.mkdirSync(flagDir, { recursive: true });
@@ -196,7 +196,7 @@ function readFlag(flagPath) {
 //
 // Silent-fails on any filesystem error.
 function appendFlag(filePath, line) {
-  const debug = process.env.CAVEMAN_DEBUG === '1';
+  const debug = process.env.ECOMONO_DEBUG === '1';
   try {
     const dir = path.dirname(filePath);
     fs.mkdirSync(dir, { recursive: true });

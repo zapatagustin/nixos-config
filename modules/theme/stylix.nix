@@ -1,5 +1,5 @@
 { pkgs, config, ... }: {
-  # ponytail: autoEnable=false + explicit targets to avoid missing-option
+  # ecomono: autoEnable=false + explicit targets to avoid missing-option
   # errors from targets referencing DE configs we don't have (gnome, kmscon, etc.)
   stylix = {
     enable = true;
@@ -29,7 +29,7 @@
 
     # stylix's starship & hyprlock targets are HM-only (no nixos.nix).
     # gnome target needs explicit disable since we don't have GNOME.
-    # ponytail: disable HM autoImport → HM targets (anki, gtk, etc.) reference
+    # ecomono: disable HM autoImport → HM targets (anki, gtk, etc.) reference
     # HM options that don't exist; condition=false doesn't prevent validation.
     homeManagerIntegration.autoImport = false;
     targets.gnome.enable = false;

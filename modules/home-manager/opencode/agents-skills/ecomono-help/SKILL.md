@@ -6,7 +6,7 @@ description: >
   "ecomono help", "what ecomono commands", "how do I use ecomono".
 ---
 
-# Caveman Help
+# ecomono Help
 
 Display this reference card when invoked. One-shot — do NOT change mode, write flag files, or persist anything. Output in ecomono style.
 
@@ -30,6 +30,10 @@ Mode stick until changed or session end.
 | **ecomono-commit** | `/ecomono-commit` | Terse commit messages. Conventional Commits. ≤50 char subject. |
 | **ecomono-review** | `/ecomono-review` | One-line PR comments: `L42: bug: user null. Add guard.` |
 | **ecomono-compress** | `/ecomono-compress <file>` | Compress .md files to ecomono prose. Saves ~46% input tokens. |
+| **ecomono-cut** | `/ecomono-cut` | Over-engineering review of a diff. What to delete, one line each. |
+| **ecomono-audit** | `/ecomono-audit` | Over-engineering audit of the whole repo. Ranked list of what to cut. |
+| **ecomono-debt** | `/ecomono-debt` | Harvest `ecomono:` shortcut markers into a debt ledger. |
+| **ecomono-stats** | `/ecomono-stats` | Lifetime token-savings: total saved, sessions, avg ratio. |
 | **ecomono-help** | `/ecomono-help` | This card. |
 
 ## Deactivate
@@ -42,7 +46,7 @@ Default mode = `full`. Change it:
 
 **Environment variable** (highest priority):
 ```bash
-export CAVEMAN_DEFAULT_MODE=ultra
+export ECOMONO_DEFAULT_MODE=ultra
 ```
 
 **Config file** (`~/.config/ecomono/config.json`):

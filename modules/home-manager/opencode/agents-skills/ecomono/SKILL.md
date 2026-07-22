@@ -67,7 +67,7 @@ Example — destructive op:
 > ```sql
 > DROP TABLE users;
 > ```
-> Caveman resume. Verify backup exist first.
+> ecomono resume. Verify backup exist first.
 
 ## Boundaries
 

@@ -12,6 +12,9 @@ Show the ecomono quick-reference card.
 | `/ecomono off` | Deactivate |
 | `/ecomono-commit` | Terse commit message |
 | `/ecomono-review` | One-line review findings |
+| `/ecomono-cut` | Over-engineering review of a diff |
+| `/ecomono-audit` | Over-engineering audit of the whole repo |
+| `/ecomono-debt` | Harvest `ecomono:` shortcut markers |
 | `/ecomono-compress <file>` | Compress a Markdown file |
 | `/ecomono-stats` | Lifetime token-savings |
 
