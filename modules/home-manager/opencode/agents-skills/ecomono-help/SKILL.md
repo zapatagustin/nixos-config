@@ -33,30 +33,30 @@ Mode stick until changed or session end.
 | **ecomono-cut** | `/ecomono-cut` | Over-engineering review of a diff. What to delete, one line each. |
 | **ecomono-audit** | `/ecomono-audit` | Over-engineering audit of the whole repo. Ranked list of what to cut. |
 | **ecomono-debt** | `/ecomono-debt` | Harvest `ecomono:` shortcut markers into a debt ledger. |
-| **ecomono-stats** | `/ecomono-stats` | Lifetime token-savings: total saved, sessions, avg ratio. |
 | **ecomono-help** | `/ecomono-help` | This card. |
 
 ## Deactivate
 
-Say "stop ecomono" or "normal mode". Resume anytime with `/ecomono`.
+- **opencode**: say "stop ecomono" / "normal mode", or `/ecomono off`. Resume with `/ecomono`.
+- **Claude Code**: `/output-style neutral` (ecomono is the `Ecomono` output-style). Resume: `/output-style Ecomono`.
 
 ## Configure Default Mode
 
-Default mode = `full`. Change it:
+**opencode** (plugin-driven). Default = `full`. Override:
 
-**Environment variable** (highest priority):
+Environment variable (highest priority):
 ```bash
 export ECOMONO_DEFAULT_MODE=ultra
 ```
 
-**Config file** (`~/.config/ecomono/config.json`):
+Config file (`~/.config/ecomono/config.json`):
 ```json
 { "defaultMode": "lite" }
 ```
 
-Set `"off"` to disable auto-activation on session start. User can still activate manually with `/ecomono`.
+`"off"` disables auto-activation on session start; still manual via `/ecomono`. Resolution: env var > config file > `full`.
 
-Resolution: env var > config file > `full`.
+**Claude Code**: mode is the `Ecomono` output-style, set in `~/.claude/settings.json` (`"outputStyle"`). No env/config-file switching and no session-start auto-activation beyond the active output-style.
 
 ## More
 

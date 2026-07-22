@@ -11,7 +11,7 @@ let
   claudeSkills = pkgs.runCommand "claude-code-skills" { } ''
     mkdir -p $out
     cp -r ${./claude/skills}/. $out/
-    for s in ecomono ecomono-commit ecomono-compress ecomono-help ecomono-review; do
+    for s in ecomono ecomono-commit ecomono-compress ecomono-help ecomono-review ecomono-cut ecomono-audit ecomono-debt; do
       cp -r ${../opencode/agents-skills}/$s $out/$s
     done
   '';

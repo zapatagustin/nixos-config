@@ -16,7 +16,6 @@ Show the ecomono quick-reference card.
 | `/ecomono-audit` | Over-engineering audit of the whole repo |
 | `/ecomono-debt` | Harvest `ecomono:` shortcut markers |
 | `/ecomono-compress <file>` | Compress a Markdown file |
-| `/ecomono-stats` | Lifetime token-savings |
 
 Natural language also works: "turn on ecomono", "stop ecomono", "normal mode".
 

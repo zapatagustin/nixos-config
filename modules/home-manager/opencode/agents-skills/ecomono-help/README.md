@@ -26,7 +26,6 @@ Modes:
 Skills:
   /ecomono-commit       terse Conventional Commits
   /ecomono-review       one-line PR comments
-  /ecomono-stats        session token savings
 
 Deactivate:
   "stop ecomono" or "normal mode"
