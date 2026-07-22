@@ -9,12 +9,6 @@
     "reserved": 10000
   },
   "agent": {
-    "build": {
-      "disabled": true
-    },
-    "plan": {
-      "disabled": true
-    },
     "orchestrator": {
       "description": "Gentle AI SDD Orchestrator - coordinates sub-agents, never does work inline",
       "mode": "primary",
