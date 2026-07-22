@@ -1,9 +1,8 @@
-"""Caveman compress scripts.
+"""Ecomono compress scripts.
 
-This package provides tools to compress natural language markdown files
-into ecomono format to save input tokens.
+This package provides the deterministic validator for ecomono-compress skill.
 """
 
-__all__ = ["cli", "compress", "detect", "validate"]
+__all__ = ["detect", "validate"]
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"

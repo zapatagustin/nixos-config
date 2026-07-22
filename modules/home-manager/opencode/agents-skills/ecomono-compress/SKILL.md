@@ -7,105 +7,125 @@ description: >
   Trigger: /ecomono-compress FILEPATH or "compress memory file"
 ---
 
-# Caveman Compress
+# Ecomono Compress
 
 ## Purpose
 
-Compress natural language files (CLAUDE.md, todos, preferences) into ecomono-speak to reduce input tokens. Compressed version overwrites original. Human-readable backup saved as `<filename>.original.md`.
+Compress natural language files (CLAUDE.md, todos, preferences) into ecomono-speak to reduce input tokens. All compression runs via local Python — zero session tokens consumed. Optional semantic pass uses cheap Groq API (llama-4-scout, ~2s, cents).
 
 ## Trigger
 
-`/ecomono-compress <filepath>` or when user asks to compress a memory file.
+`/ecomono-compress <filepath>` or "compress memory file".
+
+## Skill layout
+
+```
+this SKILL.md
+scripts/compress.py    — rule-based compressor (+ optional Groq API)
+scripts/validate.py    — deterministic validator (pure stdlib)
+scripts/__main__.py    — CLI: compress → validate → retry
+```
+
+Resolve `<skill_dir>` as the directory containing this SKILL.md. All script paths derive from it.
 
 ## Process
 
-1. The compression scripts live in `scripts/` (adjacent to this SKILL.md). If the path is not immediately available, search for `scripts/__main__.py` next to this SKILL.md.
+Run the CLI orchestrator. No AI inline compression — saves session tokens.
 
-2. From the directory containing this SKILL.md, run:
+### Step 1: Validate path
 
-python3 -m scripts <absolute_filepath>
+Check file exists, is readable, under 500KB. Resolve absolute path.
 
-3. The CLI will:
-- detect file type (no tokens)
-- call Claude to compress
-- validate output (no tokens)
-- if errors: cherry-pick fix with Claude (targeted fixes only, no recompression)
-- retry up to 2 times
-- if still failing after 2 retries: report error to user, leave original file untouched
+### Step 2: Quick check
 
-4. Return result to user
+- Extension-based type detection (see Boundaries below)
+- Refuse sensitive filenames (`.env*`, `credentials*`, `secrets*`, `*.pem`, `*.key`, etc.)
+- Refuse *.original.md files (backups)
+- Alert if backup `<filename>.original.md` already exists
 
-## Compression Rules
+### Step 3: Run CLI
 
-### Remove
-- Articles: a, an, the
-- Filler: just, really, basically, actually, simply, essentially, generally
-- Pleasantries: "sure", "certainly", "of course", "happy to", "I'd recommend"
-- Hedging: "it might be worth", "you could consider", "it would be good to"
-- Redundant phrasing: "in order to" → "to", "make sure to" → "ensure", "the reason is because" → "because"
-- Connective fluff: "however", "furthermore", "additionally", "in addition"
+```bash
+python3 <skill_dir>/scripts/__main__.py --api <resolved_filepath>
+```
 
-### Preserve EXACTLY (never modify)
-- Code blocks (fenced ``` and indented)
+If Groq API key is not available, omit `--api` for rule-based only:
+```bash
+python3 <skill_dir>/scripts/__main__.py <resolved_filepath>
+```
+
+### Step 4: Handle result
+
+| Exit | Meaning | Action |
+|------|---------|--------|
+| 0 | Compressed + validated | Show summary to user |
+| 0 with "skip" | Already compressed or backup | Inform user |
+| 1 | Error | Show error, leave file untouched |
+| 1 after retries | Validation failed | Original restored from backup |
+
+### Output JSON (exit 0)
+
+```json
+{
+  "status": "ok",
+  "path": "...",
+  "backup": "...",
+  "original_tokens": 1000,
+  "compressed_tokens": 500,
+  "tokens_saved": 500,
+  "percent": 50.0,
+  "used_api": true
+}
+```
+
+## Compression — what the script does
+
+### Phase 1: Rule-based (always, 0 tokens)
+
+Mechanical transformations applied in order:
+
+1. **Remove filler**: just, really, basically, actually, simply, essentially, generally, literally, honestly, definitely, obviously, etc.
+2. **Remove hedging**: "it's worth noting", "you might consider", "it would be good to"
+3. **Remove pleasantries**: "sure", "of course", "happy to", "my pleasure", "feel free"
+4. **Remove permissive openers**: "you should", "make sure to", "remember to", "please ensure"
+5. **Remove connectives**: however, furthermore, moreover, additionally, therefore, thus
+6. **Phrase replacements**: "in order to" → "to", "due to the fact that" → "because", "prior to" → "before"
+7. **Remove "I prefer/like/want"** → keep just the verb
+8. **Word replacements**: "utilize" → "use", "implement" → "build", "facilitate" → "help", "configuration" → "config"
+9. **Article removal**: remove "the" where context-safe (sentence-initial + middle)
+10. **Cleanup**: collapse multiple spaces, trim
+
+Does NOT modify:
+- Code blocks (fenced ``` and ~~~)
 - Inline code (`backtick content`)
-- URLs and links (full URLs, markdown links)
-- File paths (`/src/components/...`, `./config.yaml`)
-- Commands (`npm install`, `git commit`, `docker build`)
-- Technical terms (library names, API names, protocols, algorithms)
-- Proper nouns (project names, people, companies)
-- Dates, version numbers, numeric values
-- Environment variables (`$HOME`, `NODE_ENV`)
+- URLs, file paths, commands
+- Technical terms, proper nouns, version numbers
 
-### Preserve Structure
-- All markdown headings (keep exact heading text, compress body below)
-- Bullet point hierarchy (keep nesting level)
-- Numbered lists (keep numbering)
-- Tables (compress cell text, keep structure)
-- Frontmatter/YAML headers in markdown files
+### Phase 2: Semantic pass (optional, `--api` flag)
 
-### Compress
-- Use short synonyms: "big" not "extensive", "fix" not "implement a solution for", "use" not "utilize"
-- Fragments OK: "Run tests before commit" not "You should always run tests before committing"
-- Drop "you should", "make sure to", "remember to" — just state the action
-- Merge redundant bullets that say the same thing differently
-- Keep one example where multiple examples show the same pattern
+Sends rule-compressed text to Groq API (`meta-llama/llama-4-scout-17b-16e-instruct`) for semantic compression. Cheap model, ~2s, cents per run. Preserves the same protected elements.
 
-CRITICAL RULE:
-Anything inside ``` ... ``` must be copied EXACTLY.
-Do not:
-- remove comments
-- remove spacing
-- reorder lines
-- shorten commands
-- simplify anything
+API key read from: `GROQ_API_KEY` env var → `/run/secrets/opencode/groq-api-key`.
 
-Inline code (`...`) must be preserved EXACTLY.
-Do not modify anything inside backticks.
+### Validation
 
-If file contains code blocks:
-- Treat code blocks as read-only regions
-- Only compress text outside them
-- Do not merge sections around code
+After each compression, `scripts/validate.py` checks deterministically:
 
-## Pattern
+| Check | Pass condition |
+|-------|---------------|
+| **Headings** | Warning if count or text changed (added headings tolerated) |
+| **Code blocks** | Exact match — content, fence chars, line order |
+| **URLs** | Set equality — none lost, none added |
+| **Inline codes** | No backtick content lost |
+| **Bullets** | Count within 15% of original |
 
-Original:
-> You should always make sure to run the test suite before pushing any changes to the main branch. This is important because it helps catch bugs early and prevents broken builds from being deployed to production.
-
-Compressed:
-> Run tests before push to main. Catch bugs early, prevent broken prod deploys.
-
-Original:
-> The application uses a microservices architecture with the following components. The API gateway handles all incoming requests and routes them to the appropriate service. The authentication service is responsible for managing user sessions and JWT tokens.
-
-Compressed:
-> Microservices architecture. API gateway route all requests to services. Auth service manage user sessions + JWT tokens.
+Validation failure → re-run compression → max 3 attempts total. Still fails → restore original from backup.
 
 ## Boundaries
 
-- ONLY compress natural language files (.md, .txt, .typ, .typst, .tex, extensionless)
-- NEVER modify: .py, .js, .ts, .json, .yaml, .yml, .toml, .env, .lock, .css, .html, .xml, .sql, .sh
-- If file has mixed content (prose + code), compress ONLY the prose sections
-- If unsure whether something is code or prose, leave it unchanged
-- Original file is backed up as FILE.original.md before overwriting
-- Never compress FILE.original.md (skip it)
+- ONLY compress: `.md`, `.txt`, `.markdown`, `.rst`, `.typ`, `.typst`, `.tex`, extensionless natural language
+- NEVER modify: `.py`, `.js`, `.ts`, `.json`, `.yaml`, `.yml`, `.toml`, `.env`, `.lock`, `.css`, `.html`, `.xml`, `.sql`, `.sh`
+- Original backed up as `FILE.original.md` before writing compressed version
+- Never compress `*.original.md` files
+- Max file size: 500KB
+- With `--api`: sensitive filenames (credentials, keys, secrets) are refused before any API send

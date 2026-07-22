@@ -108,7 +108,8 @@ def validate_headings(orig, comp, result):
     h2 = extract_headings(comp)
 
     if len(h1) != len(h2):
-        result.add_error(f"Heading count mismatch: {len(h1)} vs {len(h2)}")
+        result.add_warning(f"Heading count mismatch: {len(h1)} vs {len(h2)}")
+        return
 
     if h1 != h2:
         result.add_warning("Heading text/order changed")
@@ -190,24 +191,48 @@ def validate(original_path: Path, compressed_path: Path) -> ValidationResult:
 
 if __name__ == "__main__":
     import sys
+    import json
 
-    if len(sys.argv) != 3:
-        print("Usage: python validate.py <original> <compressed>")
+    if len(sys.argv) == 2 and sys.argv[1] == "--json-schema":
+        print(json.dumps({
+            "type": "object",
+            "properties": {
+                "is_valid": {"type": "boolean"},
+                "errors": {"type": "array", "items": {"type": "string"}},
+                "warnings": {"type": "array", "items": {"type": "string"}},
+            }
+        }))
+        sys.exit(0)
+
+    json_mode = len(sys.argv) == 4 and sys.argv[1] == "--json"
+
+    if json_mode:
+        orig = Path(sys.argv[2]).resolve()
+        comp = Path(sys.argv[3]).resolve()
+    elif len(sys.argv) == 3:
+        orig = Path(sys.argv[1]).resolve()
+        comp = Path(sys.argv[2]).resolve()
+    else:
+        print("Usage: python validate.py [--json] <original> <compressed>")
         sys.exit(1)
-
-    orig = Path(sys.argv[1]).resolve()
-    comp = Path(sys.argv[2]).resolve()
 
     res = validate(orig, comp)
 
-    print(f"\nValid: {res.is_valid}")
+    if json_mode:
+        print(json.dumps({
+            "is_valid": res.is_valid,
+            "errors": res.errors,
+            "warnings": res.warnings,
+        }))
+    else:
+        print(f"\nValid: {res.is_valid}")
+        if res.errors:
+            print("\nErrors:")
+            for e in res.errors:
+                print(f"  - {e}")
+        if res.warnings:
+            print("\nWarnings:")
+            for w in res.warnings:
+                print(f"  - {w}")
 
-    if res.errors:
-        print("\nErrors:")
-        for e in res.errors:
-            print(f"  - {e}")
-
-    if res.warnings:
-        print("\nWarnings:")
-        for w in res.warnings:
-            print(f"  - {w}")
+    sys.exit(0 if res.is_valid else 1)

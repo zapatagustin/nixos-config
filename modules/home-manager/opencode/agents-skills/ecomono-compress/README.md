@@ -10,9 +10,9 @@
 
 ---
 
-A Claude Code skill that compresses your project memory files (`CLAUDE.md`, todos, preferences) into ecomono format — so every session loads fewer tokens automatically.
+An AI agent skill that compresses your project memory files (`CLAUDE.md`, todos, preferences) into ecomono format — so every session loads fewer tokens automatically.
 
-Claude read `CLAUDE.md` on every session start. If file big, cost big. Caveman make file small. Cost go down forever.
+LLM reads `CLAUDE.md` on every session start. If file big, cost big. Ecomono make file small. Cost go down forever.
 
 ## What It Do
 
@@ -79,7 +79,7 @@ If you need local files, the compress skill lives at:
 ecomono-compress/
 ```
 
-**Requires:** Python 3.10+
+**Requires:** Python 3.10+ (for deterministic validator only)
 
 ## Usage
 
@@ -108,23 +108,23 @@ Examples:
 ```
 /ecomono-compress CLAUDE.md
         ↓
-detect file type        (no tokens)
+detect file type                (AI inline — rules in SKILL.md)
         ↓
-Claude compresses       (tokens — one call)
+AI compresses inline            (tokens — one compression pass)
         ↓
-validate output         (no tokens)
-  checks: headings, code blocks, URLs, file paths, bullets
-        ↓
-if errors: Claude fixes cherry-picked issues only   (tokens — targeted fix)
-  does NOT recompress — only patches broken parts
-        ↓
-retry up to 2 times
+write backup → CLAUDE.original.md
         ↓
 write compressed → CLAUDE.md
-write original   → CLAUDE.original.md
+        ↓
+validate deterministically      (zero tokens — scripts/validate.py)
+  checks: headings, code blocks, URLs, file paths, bullets
+        ↓
+if errors: AI targeted fix      (tokens — patch only broken parts)
+        ↓
+retry up to 2 times
 ```
 
-Only two things use tokens: initial compression + targeted fix if validation fails. Everything else is local Python.
+AI compresses. Python validates. Best of both: LLM handles prose, deterministic diff catches mistakes.
 
 ## What Is Preserved
 
@@ -155,9 +155,9 @@ Caveman cut that by ~46% on average. Same instructions. Same accuracy. Less wast
 └────────────────────────────────────────────┘
 ```
 
-## Part of Caveman
+## Part of Ecomono
 
-This skill is part of the [ecomono](https://github.com/JuliusBrussee/ecomono) toolkit — making Claude use fewer tokens without losing accuracy.
+This skill is part of the [ecomono](https://github.com/JuliusBrussee/ecomono) toolkit — making AI use fewer tokens without losing accuracy.
 
-- **ecomono** — make Claude *speak* like ecomono (cuts response tokens ~65%)
-- **ecomono-compress** — make Claude *read* less (cuts context tokens ~46%)
+- **ecomono** — make AI *speak* like ecomono (cuts response tokens ~65%)
+- **ecomono-compress** — make AI *read* less (cuts context tokens ~46%)
