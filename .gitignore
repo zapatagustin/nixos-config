@@ -8,3 +8,7 @@ result-*
 # local Claude Code overrides (WiFi passwords, per-machine config)
 .claude/settings.local.json
 .claude/settings.local.*
+
+# Python bytecode
+__pycache__/
+*.pyc

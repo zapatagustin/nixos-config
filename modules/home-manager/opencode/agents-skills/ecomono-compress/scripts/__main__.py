@@ -34,7 +34,7 @@ def main():
         print(f"❌ File not found: {fp}")
         sys.exit(1)
 
-    backup = fp.with_name(fp.stem + ".original.md")
+    backup = fp.with_name(fp.name + ".original.md")  # full name: no .md/.txt collision
 
     # --- First compression ---
     print(f"📦 Compressing: {fp.name}")
@@ -52,39 +52,38 @@ def main():
     original_text = backup.read_text(errors="ignore")  # keep original for retries
     print(f"\n🔍 Validating...")
 
-    for attempt in range(3):  # initial + 2 retries
+    for attempt in range(3):  # initial + up to 2 retries (retries only help --api)
         v = validate(backup, fp)
         if v.is_valid:
             print(f"   ✅ Valid (attempt {attempt + 1})")
             break
 
-        if attempt == 2:
-            print(f"   ❌ Failed after 3 attempts. Restoring original.")
+        print(f"   ❌ Errors: {v.errors}")
+        if v.warnings:
+            print(f"   ⚠️  Warnings: {v.warnings}")
+
+        # rule_compress is deterministic: recompressing yields identical output,
+        # so a retry only makes sense when the stochastic semantic pass ran.
+        if not use_api or attempt == 2:
+            if use_api:
+                # Semantic output never validated — fall back to the rule-based
+                # result (Phase 1) rather than discarding all compression.
+                fp.write_text(rule_compress(original_text))
+                if validate(backup, fp).is_valid:
+                    print("   ⚠️  Semantic pass failed validation — kept rule-based result")
+                    break
+            print("   ❌ Validation failed. Restoring original.")
             fp.write_text(original_text)
             backup.unlink(missing_ok=True)
             sys.exit(1)
 
-        print(f"   ❌ Errors: {v.errors}")
-        if v.warnings:
-            print(f"   ⚠️  Warnings: {v.warnings}")
         print(f"   🔄 Recompressing (attempt {attempt + 2})...")
-
-        # Recompress FROM ORIGINAL (backup, not current fp which has broken compressed)
         compressed = rule_compress(original_text)
-        if use_api:
-            try:
-                compressed = call_semantic_api(compressed, model=model)
-            except RuntimeError as e:
-                print(f"   ⚠️  Semantic pass skipped: {e}")
-
-        # Only write compressed — backup already exists
-        fp.write_text(compressed)
-
-        # Re-validate
-        v = validate(backup, fp)
-        if v.is_valid:
-            print(f"   ✅ Valid after retry")
-            break
+        try:
+            compressed = call_semantic_api(compressed, model=model)
+        except RuntimeError as e:
+            print(f"   ⚠️  Semantic pass skipped: {e}")
+        fp.write_text(compressed)  # re-validated at the top of the next iteration
 
     # Done
     compressed_tokens = len(fp.read_text(errors="ignore").split())
