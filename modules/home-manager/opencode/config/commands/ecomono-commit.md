@@ -1,5 +1,5 @@
 ---
-description: Generate a terse caveman-style commit message for staged changes
+description: Generate a terse ecomono-style commit message for staged changes
 ---
 Generate a commit message for the current staged changes.
 

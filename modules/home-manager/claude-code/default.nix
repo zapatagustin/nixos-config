@@ -1,9 +1,9 @@
 { pkgs, ... }:
 let
-  # Claude Code skills = the real ./claude/skills tree PLUS the caveman skills,
+  # Claude Code skills = the real ./claude/skills tree PLUS the ecomono skills,
   # whose canonical source is ../opencode/agents-skills (shared with opencode).
   # Merged into ONE store dir so ~/.claude/skills is a single symlink whose
-  # children are real content that resolves. The caveman skills can't be
+  # children are real content that resolves. The ecomono skills can't be
   # relative symlinks inside ./claude/skills (a "../../.agents/..." link escapes
   # the store and breaks), and they can't be per-child home.file entries either
   # (home-manager can't create a child inside the read-only store symlink that
@@ -11,13 +11,13 @@ let
   claudeSkills = pkgs.runCommand "claude-code-skills" { } ''
     mkdir -p $out
     cp -r ${./claude/skills}/. $out/
-    for s in caveman caveman-commit caveman-compress caveman-help caveman-review; do
+    for s in ecomono ecomono-commit ecomono-compress ecomono-help ecomono-review; do
       cp -r ${../opencode/agents-skills}/$s $out/$s
     done
   '';
 in
 {
-  # Hook scripts (caveman/ponytail) are Node scripts invoked as `node ...`.
+  # Hook scripts (ecomono/ponytail) are Node scripts invoked as `node ...`.
   home.packages = [ pkgs.nodejs ];
 
   programs.claude-code = {

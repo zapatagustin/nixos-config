@@ -33,12 +33,12 @@ in
   # .ts files from plugins/ and installs node_modules alongside them at runtime,
   # so these are linked as individual entries (the dir stays writable).
   xdg.configFile = {
-    "opencode/plugins/caveman".source = ./config/plugins/caveman;
+    "opencode/plugins/ecomono".source = ./config/plugins/ecomono;
     "opencode/plugins/cyndaquill".source = ./config/plugins/cyndaquill;
     "opencode/plugins/model-variants.ts".source = ./config/plugins/model-variants.ts;
     "opencode/plugins/skill-registry.ts".source = ./config/plugins/skill-registry.ts;
     # cave-compress.ts — tool-output token compression (ported from
-    # caveman-code, MIT). opencode auto-loads .ts files from plugins/.
+    # ecomono-code, MIT). opencode auto-loads .ts files from plugins/.
     "opencode/plugins/cave-compress.ts".source = ./config/plugins/cave-compress.ts;
     # engram.ts hardcodes /home/agustin as a last-resort binary fallback — patch it.
     "opencode/plugins/engram.ts".text = patch (builtins.readFile ./config/plugins/engram.ts);
@@ -46,7 +46,7 @@ in
     "opencode/package.json".source = ./config/package.json;
   };
 
-  # opencode.json `instructions` points at ~/.agents/skills/caveman/SKILL.md.
+  # opencode.json `instructions` points at ~/.agents/skills/ecomono/SKILL.md.
   # This is a shared agent-skills dir, vendored and linked read-only.
   home.file.".agents/skills".source = ./agents-skills;
 }

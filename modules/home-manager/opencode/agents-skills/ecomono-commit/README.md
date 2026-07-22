@@ -1,4 +1,4 @@
-# caveman-commit
+# ecomono-commit
 
 Terse Conventional Commits. Why over what.
 
@@ -11,7 +11,7 @@ Outputs only the message. Does not stage, commit, or amend.
 ## How to invoke
 
 ```
-/caveman-commit
+/ecomono-commit
 ```
 
 Also triggers on phrases like "write a commit", "commit message", "generate commit".

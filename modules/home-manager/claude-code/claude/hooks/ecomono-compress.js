@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// ecomono-compress — Claude Code PostToolUse hook: compress large tool output (forked from caveman-compress, MIT)
+// ecomono-compress — Claude Code PostToolUse hook: compress large tool output (forked from ecomono-compress, MIT)
 // before it costs context tokens.
 //
 // Ports the pure compression functions from the opencode cave-compress plugin
-// (itself ported from @juliusbrussee/caveman-code, MIT © Julius Brussee). The
+// (itself ported from @juliusbrussee/ecomono-code, MIT © Julius Brussee). The
 // functions are self-contained (zero dependencies).
 //
 // BASH ONLY. Bash is the one built-in tool whose PostToolUse `tool_response`
@@ -20,7 +20,7 @@
 // which leaves the original result 100% intact. Set CAVE_COMPRESS=off to
 // disable entirely.
 
-// ── Compression logic (ported from caveman-code, MIT) ───────────────────────
+// ── Compression logic (ported from ecomono-code, MIT) ───────────────────────
 
 const MAX_LINES = 500;
 const HEAD_LINES = 200;
@@ -96,7 +96,7 @@ function compressCaveToolOutput(text) {
   return truncateByChars(truncateLongOutput(collapseBlankLines(stripAnsi(text))));
 }
 
-// ── Structured (JSON/XML) compression (ported from caveman-code, MIT) ───────
+// ── Structured (JSON/XML) compression (ported from ecomono-code, MIT) ───────
 
 /**
  * Detect whether text is JSON, XML, or plain text.

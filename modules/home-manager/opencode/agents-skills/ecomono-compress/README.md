@@ -2,7 +2,7 @@
   <img src="https://em-content.zobj.net/source/apple/391/rock_1faa8.png" width="80" />
 </p>
 
-<h1 align="center">caveman-compress</h1>
+<h1 align="center">ecomono-compress</h1>
 
 <p align="center">
   <strong>shrink memory file. save token every session.</strong>
@@ -10,14 +10,14 @@
 
 ---
 
-A Claude Code skill that compresses your project memory files (`CLAUDE.md`, todos, preferences) into caveman format — so every session loads fewer tokens automatically.
+A Claude Code skill that compresses your project memory files (`CLAUDE.md`, todos, preferences) into ecomono format — so every session loads fewer tokens automatically.
 
 Claude read `CLAUDE.md` on every session start. If file big, cost big. Caveman make file small. Cost go down forever.
 
 ## What It Do
 
 ```
-/caveman-compress CLAUDE.md
+/ecomono-compress CLAUDE.md
 ```
 
 ```
@@ -67,16 +67,16 @@ All validations passed ✅ — headings, code blocks, URLs, file paths preserved
 
 ## Security
 
-`caveman-compress` is flagged as Snyk High Risk due to subprocess and file I/O patterns detected by static analysis. This is a false positive — see [SECURITY.md](./SECURITY.md) for a full explanation of what the skill does and does not do.
+`ecomono-compress` is flagged as Snyk High Risk due to subprocess and file I/O patterns detected by static analysis. This is a false positive — see [SECURITY.md](./SECURITY.md) for a full explanation of what the skill does and does not do.
 
 ## Install
 
-Compress is built in with the `caveman` plugin. Install `caveman` once, then use `/caveman-compress`.
+Compress is built in with the `ecomono` plugin. Install `ecomono` once, then use `/ecomono-compress`.
 
 If you need local files, the compress skill lives at:
 
 ```bash
-caveman-compress/
+ecomono-compress/
 ```
 
 **Requires:** Python 3.10+
@@ -84,14 +84,14 @@ caveman-compress/
 ## Usage
 
 ```
-/caveman-compress <filepath>
+/ecomono-compress <filepath>
 ```
 
 Examples:
 ```
-/caveman-compress CLAUDE.md
-/caveman-compress docs/preferences.md
-/caveman-compress todos.md
+/ecomono-compress CLAUDE.md
+/ecomono-compress docs/preferences.md
+/ecomono-compress todos.md
 ```
 
 ### What files work
@@ -106,7 +106,7 @@ Examples:
 ## How It Work
 
 ```
-/caveman-compress CLAUDE.md
+/ecomono-compress CLAUDE.md
         ↓
 detect file type        (no tokens)
         ↓
@@ -157,7 +157,7 @@ Caveman cut that by ~46% on average. Same instructions. Same accuracy. Less wast
 
 ## Part of Caveman
 
-This skill is part of the [caveman](https://github.com/JuliusBrussee/caveman) toolkit — making Claude use fewer tokens without losing accuracy.
+This skill is part of the [ecomono](https://github.com/JuliusBrussee/ecomono) toolkit — making Claude use fewer tokens without losing accuracy.
 
-- **caveman** — make Claude *speak* like caveman (cuts response tokens ~65%)
-- **caveman-compress** — make Claude *read* less (cuts context tokens ~46%)
+- **ecomono** — make Claude *speak* like ecomono (cuts response tokens ~65%)
+- **ecomono-compress** — make Claude *read* less (cuts context tokens ~46%)

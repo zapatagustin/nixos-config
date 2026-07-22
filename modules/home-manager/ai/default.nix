@@ -1,5 +1,5 @@
 # AI agent stack: opencode + gentle-ai + engram binaries, plus the Claude Code
-# plugins (engram, ponytail, caveman). The plugins live as imperative state
+# plugins (engram, ponytail, ecomono). The plugins live as imperative state
 # under ~/.claude/plugins — Nix can't manage them declaratively — so they're
 # installed idempotently on HM activation instead: already-installed plugins
 # are skipped, and failures (e.g. offline rebuild) warn without aborting.
@@ -66,7 +66,7 @@ in
 
   '';
 
-  # caveman-code and cavemem were removed once opencode reached compression
+  # ecomono-code and cavemem were removed once opencode reached compression
   # parity via the cave-compress plugin (modules/home-manager/opencode/config/
   # plugins): its tool-output/JSON/dedup/char-cap layers cover the same token
   # savings, and engram already owns persistent memory. No npm-global tools
