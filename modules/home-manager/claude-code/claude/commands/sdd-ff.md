@@ -2,7 +2,7 @@
 description: Fast-forward all SDD planning phases — proposal through tasks
 ---
 
-Follow the SDD orchestrator workflow inline using the instructions already installed in `~/.claude/CLAUDE.md`.
+Read `~/.claude/skills/_shared/sdd-orchestrator.md` in full FIRST — it holds the SDD + Agent-Teams orchestrator protocol (moved out of CLAUDE.md). Follow it inline.
 The Claude Code session model is controlled by Claude Code; Gentle AI only configures models for Agent tool calls to phase sub-agents.
 
 WORKFLOW:
