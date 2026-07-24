@@ -4,10 +4,11 @@
 keys:
   - &host_surface age1atmdkgjl0x9ycyyp64h3hvqqkzfked9ftjf6wka83hxl2dch33usy3z7fs
   - &user_surface age144qp9cxg6hj0sn4vgtughad2v96x4w5q0xjkfxt9njyq298xg4dsx7nvdv
-  # - &host_thinkpad age1...   # TODO: add thinkpad host recipient, then list it below and re-encrypt
+  - &host_thinkpad age1k9a74ksgxcxpesjn8uthnf5sdqq2ph2ng4q8p4fqdxruxj37p57q34nz0k
 creation_rules:
   - path_regex: modules/secrets/secrets\.yaml$
     key_groups:
       - age:
           - *host_surface
           - *user_surface
+          - *host_thinkpad
