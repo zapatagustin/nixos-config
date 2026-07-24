@@ -35,6 +35,31 @@ in
       # deps, no config
       nvim-web-devicons
       plenary-nvim
+
+      # optional dep for claudecode.nvim (terminal provider)
+      {
+        plugin = snacks-nvim;
+        type = "lua";
+        config = ''
+          require("snacks").setup({
+            terminal = { enabled = true },
+            -- disable unused components
+            bigfile = { enabled = false },
+            dashboard = { enabled = false },
+            explorer = { enabled = false },
+            indent = { enabled = false },
+            input = { enabled = false },
+            notifier = { enabled = false },
+            picker = { enabled = false },
+            quickfile = { enabled = false },
+            scope = { enabled = false },
+            scroll = { enabled = false },
+            statuscolumn = { enabled = false },
+            words = { enabled = false },
+            zen = { enabled = false },
+          })
+        '';
+      }
       cmp-nvim-lsp
       cmp-buffer
       cmp-path
@@ -156,6 +181,15 @@ in
           })
         '';
       }
+      # Claude Code Neovim IDE integration
+      {
+        plugin = claudecode-nvim;
+        type = "lua";
+        config = ''
+          require("claudecode").setup({})
+        '';
+      }
+
       # LSP setup last (servers configured from lua/lsp.lua)
       {
         plugin = nvim-lspconfig;

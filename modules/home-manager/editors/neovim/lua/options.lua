@@ -25,6 +25,7 @@ opt.splitbelow = true
 opt.splitright = true
 opt.completeopt = { "menuone", "noselect" }
 opt.updatetime = 250
+opt.ttimeoutlen = 300 -- terminal: single Esc pasa al programa, EscEsc rápido sale
 
 -- dvorak: normal/visual/operator commands land on QWERTY physical positions;
 -- insert mode, cmdline text and telescope prompts stay dvorak (langmap only
