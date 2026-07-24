@@ -1,7 +1,7 @@
 { pkgs, hostname, username, ... }:
 {
   imports = [
-    ./hardware-configuration.nix
+    (./hosts + "/${hostname}/hardware-configuration.nix")
     ./default.nix
   ];
 
