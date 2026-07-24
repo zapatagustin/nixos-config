@@ -2,8 +2,11 @@
 result
 result-*
 
-# agent tooling cache
-.atl/*.cache.json
+# agent tooling cache (machine-specific skill paths, regenerated per host)
+.atl/
+
+# flake lock (intentionally untracked; reproducibility trade-off accepted)
+flake.lock
 
 # local Claude Code overrides (WiFi passwords, per-machine config)
 .claude/settings.local.json
