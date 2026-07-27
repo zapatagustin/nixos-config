@@ -9,10 +9,17 @@ set -euo pipefail
 cd "$(dirname "$0")"
 . ./_bun.sh
 
-# Bundling needs the MCP SDK resolved from opencode/node_modules. The nix-store
-# copy is read-only and has none, so there it is a skip, not a failure.
-if [ ! -d ../../node_modules ]; then
-  echo "skip: bundle check (no node_modules — read-only copy?)"
+# Bundling needs the MCP SDK resolved from opencode/node_modules. Try to install
+# it rather than skipping on sight: "no node_modules" is also what a fresh clone
+# looks like, and silently passing there would skip the one check guarding the
+# bundle. Only a copy that genuinely cannot install — the read-only nix store —
+# is allowed to skip.
+# --frozen-lockfile for two reasons: a verify step must never write to the tree
+# (a plain install rewrites bun.lock), and resolving `^` ranges freely would
+# bundle a different SDK build than the committed one and report that as source
+# staleness — which is exactly the false failure this check must not produce.
+if [ ! -d ../../node_modules ] && ! "$BUN" install --cwd ../.. --frozen-lockfile >/dev/null 2>&1; then
+  echo "skip: bundle check (cannot install locked deps — read-only copy?)"
   exit 0
 fi
 

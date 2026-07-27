@@ -15,3 +15,6 @@ flake.lock
 # Python bytecode
 __pycache__/
 *.pyc
+
+# vendored opencode plugin deps (bun install, regenerated from bun.lock)
+node_modules/
