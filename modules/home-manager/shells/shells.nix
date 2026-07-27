@@ -28,16 +28,30 @@
   # routed separately by remote host alias — see programs.ssh below.
   programs.git = {
     enable = true;
-    settings.user = {
-      name = "zapatagustin";
-      email = "zapatagustin4@gmail.com";
+    settings = {
+      user = {
+        name = "zapatagustin";
+        email = "zapatagustin4@gmail.com";
+      };
+      # Route any github.com remote (including https clones) through the
+      # personal SSH host by default, so the personal key is used regardless
+      # of how the remote was written — no dependence on `gh`'s active account.
+      url."git@github.com:".insteadOf = "https://github.com/";
     };
     includes = [
       {
         condition = "gitdir:~/work/";
-        contents.user = {
-          name = "zapataagustin";
-          email = "agustin.zapata@atlas.red";
+        contents = {
+          user = {
+            name = "zapataagustin";
+            email = "agustin.zapata@atlas.red";
+          };
+          # Under ~/work, rewrite both https and plain github.com SSH remotes
+          # to the work host alias, so pushes use the work key automatically.
+          url."git@github-work:".insteadOf = [
+            "https://github.com/"
+            "git@github.com:"
+          ];
         };
       }
     ];

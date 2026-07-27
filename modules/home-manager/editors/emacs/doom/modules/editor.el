@@ -13,3 +13,10 @@
 
 ;; autosave/undo persist across sessions (doom enables undo-fu-session)
 (setq auto-save-default t)
+
+;; Spellcheck backend is hunspell (see init.el +hunspell). es_AR ships Argentine
+;; idioms; code/comments keep the en_US default, prose buffers switch to es_AR.
+(after! ispell
+  (setq ispell-dictionary "en_US"))
+(add-hook! '(org-mode-hook markdown-mode-hook gfm-mode-hook)
+  (ispell-change-dictionary "es_AR"))

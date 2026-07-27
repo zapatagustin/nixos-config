@@ -34,7 +34,7 @@
 
        :checkers
        syntax
-       (spell +aspell)        ; en + es dicts via nix
+       (spell +hunspell)      ; en_US + es_AR dicts via nix (hunspellWithDicts)
 
        :tools
        (eval +overlay)

@@ -12,8 +12,9 @@
     # doom core
     ripgrep
     fd
-    # :checkers spell
-    (aspellWithDicts (ds: with ds; [ en es ]))
+    # :checkers spell (+hunspell) — es_AR carries Argentine idioms; en_US for code/English.
+    # Wrapper bakes DICPATH so emacs's hunspell subprocess finds the dicts.
+    (hunspell.withDicts (ds: with ds; [ es_AR en_US ]))
     # :lang nix (+lsp) — nixd + nixpkgs-fmt, same as neovim
     nixd
     nixpkgs-fmt
