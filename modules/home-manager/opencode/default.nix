@@ -40,8 +40,13 @@ in
     # cave-compress.ts — tool-output token compression (ported from
     # ecomono-code, MIT). opencode auto-loads .ts files from plugins/.
     "opencode/plugins/cave-compress.ts".source = ./config/plugins/cave-compress.ts;
-    # engram.ts hardcodes /home/agustin as a last-resort binary fallback — patch it.
-    "opencode/plugins/engram.ts".text = patch (builtins.readFile ./config/plugins/engram.ts);
+    # memory.ts — native bun:sqlite persistent memory, replacing the engram Go
+    # binary and its HTTP bridge. No path patching needed: it resolves its data
+    # dir from homedir() at runtime. storage/ holds the shared core (the same
+    # tool registry backs the Claude Code MCP server) and stays a subdir so
+    # opencode does not auto-load its modules as plugins.
+    "opencode/plugins/memory.ts".source = ./config/plugins/memory.ts;
+    "opencode/plugins/storage".source = ./config/plugins/storage;
     "opencode/tui-plugins".source = ./config/tui-plugins;
     "opencode/package.json".source = ./config/package.json;
   };

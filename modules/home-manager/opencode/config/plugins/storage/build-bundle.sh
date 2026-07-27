@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Regenerate the self-contained MCP server bundle (mcp-server.js) from source.
+# Run this after changing any storage/*.ts. The bundle is committed so NixOS can
+# run it offline from the store with no node_modules — bun:sqlite stays external
+# (it's a bun builtin, provided at runtime).
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# Same resolution as install.sh: bun is often installed outside PATH.
+BUN="$(command -v bun 2>/dev/null || { [ -x "$HOME/.bun/bin/bun" ] && echo "$HOME/.bun/bin/bun"; })"
+[ -n "$BUN" ] || { echo "error: bun not found (curl -fsSL https://bun.sh/install | bash)" >&2; exit 1; }
+
+"$BUN" install --cwd ../.. >/dev/null 2>&1 || (cd ../.. && "$BUN" install)
+"$BUN" build mcp-server.ts --target bun --external bun:sqlite --outfile mcp-server.js
+echo "built mcp-server.js"

@@ -1,21 +1,20 @@
-# AI agent stack: opencode + gentle-ai + engram binaries, plus the Claude Code
-# plugins (engram, ecomono). The plugins live as imperative state
-# under ~/.claude/plugins — Nix can't manage them declaratively — so they're
-# installed idempotently on HM activation instead: already-installed plugins
-# are skipped, and failures (e.g. offline rebuild) warn without aborting.
+# AI agent stack: opencode + gentle-ai, plus the Claude Code plugins and
+# user-scope MCP servers. Those live as imperative state under ~/.claude —
+# Nix can't manage them declaratively — so they're registered idempotently on
+# HM activation instead: already-installed entries are skipped, and failures
+# (e.g. offline rebuild) warn without aborting.
 { pkgs, lib, ... }:
 
 let
   gentle-ai = pkgs.callPackage ../../../pkgs/gentle-ai.nix { };
-  engram = pkgs.callPackage ../../../pkgs/engram.nix { };
 in
 {
   home.packages = with pkgs; [
     opencode
     opencode-desktop
     nodejs # skill-registry refresh script expects node on PATH
+    bun # runs ecomono-memory: the opencode plugin and the MCP server bundle
     gentle-ai
-    engram
   ];
 
   home.activation.aiAgentPlugins = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
@@ -34,12 +33,18 @@ in
       fi
     }
 
-    ensurePlugin Gentleman-Programming/engram engram
+    # Retire the Gentleman-Programming engram plugin: ecomono-memory replaces it
+    # with a native bun:sqlite implementation serving the same mem_* tools, so
+    # leaving it installed means two memory stores answering at once. This also
+    # clears "engram@engram" from ~/.claude/settings.json, which Nix can't own.
+    # No data is lost — storage/db.ts imports ~/.engram/engram.db on first run.
+    if "$claude" plugin list 2>/dev/null | grep -q engram; then
+      run "$claude" plugin uninstall engram@engram || true
+      run "$claude" plugin marketplace remove engram || true
+    fi
 
     # User-scope MCP servers (~/.claude.json, runtime-managed by Claude Code
-    # itself — Nix can't own that file). The engram plugin above already
-    # registers its own MCP server; context7 has no plugin, so it's added
-    # here explicitly.
+    # itself — Nix can't own that file).
     ensureMcp() {
       local name="$1"; shift
       if ! "$claude" mcp get "$name" >/dev/null 2>&1; then
@@ -50,25 +55,20 @@ in
 
     ensureMcp context7 npx -y --package=@upstash/context7-mcp@2.2.5 -- context7-mcp
 
-    # engram <= 0.1.1 ships hook scripts with #!/bin/bash, which doesn't exist
-    # on NixOS. Patch the plugin cache until upstream switches to /usr/bin/env;
-    # idempotent, but a plugin auto-update between rebuilds reintroduces it
-    # (hook fails non-blocking) until the next switch.
-    find "$HOME/.claude/plugins/cache/engram" -name '*.sh' \
-      -exec ${pkgs.gnused}/bin/sed -i '1s|^#!/bin/bash$|#!/usr/bin/env bash|' {} + 2>/dev/null || true
-
-    # Hook engram's MCP server into opencode once; skipped if its config
-    # already mentions engram so we never clobber manual edits.
-    if ! grep -rqs engram "$HOME/.config/opencode"; then
-      run ${engram}/bin/engram setup opencode \
-        || echo "warning: engram setup opencode failed (retry: engram setup opencode)"
+    # ecomono-memory: persistent memory for Claude Code, the same store the
+    # opencode plugin uses. Self-contained bundle — runs from the store with no
+    # node_modules. The server name is the prefix Claude Code gives its tools,
+    # so agents whitelist mcp__ecomono-memory__mem_*.
+    if "$claude" mcp get engram >/dev/null 2>&1; then
+      run "$claude" mcp remove engram || true
     fi
+    ensureMcp ecomono-memory ${pkgs.bun}/bin/bun ${../opencode/config/plugins/storage/mcp-server.js}
 
   '';
 
   # ecomono-code and cavemem were removed once opencode reached compression
   # parity via the cave-compress plugin (modules/home-manager/opencode/config/
   # plugins): its tool-output/JSON/dedup/char-cap layers cover the same token
-  # savings, and engram already owns persistent memory. No npm-global tools
+  # savings, and ecomono-memory already owns persistent memory. No npm-global tools
   # remain, so the ~/.npm-global prefix + sessionPath were dropped too.
 }
