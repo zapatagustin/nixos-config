@@ -20,6 +20,14 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    hermes-agent.url = "github:NousResearch/hermes-agent";
+    # Claude Code + opencode config. Single source of truth: this flake used to
+    # carry its own copy under modules/home-manager/{claude-code,opencode},
+    # which drifted from it silently.
+    ecomono = {
+      url = "github:zapatagustin/ecomono";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { nixpkgs, home-manager, chaotic, ... }@inputs:
@@ -33,6 +41,7 @@
             chaotic.nixosModules.default
             inputs.stylix.nixosModules.stylix
             inputs.sops-nix.nixosModules.sops
+            inputs.hermes-agent.nixosModules.default
             home-manager.nixosModules.home-manager
             {
               home-manager.useUserPackages = true;

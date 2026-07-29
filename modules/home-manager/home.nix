@@ -11,8 +11,9 @@
     ./wm/hyprland
     ./ai
     ./dev
-    ./opencode
-    ./claude-code
+    # Claude Code + opencode config, from the ecomono flake. Replaces the local
+    # ./claude-code and ./opencode modules, which were a second copy of it.
+    inputs.ecomono.homeModules.default
   ];
 
   home.username = username;
