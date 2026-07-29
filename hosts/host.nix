@@ -1,4 +1,4 @@
-{ pkgs, lib, username, ... }:
+{ pkgs, lib, hostname, username, ... }:
 {
   imports = [
     ./locale/locale.nix
@@ -42,7 +42,7 @@
     sessionVariables = {
       TERMINAL = "kitty";
       NIXPKGS_ALLOW_UNFREE = "1";
-      NH_FLAKE = "/home/${username}/nixos-config";  # nh os switch w/o passing path
+      NH_FLAKE = if hostname == "surface" then "/home/surface/personal/nixos-config" else "/home/${hostname}/nixos-config";  # nh os switch w/o passing path
     };
   };
 

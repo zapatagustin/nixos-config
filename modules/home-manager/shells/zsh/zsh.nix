@@ -20,11 +20,11 @@
       # Without it, it never elevates → "Permission denied" on the profile
       # symlink. Do NOT prefix `sudo` (ng reexecs down to us and still won't
       # reelevate). Run as the user, let ng handle the sudo prompt itself.
-      nixos-install = "nixos-rebuild switch --flake /home/thinkpad/nixos-config#thinkpad --ask-sudo-password";
+      nixos-install = "nixos-rebuild switch --flake /home/surface/personal/nixos-config#surface --ask-sudo-password";
 
       cl = "claude --dangerously-skip-permissions";
       # full system update: bump flake inputs (as user — flake.lock is ours) + rebuild
-      nixos-update = "cd /home/thinkpad/nixos-config && nix flake update && nixos-rebuild switch --flake .#thinkpad --ask-sudo-password";
+      nixos-update = "cd /home/surface/personal/nixos-config && nix flake update && nixos-rebuild switch --flake .#surface --ask-sudo-password";
       # wipe garbage: delete old generations (system + user), collect garbage, dedup the store
       nixos-garbage = "sudo nix-collect-garbage -d && nix-collect-garbage -d && sudo nix store optimise";
     };
