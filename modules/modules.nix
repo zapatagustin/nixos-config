@@ -10,5 +10,10 @@
     ./theme/stylix.nix
     ./wm/hyprland.nix
     ./secrets/sops.nix
+    # disabled until the hermes-agent flake input builds again: its vendored npm cache is
+    # missing @nous-research/ui, so hermes-tui and hermes-web fail with npm ENOTCACHED.
+    # Broke when the (gitignored, therefore floating) flake.lock was regenerated and picked
+    # up NousResearch/hermes-agent 4b60979, pushed 23 min before the rebuild.
+    # ./ai/hermes.nix
   ];
 }

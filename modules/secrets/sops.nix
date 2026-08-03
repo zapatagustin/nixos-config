@@ -17,6 +17,11 @@
   # Anthropic API key for Zed (read by the wrapped zeditor at launch).
   sops.secrets."zed/anthropic-api-key".owner = username;
 
+  # Hermes Agent API keys (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, etc.).
+  # Decrypted to /run/secrets/hermes/env — systemd lo lee como root antes
+  # de hacer drop al usuario hermes. Llenar con `sops modules/secrets/secrets.yaml`.
+  sops.secrets."hermes/env" = { };
+
   # disabled until a tailscale authkey is added to secrets.yaml
   # sops.secrets."tailscale/authkey" = { };
   # services.tailscale.authKeyFile = config.sops.secrets."tailscale/authkey".path;
