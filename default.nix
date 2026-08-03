@@ -15,7 +15,7 @@
     enable = true;
     openFirewall = true;
     settings = {
-      PasswordAuthentication = true;  # TEMP: switch to false after installing SSH key
+      PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
       PermitRootLogin = "no";
     };
