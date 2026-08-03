@@ -79,6 +79,21 @@
       User git
       IdentityFile ~/.ssh/id_ed25519_work
       IdentitiesOnly yes
+
+    # Host-to-host SSH. Both keys are authorized on both hosts (see
+    # configuration.nix), but neither is named id_ed25519, so ssh would only
+    # offer the default names and fail with "Permission denied (publickey)" —
+    # sshd has PasswordAuthentication off, so there is no fallback. Per host,
+    # the username equals the hostname.
+    Host surface
+      User surface
+      IdentityFile ~/.ssh/id_ed25519_personal
+      IdentitiesOnly yes
+
+    Host thinkpad
+      User thinkpad
+      IdentityFile ~/.ssh/id_ed25519_personal
+      IdentitiesOnly yes
   '';
 
   programs.delta = {
