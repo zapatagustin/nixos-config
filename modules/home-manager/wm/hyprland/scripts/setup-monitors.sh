@@ -5,30 +5,13 @@
 
 set -u
 source "$(dirname "$0")/monitors-detect.sh"
+# hc()/hc_notify(): see hyprctl-classify.sh for why hyprctl's output text, not its exit
+# code, is the failure signal here.
+source "$(dirname "$0")/hyprctl-classify.sh"
 
 LOG="${XDG_RUNTIME_DIR:-/tmp}/setup-monitors.log"
 exec >>"$LOG" 2>&1
 echo "=== $(date '+%F %T') LEFT=$LEFT_SAMSUNG RIGHT=$RIGHT_SAMSUNG EDP=$EDP ==="
-
-# hyprctl's exit code is not a usable failure signal: a Lua syntax error exits 7, but a
-# rejected command (the `keyword` calls this script used to make) and a dispatcher that
-# fails at runtime both exit 0. The output text is the signal:
-#   "ok" / empty (hyprpaper) -> success
-#   "warning: ..."           -> benign miss, e.g. moving a workspace that doesn't exist yet
-#   anything else            -> real failure
-# Everything here is redirected to $LOG, so a failure is otherwise invisible: 19 rejected
-# calls in a row went unnoticed until the workspace keybinds were tried 35 minutes later.
-# hc() counts them and the script notifies at the end.
-fails=0
-hc() {
-    local out
-    out=$(hyprctl "$@" 2>&1)
-    case "$out" in
-    "" | ok | warning:*) return 0 ;;
-    esac
-    echo "FAIL: hyprctl $* -> $out"
-    fails=$((fails + 1))
-}
 
 # WALLPAPER_DIR set by nix (store path of the wallpapers flake input).
 WALL_DIR="${WALLPAPER_DIR:-$HOME/Pictures/wallpapers}"
@@ -109,7 +92,4 @@ fi
 
 # Surface failures: this script's whole output goes to $LOG, so without a notification a
 # broken run is indistinguishable from a working one until a keybind is pressed.
-if [ "$fails" -gt 0 ]; then
-    echo "=== $fails FAILURES ==="
-    hyprctl notify -1 8000 "rgb(fb4934)" "  setup-monitors: $fails fallas — ver $LOG"
-fi
+hc_notify "setup-monitors" "$LOG"

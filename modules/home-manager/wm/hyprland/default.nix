@@ -456,6 +456,7 @@ in
   # scripts deployed individually so they coexist with the generated hyprland.lua
   xdg.configFile = {
     "hypr/monitors-detect.sh".source = ./scripts/monitors-detect.sh;
+    "hypr/hyprctl-classify.sh".source = ./scripts/hyprctl-classify.sh;
     "hypr/switch-monitor.sh".source = ./scripts/switch-monitor.sh;
     "hypr/switch-group.sh".source = ./scripts/switch-group.sh;
     "hypr/move-to-group.sh".source = ./scripts/move-to-group.sh;

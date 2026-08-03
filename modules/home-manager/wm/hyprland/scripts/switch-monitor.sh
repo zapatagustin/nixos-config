@@ -4,6 +4,9 @@
 
 N=${1:-1}
 source "$(dirname "$0")/monitors-detect.sh"
+# hc()/hc_notify(): classifies hyprctl output text (exit code isn't a usable failure
+# signal here) and notifies on failure — see hyprctl-classify.sh.
+source "$(dirname "$0")/hyprctl-classify.sh"
 
 MONITOR=$(hyprctl monitors | awk '/^Monitor/{name=$2} /focused: yes/{print name}')
 
@@ -17,5 +20,7 @@ esac
 WS=$((N + OFFSET))
 # Hyprland 0.55+ with a Lua config parses `hyprctl dispatch` arguments as Lua, so the
 # hyprlang dispatcher names no longer work. Translation map in wm/hyprland/default.nix.
-hyprctl dispatch "hl.dsp.workspace.move({ workspace = $WS, monitor = \"$MONITOR\" })" 2>/dev/null
-hyprctl dispatch "hl.dsp.focus({ workspace = $WS })"
+hc dispatch "hl.dsp.workspace.move({ workspace = $WS, monitor = \"$MONITOR\" })"
+hc dispatch "hl.dsp.focus({ workspace = $WS })"
+
+hc_notify "switch-monitor"
