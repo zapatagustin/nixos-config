@@ -70,7 +70,7 @@ Item {
             id: themeIcon
             text: rightSection.isDark ? "🌙" : "☀"
             font.pixelSize: 11
-            color: themeHover.containsMouse
+            color: themeHover.hovered
                 ? rightSection.theme.accent
                 : rightSection.isDark
                     ? rightSection.theme.blue
@@ -98,7 +98,8 @@ Item {
 
         // ── Notificaciones ───────────────────────────────────────
         Item {
-            implicitWidth: bellIcon.implicitWidth + (notifCount > 0 ? badge.width + 2 : 0)
+            id: notifItem
+            implicitWidth: bellIcon.implicitWidth + (notifItem.notifCount > 0 ? badge.width + 2 : 0)
             implicitHeight: 28
             Layout.alignment: Qt.AlignVCenter
 
@@ -106,13 +107,13 @@ Item {
 
             Text {
                 id: bellIcon
-                text: parent.notifCount > 0 ? "󰂚" : "󰂜"
+                text: notifItem.notifCount > 0 ? "󰂚" : "󰂜"
                 font.pixelSize: 13
                 font.family: "Symbols Nerd Font"
                 anchors.verticalCenter: parent.verticalCenter
-                color: bellHover.containsMouse
+                color: bellHover.hovered
                     ? rightSection.theme.accent
-                    : parent.notifCount > 0
+                    : notifItem.notifCount > 0
                         ? rightSection.theme.fg
                         : rightSection.theme.fgDim
 
@@ -132,7 +133,7 @@ Item {
 
             Rectangle {
                 id: badge
-                visible: parent.notifCount > 0
+                visible: notifItem.notifCount > 0
                 width: badgeText.implicitWidth + 4
                 height: 13
                 radius: 6
@@ -142,7 +143,7 @@ Item {
                 Text {
                     id: badgeText
                     anchors.centerIn: parent
-                    text: parent.parent.notifCount > 9 ? "9+" : parent.parent.notifCount
+                    text: notifItem.notifCount > 9 ? "9+" : notifItem.notifCount
                     font.pixelSize: 8
                     font.weight: Font.Bold
                     color: rightSection.theme.accentFg
@@ -158,7 +159,7 @@ Item {
             text: "󰅍"
             font.pixelSize: 13
             font.family: "Symbols Nerd Font"
-            color: clipHover.containsMouse
+            color: clipHover.hovered
                 ? rightSection.theme.accent
                 : rightSection.theme.fgDim
             Layout.alignment: Qt.AlignVCenter

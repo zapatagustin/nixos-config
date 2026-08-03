@@ -307,7 +307,7 @@ PanelWindow {
                         width: clearLabel.implicitWidth + 12
                         height: 18
                         radius: 3
-                        color: clearHover.containsMouse
+                        color: clearHover.hovered
                             ? viewer.theme.accent
                             : viewer.theme.bg2
                         Layout.alignment: Qt.AlignVCenter
@@ -318,7 +318,7 @@ PanelWindow {
                             text: "limpiar"
                             font.pixelSize: 10
                             font.family: "Terminess Nerd Font Mono"
-                            color: clearHover.containsMouse
+                            color: clearHover.hovered
                                 ? viewer.theme.accentFg
                                 : viewer.theme.fgDim
                         }

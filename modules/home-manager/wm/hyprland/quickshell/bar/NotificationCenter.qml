@@ -119,7 +119,7 @@ PanelWindow {
                         width: clearLabel.implicitWidth + 12
                         height: 18
                         radius: 3
-                        color: clearHover.containsMouse ? center.theme.accent : center.theme.bg2
+                        color: clearHover.hovered ? center.theme.accent : center.theme.bg2
                         Layout.alignment: Qt.AlignVCenter
 
                         Text {
@@ -128,7 +128,7 @@ PanelWindow {
                             text: "limpiar todo"
                             font.pixelSize: 10
                             font.family: "Terminess Nerd Font Mono"
-                            color: clearHover.containsMouse ? center.theme.accentFg : center.theme.fgDim
+                            color: clearHover.hovered ? center.theme.accentFg : center.theme.fgDim
                         }
 
                         HoverHandler { id: clearHover }

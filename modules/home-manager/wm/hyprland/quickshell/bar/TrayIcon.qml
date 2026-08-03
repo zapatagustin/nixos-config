@@ -43,7 +43,7 @@ Item {
             if (mouse.button === Qt.LeftButton) {
                 trayIcon.item.activate()
             } else {
-                contextMenu.popup()
+                contextMenu.open()
             }
         }
     }
