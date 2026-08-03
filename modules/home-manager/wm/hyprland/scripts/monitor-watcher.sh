@@ -7,7 +7,7 @@
 # Debounce: si varios eventos llegan en ráfaga (típico al conectar un dock),
 # solo corre setup-monitors.sh una vez, 1.5s después del último evento.
 
-SOCK="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+SOCK="${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
 SETUP="$HOME/.config/hypr/setup-monitors.sh"
 DEBOUNCE_SEC=1.5
 
@@ -37,7 +37,7 @@ ensure_hyprpaper() {
 
 run_setup() {
     # DDC bus list (brightness.sh) is stale after a hotplug; rebuilt on next keypress.
-    rm -f "${XDG_RUNTIME_DIR:-/tmp}/ddc-buses"
+    rm -f "${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}/ddc-buses"
     ensure_hyprpaper
     bash "$SETUP"
     ensure_quickshell

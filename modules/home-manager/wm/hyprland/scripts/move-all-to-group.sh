@@ -7,7 +7,7 @@ source "$(dirname "$0")/monitors-detect.sh"
 # signal here) and notifies on failure — see hyprctl-classify.sh.
 source "$(dirname "$0")/hyprctl-classify.sh"
 
-LOG="${XDG_RUNTIME_DIR:-/tmp}/move-all.log"
+LOG="${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}/move-all.log"
 # Tracing off by default: this bind fires on every ALT+SHIFT+N press, and an unbounded
 # xtrace to $LOG with no rotation adds up fast. Set MOVE_ALL_DEBUG=1 to re-enable.
 if [ "${MOVE_ALL_DEBUG:-0}" = "1" ]; then

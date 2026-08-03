@@ -14,7 +14,7 @@ case "${1:-up}" in
   up)   brightnessctl -e4 -n2 set "${step}%+" >/dev/null ;;
   down) brightnessctl -e4 -n2 set "${step}%-" >/dev/null ;;
 esac
-runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+runtime_dir="${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}"
 
 echo . >> "$runtime_dir/qs-brightness" # OSD refresh (bar tails this file)
 
