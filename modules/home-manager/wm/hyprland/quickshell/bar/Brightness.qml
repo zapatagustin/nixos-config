@@ -11,56 +11,103 @@ Item {
 
     property int percent: 100
 
-    // Refresh instantáneo: los binds de brillo (binds.conf) escriben en este
-    // pipe tras correr brightnessctl. sysfs no emite inotify confiable, por eso
-    // el push explícito en vez de polling agresivo.
+    // Instant refresh: the brightness binds (binds.conf) write to this pipe
+    // after running brightnessctl. sysfs doesn't emit reliable inotify events,
+    // hence the explicit push instead of aggressive polling. Guarded by
+    // `detected`: before detectBacklight resolves a device, the readers'
+    // `path` is still empty, so reload() would be a no-op race anyway.
     Process {
         running: true
         command: ["sh", "-c", "touch /tmp/qs-brightness && tail -n 0 -f /tmp/qs-brightness"]
-        stdout: SplitParser { onRead: () => currentReader.reload() }
+        stdout: SplitParser { onRead: () => { if (brightness.detected) currentReader.reload() } }
     }
 
-    // Backstop lento: brillo puede cambiar fuera de las teclas (power-profiles,
-    // auto-brightness). FileView no spawnea proceso → barato. max_brightness es
-    // constante, se lee 1 sola vez en Component.onCompleted (#2).
+    // Slow backstop: brightness can change outside the keys (power-profiles,
+    // auto-brightness). FileView doesn't spawn a process → cheap. max_brightness
+    // is constant, read once via detectBacklight/reload above.
     Timer {
         interval: 30000
         running: true
         repeat: true
-        onTriggered: currentReader.reload()
+        onTriggered: { if (brightness.detected) currentReader.reload() }
     }
 
     property int rawCurrent: 0
     property int rawMax: 1
+    // True once detectBacklight has assigned real paths to both readers. Guards
+    // reload() calls from the pipe/timer above against firing while paths are
+    // still empty (detection is async).
+    property bool detected: false
+    // True only once both readers have successfully loaded and rawMax is a
+    // usable divisor. Never latched from device *detection* alone — resolving
+    // a device name proves nothing about being able to read it. Recomputed on
+    // every load/failure so a later read failure reverts the bar to "--"
+    // instead of freezing on the last good percent.
+    property bool currentOk: false
+    property bool maxOk: false
+    property bool available: false
+
+    function refreshAvailability() {
+        brightness.available = brightness.currentOk && brightness.maxOk && brightness.rawMax > 0
+    }
+
+    // Device name differs per host (intel_backlight, acpi_video0, ...), so resolve it at
+    // runtime instead of hardcoding one. Real backlight devices (*_backlight, amdgpu_bl0,
+    // ...) are preferred over acpi_video0 — ACPI firmware exposes acpi_video0 alongside
+    // the real device on plenty of non-discrete-GPU hardware, and it's not necessarily
+    // the one brightnessctl drives, so picking it first would desync the bar from the
+    // actual backlight. acpi_video0 is only used when no real backlight device is present.
+    // If the directory is empty, `available` stays false and the widget shows "--" instead
+    // of a stale/default percent.
+    Process {
+        id: detectBacklight
+        running: true
+        command: [
+            "sh", "-c",
+            "{ ls -1 /sys/class/backlight/ 2>/dev/null | grep -v '^acpi_video'; ls -1 /sys/class/backlight/ 2>/dev/null | grep '^acpi_video'; } | head -n1"
+        ]
+        stdout: SplitParser {
+            onRead: (line) => {
+                var name = line.trim()
+                if (name === "") return
+                var dir = "/sys/class/backlight/" + name
+                currentReader.path = dir + "/brightness"
+                maxReader.path = dir + "/max_brightness"
+                brightness.detected = true
+                currentReader.reload()
+                maxReader.reload()
+            }
+        }
+    }
 
     FileView {
         id: currentReader
-        // intel_backlight es el más común; si no funciona probar acpi_video0
-        path: "/sys/class/backlight/intel_backlight/brightness"
         onLoaded: {
             var v = parseInt(currentReader.text())
-            if (!isNaN(v)) {
-                brightness.rawCurrent = v
-                brightness.percent = Math.round(brightness.rawCurrent / brightness.rawMax * 100)
-            }
+            brightness.currentOk = !isNaN(v)
+            if (brightness.currentOk) brightness.rawCurrent = v
+            brightness.refreshAvailability()
+            if (brightness.available) brightness.percent = Math.round(brightness.rawCurrent / brightness.rawMax * 100)
+        }
+        onLoadFailed: {
+            brightness.currentOk = false
+            brightness.refreshAvailability()
         }
     }
 
     FileView {
         id: maxReader
-        path: "/sys/class/backlight/intel_backlight/max_brightness"
         onLoaded: {
             var v = parseInt(maxReader.text())
-            if (!isNaN(v) && v > 0) {
-                brightness.rawMax = v
-                brightness.percent = Math.round(brightness.rawCurrent / brightness.rawMax * 100)
-            }
+            brightness.maxOk = !isNaN(v) && v > 0
+            if (brightness.maxOk) brightness.rawMax = v
+            brightness.refreshAvailability()
+            if (brightness.available) brightness.percent = Math.round(brightness.rawCurrent / brightness.rawMax * 100)
         }
-    }
-
-    Component.onCompleted: {
-        currentReader.reload()
-        maxReader.reload()
+        onLoadFailed: {
+            brightness.maxOk = false
+            brightness.refreshAvailability()
+        }
     }
 
     Row {
@@ -77,8 +124,8 @@ Item {
         }
 
         Text {
-            text: brightness.percent + "%"
-            color: brightness.theme.fg
+            text: brightness.available ? brightness.percent + "%" : "--"
+            color: brightness.available ? brightness.theme.fg : brightness.theme.fgDim
             font.pixelSize: 11
             font.family: "Terminess Nerd Font Mono"
             font.weight: Font.Medium
