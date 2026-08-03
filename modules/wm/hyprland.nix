@@ -33,6 +33,6 @@
   # udisks2 enabled in modules/hardware/hardware.nix (removed redundant enable here)
   services.tumbler.enable = true;
 
-#  # hyprlock needs a PAM entry to authenticate — without it you can't unlock.
-#  security.pam.services.hyprlock = { };
+  # hyprlock needs a PAM entry to authenticate — without it you can't unlock.
+  security.pam.services.hyprlock = { };
 }
