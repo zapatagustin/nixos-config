@@ -110,6 +110,6 @@ fi
 # Surface failures: this script's whole output goes to $LOG, so without a notification a
 # broken run is indistinguishable from a working one until a keybind is pressed.
 if [ "$fails" -gt 0 ]; then
-    echo "=== $fails FALLAS ==="
+    echo "=== $fails FAILURES ==="
     hyprctl notify -1 8000 "rgb(fb4934)" "  setup-monitors: $fails fallas — ver $LOG"
 fi

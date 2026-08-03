@@ -20,15 +20,6 @@ Item {
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 
-    // Spawn directly instead of `hyprctl dispatch exec`: the script doesn't need the
-    // compositor to start, so it doesn't depend on which parser hyprctl uses (with a
-    // Lua config, dispatch's argument is parsed as Lua, not hyprlang).
-    //
-    // execDetached, not a reused Process: switch-group.sh does two `hyprctl -j monitors
-    // | jq` calls plus several dispatches, so it's still running when the second click
-    // lands. Assigning command/running on a Process that's still running is a no-op
-    // (same issue as Launcher.qml — see the comment there).
-
     RowLayout {
         id: row
         anchors.fill: parent
@@ -62,6 +53,16 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
+                        // Spawn directly instead of `hyprctl dispatch exec`: the script
+                        // doesn't need the compositor to start, so it doesn't depend on
+                        // which parser hyprctl uses (with a Lua config, dispatch's
+                        // argument is parsed as Lua, not hyprlang).
+                        //
+                        // execDetached, not a reused Process: switch-group.sh does two
+                        // `hyprctl -j monitors | jq` calls plus several dispatches, so
+                        // it's still running when the second click lands, and assigning
+                        // command/running on a running Process is a no-op — the second
+                        // click would be dropped (same issue as Launcher.qml).
                         Quickshell.execDetached(["bash", "-c", "bash ~/.config/hypr/switch-group.sh " + vdId])
                     }
                 }
