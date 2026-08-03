@@ -18,9 +18,11 @@
   sops.secrets."zed/anthropic-api-key".owner = username;
 
   # Hermes Agent API keys (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, etc.).
-  # Decrypted to /run/secrets/hermes/env — systemd lo lee como root antes
-  # de hacer drop al usuario hermes. Llenar con `sops modules/secrets/secrets.yaml`.
-  sops.secrets."hermes/env" = { };
+  # Decrypted to /run/secrets/hermes/env — systemd reads it as root before
+  # dropping to the hermes user. Fill in with `sops modules/secrets/secrets.yaml`.
+  # disabled until modules/ai/hermes.nix is re-enabled (see modules/modules.nix) —
+  # the hermes-agent flake input is broken, so nothing reads this secret right now.
+  # sops.secrets."hermes/env" = { };
 
   # disabled until a tailscale authkey is added to secrets.yaml
   # sops.secrets."tailscale/authkey" = { };
