@@ -31,7 +31,7 @@ PanelWindow {
     property int selectedIndex: 0
     property var pinnedItems: []   // persistido en archivo
 
-    readonly property string pinnedFile: "/tmp/qs-clipboard-pinned"
+    readonly property string pinnedFile: Paths.clipboardPinned
 
     // ── Inicialización ────────────────────────────────────────────────────
     Component.onCompleted: {
@@ -41,7 +41,7 @@ PanelWindow {
     // ── Cargar items pinneados desde archivo ──────────────────────────────
     Process {
         id: pinnedReader
-        command: ["sh", "-c", "cat /tmp/qs-clipboard-pinned 2>/dev/null || echo ''"]
+        command: ["sh", "-c", "cat " + shellQuote(Paths.clipboardPinned) + " 2>/dev/null || echo ''"]
         running: false
         property string buf: ""
         stdout: SplitParser {
@@ -188,8 +188,12 @@ PanelWindow {
 
     function savePinned() {
         var content = pinnedItems.join("\n")
+        var path = Paths.clipboardPinned
+        // stateDir isn't guaranteed to exist on disk, so mkdir -p it before
+        // the `>` redirect (which fails if the parent dir is missing).
         pinnedWriter.command = ["sh", "-c",
-            "printf '%s' " + shellQuote(content) + " > /tmp/qs-clipboard-pinned"
+            "mkdir -p \"$(dirname " + shellQuote(path) + ")\" && printf '%s' " +
+            shellQuote(content) + " > " + shellQuote(path)
         ]
         pinnedWriter.running = true
     }

@@ -14,13 +14,15 @@ case "${1:-up}" in
   up)   brightnessctl -e4 -n2 set "${step}%+" >/dev/null ;;
   down) brightnessctl -e4 -n2 set "${step}%-" >/dev/null ;;
 esac
-echo . >> /tmp/qs-brightness # OSD refresh (bar tails this file)
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+
+echo . >> "$runtime_dir/qs-brightness" # OSD refresh (bar tails this file)
 
 # External monitors: DDC/CI via ddcutil. No-op when ddcutil is absent (undocked
 # host / thinkpad) or no external DDC display is present.
 command -v ddcutil >/dev/null || exit 0
 
-buses=/tmp/ddc-buses
+buses="$runtime_dir/ddc-buses"
 
 (
   # -n: if a worker is already chasing the value, this keypress adds nothing —
@@ -63,4 +65,4 @@ buses=/tmp/ddc-buses
     done < "$buses"
     wait
   done
-) 9>/tmp/ddc-bright.lock &
+) 9>"$runtime_dir/ddc-bright.lock" &

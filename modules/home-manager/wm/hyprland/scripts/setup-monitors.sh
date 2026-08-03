@@ -6,7 +6,7 @@
 set -u
 source "$(dirname "$0")/monitors-detect.sh"
 
-LOG=/tmp/setup-monitors.log
+LOG="${XDG_RUNTIME_DIR:-/tmp}/setup-monitors.log"
 exec >>"$LOG" 2>&1
 echo "=== $(date '+%F %T') LEFT=$LEFT_SAMSUNG RIGHT=$RIGHT_SAMSUNG EDP=$EDP ==="
 

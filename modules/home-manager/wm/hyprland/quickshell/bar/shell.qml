@@ -13,7 +13,7 @@ ShellRoot {
     // Leer el tema actual al iniciar (Quickshell resetea isDark al reiniciar)
     Process {
         id: themeInit
-        command: ["sh", "-c", "cat /tmp/qs-theme 2>/dev/null"]
+        command: ["sh", "-c", "cat " + Paths.theme + " 2>/dev/null"]
         running: true
         stdout: SplitParser {
             onRead: (line) => {
@@ -25,7 +25,7 @@ ShellRoot {
     }
 
     IpcWatcher {
-        pipePath: "/tmp/qs-theme"
+        pipePath: Paths.theme
         onTriggered: (line) => {
             if (line === "dark")  root.isDark = true
             if (line === "light") root.isDark = false
@@ -128,7 +128,7 @@ ShellRoot {
     }
 
     IpcWatcher {
-        pipePath: "/tmp/qs-notif"
+        pipePath: Paths.notif
         onTriggered: (line) => {
             if (line === "toggle") {
                 if (notifCenter.open) notifCenter.doHide()
@@ -184,7 +184,7 @@ ShellRoot {
     }
 
     IpcWatcher {
-        pipePath: "/tmp/qs-launcher"
+        pipePath: Paths.launcher
         onTriggered: (line) => {
             if (line === "toggle") {
                 if (appLauncher.open) appLauncher.doHide()
@@ -197,7 +197,7 @@ ShellRoot {
     }
 
     IpcWatcher {
-        pipePath: "/tmp/qs-clipboard"
+        pipePath: Paths.clipboard
         onTriggered: (line) => {
             if (line === "toggle") {
                 if (clipViewer.open) clipViewer.doHide()

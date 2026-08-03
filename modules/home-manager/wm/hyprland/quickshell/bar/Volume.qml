@@ -37,7 +37,7 @@ Item {
     // explícito reemplaza al viejo `pactl subscribe`.
     Process {
         running: true
-        command: ["sh", "-c", "touch /tmp/qs-volume && tail -n 0 -f /tmp/qs-volume"]
+        command: ["sh", "-c", "touch " + Paths.volume + " && tail -n 0 -f " + Paths.volume]
         stdout: SplitParser { onRead: () => debounce.restart() }
     }
 

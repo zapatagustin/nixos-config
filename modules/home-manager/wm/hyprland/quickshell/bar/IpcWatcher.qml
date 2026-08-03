@@ -4,7 +4,7 @@ import Quickshell.Io
 // IpcWatcher — tail -f sobre un named pipe, reconecta automáticamente si muere.
 // Uso:
 //   IpcWatcher {
-//       pipePath: "/tmp/qs-theme"
+//       pipePath: Paths.theme
 //       onTriggered: (line) => { ... }
 //   }
 Item {

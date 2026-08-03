@@ -125,7 +125,7 @@ Item {
 
                 Process {
                     id: notifToggle
-                    command: ["sh", "-c", "echo toggle >> /tmp/qs-notif"]
+                    command: ["sh", "-c", "echo toggle >> " + Paths.notif]
                     running: false
                 }
             }
@@ -173,7 +173,7 @@ Item {
 
             Process {
                 id: clipToggle
-                command: ["sh", "-c", "echo toggle >> /tmp/qs-clipboard"]
+                command: ["sh", "-c", "echo toggle >> " + Paths.clipboard]
                 running: false
             }
         }

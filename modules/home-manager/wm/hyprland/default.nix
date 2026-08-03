@@ -202,7 +202,7 @@ in
           hl.exec_cmd("systemctl --user start hyprpolkitagent")
           hl.exec_cmd("wl-paste --type text --watch cliphist store")
           hl.exec_cmd("wl-paste --type image --watch cliphist store")
-          hl.exec_cmd("echo dark > /tmp/qs-theme") -- Stylix is fixed-dark; tell quickshell
+          hl.exec_cmd("echo dark > $XDG_RUNTIME_DIR/qs-theme") -- Stylix is fixed-dark; tell quickshell
           ${lib.optionalString mm ''hl.exec_cmd("bash " .. hyprDir .. "/setup-monitors.sh")''}
       end)
 
@@ -211,13 +211,13 @@ in
       hl.bind(mainMod .. " + C", hl.dsp.window.close())
       hl.bind(mainMod .. " + Space", hl.dsp.window.float({ action = "toggle" }))
       hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
-      hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("echo toggle >> /tmp/qs-launcher"))
+      hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-launcher"))
       hl.bind("ALT + Tab", hl.dsp.window.cycle_next())
       hl.bind("ALT + Tab", hl.dsp.window.bring_to_top())
       hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd("loginctl lock-session"))
-      hl.bind("SUPER + P", hl.dsp.exec_cmd("echo toggle >> /tmp/qs-clipboard"))
-      hl.bind("SUPER + SHIFT + P", hl.dsp.exec_cmd("echo toggle >> /tmp/qs-clipboard"))
-      hl.bind("SUPER + SHIFT + N", hl.dsp.exec_cmd("echo toggle >> /tmp/qs-notif"))
+      hl.bind("SUPER + P", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-clipboard"))
+      hl.bind("SUPER + SHIFT + P", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-clipboard"))
+      hl.bind("SUPER + SHIFT + N", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-notif"))
 
       -- screenshots (via bash -> no exec-bit needed)
       hl.bind("Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh region"))
@@ -262,9 +262,9 @@ in
       hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
       hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
-      hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ && echo . >> /tmp/qs-volume"), { locked = true, repeating = true })
-      hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && echo . >> /tmp/qs-volume"), { locked = true, repeating = true })
-      hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && echo . >> /tmp/qs-volume"), { locked = true, repeating = true })
+      hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ && echo . >> $XDG_RUNTIME_DIR/qs-volume"), { locked = true, repeating = true })
+      hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && echo . >> $XDG_RUNTIME_DIR/qs-volume"), { locked = true, repeating = true })
+      hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && echo . >> $XDG_RUNTIME_DIR/qs-volume"), { locked = true, repeating = true })
       hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, repeating = true })
       hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("${brightnessScript}/bin/brightness up"), { locked = true, repeating = true })
       hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("${brightnessScript}/bin/brightness down"), { locked = true, repeating = true })

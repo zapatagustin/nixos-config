@@ -1,0 +1,16 @@
+singleton Paths 1.0 Paths.qml
+Bar 1.0 Bar.qml
+Battery 1.0 Battery.qml
+Brightness 1.0 Brightness.qml
+ClipboardViewer 1.0 ClipboardViewer.qml
+Clock 1.0 Clock.qml
+IpcWatcher 1.0 IpcWatcher.qml
+Launcher 1.0 Launcher.qml
+NotificationCenter 1.0 NotificationCenter.qml
+NotificationPopup 1.0 NotificationPopup.qml
+RightSection 1.0 RightSection.qml
+TrayIcon 1.0 TrayIcon.qml
+Volume 1.0 Volume.qml
+WindowTitle 1.0 WindowTitle.qml
+WorkspaceButton 1.0 WorkspaceButton.qml
+Workspaces 1.0 Workspaces.qml

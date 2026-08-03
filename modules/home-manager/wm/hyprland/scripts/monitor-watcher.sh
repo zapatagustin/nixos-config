@@ -37,7 +37,7 @@ ensure_hyprpaper() {
 
 run_setup() {
     # DDC bus list (brightness.sh) is stale after a hotplug; rebuilt on next keypress.
-    rm -f /tmp/ddc-buses
+    rm -f "${XDG_RUNTIME_DIR:-/tmp}/ddc-buses"
     ensure_hyprpaper
     bash "$SETUP"
     ensure_quickshell

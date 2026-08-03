@@ -18,7 +18,7 @@ Item {
     // `path` is still empty, so reload() would be a no-op race anyway.
     Process {
         running: true
-        command: ["sh", "-c", "touch /tmp/qs-brightness && tail -n 0 -f /tmp/qs-brightness"]
+        command: ["sh", "-c", "touch " + Paths.brightness + " && tail -n 0 -f " + Paths.brightness]
         stdout: SplitParser { onRead: () => { if (brightness.detected) currentReader.reload() } }
     }
 
@@ -82,6 +82,7 @@ Item {
 
     FileView {
         id: currentReader
+        preload: false
         onLoaded: {
             var v = parseInt(currentReader.text())
             brightness.currentOk = !isNaN(v)
@@ -97,6 +98,7 @@ Item {
 
     FileView {
         id: maxReader
+        preload: false
         onLoaded: {
             var v = parseInt(maxReader.text())
             brightness.maxOk = !isNaN(v) && v > 0

@@ -4,7 +4,7 @@
 N=${1:-1}
 source "$(dirname "$0")/monitors-detect.sh"
 
-LOG=/tmp/move-all.log
+LOG="${XDG_RUNTIME_DIR:-/tmp}/move-all.log"
 # Tracing off by default: this bind fires on every ALT+SHIFT+N press, and an unbounded
 # xtrace to $LOG with no rotation adds up fast. Set MOVE_ALL_DEBUG=1 to re-enable.
 if [ "${MOVE_ALL_DEBUG:-0}" = "1" ]; then
