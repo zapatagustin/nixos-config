@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mueve la ventana activa al virtual desktop N en el slot del monitor actual
+# Moves the active window to virtual desktop N in the current monitor's slot
 
 N=${1:-1}
 source "$(dirname "$0")/monitors-detect.sh"

@@ -23,7 +23,7 @@ in
     # and systemd reads it as root before dropping to the hermes user.
     environmentFiles = [ secrets."hermes/env".path ];
 
-    # CLI disponible en PATH, comparte estado con el servicio systemd.
+    # CLI available on PATH, shares state with the systemd service.
     addToSystemPackages = true;
   };
 }

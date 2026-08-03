@@ -1,5 +1,5 @@
 #!/bin/bash
-# Cambia todos los monitores al virtual desktop N (1-9)
+# Switches every monitor to virtual desktop N (1-9)
 # LEFT_SAMSUNG: ws N | RIGHT_SAMSUNG: ws N+9 | EDP: ws N+18
 
 N=${1:-1}

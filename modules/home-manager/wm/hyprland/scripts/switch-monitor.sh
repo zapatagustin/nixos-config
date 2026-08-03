@@ -1,5 +1,5 @@
 #!/bin/bash
-# Cambia el workspace del monitor focused al slot N (1-9) según el rol del monitor:
+# Switches the focused monitor's workspace to slot N (1-9) based on the monitor's role:
 # LEFT_SAMSUNG → N | RIGHT_SAMSUNG → N+9 | EDP → N+18
 
 N=${1:-1}
