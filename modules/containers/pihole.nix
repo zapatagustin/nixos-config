@@ -122,10 +122,18 @@ in
       script = ''
         set -eu
         # Wait for the gravity DB to exist inside the container.
+        gravity_ready=0
         for _ in $(seq 1 30); do
-          ${podman} exec pihole test -f /etc/pihole/gravity.db && break
+          if ${podman} exec pihole test -f /etc/pihole/gravity.db; then
+            gravity_ready=1
+            break
+          fi
           sleep 2
         done
+        if [ "$gravity_ready" -ne 1 ]; then
+          echo "gravity.db never appeared in the pihole container — aborting" >&2
+          exit 1
+        fi
 
         added=0
         for url in ${lib.escapeShellArgs firebogLists}; do

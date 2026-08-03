@@ -32,15 +32,23 @@ buses=/tmp/ddc-buses
   # change. detect also lists buses it marks "Invalid display" (eDP-1 has one),
   # so probe each with a getvcp and keep only the ones that actually answer DDC —
   # otherwise every write round burns ~0.4s on retries against a dead bus.
+  #
+  # An undocked host has zero valid buses, which used to leave $buses empty —
+  # indistinguishable from "not yet probed", so every keypress re-ran the ~3s
+  # detect. A NONE sentinel line records "probed, zero buses" so the cache is
+  # honored either way; only removing the file (monitor-watcher.sh) invalidates it.
   if [ ! -s "$buses" ]; then
-    ddcutil detect --brief 2>/dev/null \
-      | grep -oP 'I2C bus:\s+/dev/i2c-\K[0-9]+' \
-      | while read -r bus; do
-          ddcutil --bus "$bus" --sleep-multiplier=.5 getvcp 10 >/dev/null 2>&1 \
-            && echo "$bus"
-        done > "$buses"
+    {
+      ddcutil detect --brief 2>/dev/null \
+        | grep -oP 'I2C bus:\s+/dev/i2c-\K[0-9]+' \
+        | while read -r bus; do
+            ddcutil --bus "$bus" --sleep-multiplier=.5 getvcp 10 >/dev/null 2>&1 \
+              && echo "$bus"
+          done
+    } > "$buses"
+    [ -s "$buses" ] || echo NONE > "$buses"
   fi
-  [ -s "$buses" ] || exit 0
+  grep -qx NONE "$buses" && exit 0
 
   last=""
   while :; do

@@ -1,7 +1,7 @@
 #!/bin/bash
-# Configura monitores, workspaces y wallpapers en runtime según qué puertos
-# tengan los Samsung conectados. Idempotente — se puede correr múltiples veces.
-# Llamado al startup y por monitor-watcher.sh ante monitoradded/removed.
+# Configures monitors, workspaces and wallpapers at runtime based on which ports
+# the Samsungs are plugged into. Idempotent — safe to run multiple times.
+# Called at startup and by monitor-watcher.sh on monitoradded/removed.
 
 set -u
 source "$(dirname "$0")/monitors-detect.sh"
@@ -41,7 +41,7 @@ WALL_EDP="$WALL_DIR/keyboard.jpg"
 # applies live. Translation map in wm/hyprland/default.nix.
 set_monitor() { hc eval "hl.monitor({ output = \"$1\", mode = \"$2\", position = \"$3\", scale = $4 })"; }
 
-# Posiciones: Samsungs side-by-side arriba (1920px c/u, scale 1), eDP-1 abajo centrado
+# Positions: Samsungs side-by-side on top (1920px each, scale 1), eDP-1 centered below
 [ -n "$LEFT_SAMSUNG" ]  && set_monitor "$LEFT_SAMSUNG"  "1920x1080@74.97" "0x0"    1
 [ -n "$RIGHT_SAMSUNG" ] && set_monitor "$RIGHT_SAMSUNG" "1920x1080@74.97" "1920x0" 1
 # eDP-1 at the per-host fractional scale (EDP_SCALE, from nix), centered below the
@@ -51,7 +51,7 @@ edp_w=$(awk "BEGIN{printf \"%d\", 2256 / $EDP_SCALE}")
 edp_x=$(awk "BEGIN{printf \"%d\", (3840 - $edp_w) / 2}")
 set_monitor "$EDP" "preferred" "${edp_x}x1080" "$EDP_SCALE"
 
-# Workspace rules dinámicas: 1-9 → LEFT, 10-18 → RIGHT, 19-27 → eDP-1
+# Dynamic workspace rules: 1-9 → LEFT, 10-18 → RIGHT, 19-27 → eDP-1
 apply_ws_rules() {
     local mon=$1 start=$2 end=$3
     [ -z "$mon" ] && return
@@ -64,10 +64,10 @@ apply_ws_rules() {
 apply_ws_rules "$LEFT_SAMSUNG" 1 9
 apply_ws_rules "$RIGHT_SAMSUNG" 10 18
 
-# Mover workspaces ya existentes al monitor correcto (por si quedaron huérfanos).
-# 19-27 sigue acá aunque su regla ahora sea estática: switch-monitor.sh mueve workspaces
-# entre monitores a propósito, así que un 19-27 puede terminar en un Samsung y hay que
-# devolverlo. La regla estática fija el dueño; este loop repara el estado actual.
+# Move already-existing workspaces to the right monitor (in case any were left orphaned).
+# 19-27 stays here even though its rule is now static: switch-monitor.sh deliberately
+# moves workspaces between monitors, so a 19-27 can end up on a Samsung and needs moving
+# back. The static rule fixes the owner; this loop repairs the current state.
 move_ws_range() {
     local mon=$1 start=$2 end=$3
     [ -z "$mon" ] && return
@@ -81,23 +81,30 @@ move_ws_range "$LEFT_SAMSUNG" 1 9
 move_ws_range "$RIGHT_SAMSUNG" 10 18
 move_ws_range "$EDP" 19 27
 
-# Wallpapers (hyprpaper 0.8.x: solo `wallpaper "monitor,path"` y `listactive` están en IPC;
-# `preload` y `unload` fueron removidos — `wallpaper` auto-carga el path)
+# Wallpapers (hyprpaper 0.8.x: only `wallpaper "monitor,path"` and `listactive` are on IPC;
+# `preload` and `unload` were removed — `wallpaper` auto-loads the path)
 # hyprpaper's process comes up before its IPC socket is bound, so `pgrep -x hyprpaper` is not
 # a readiness check: at boot this script reached the wallpaper block ~1s ahead of the socket
 # and every call answered "can't send: failed to connect to hyprpaper". Wait for the socket to
 # answer instead — same loop as monitor-watcher.sh's ensure_hyprpaper and the hyprpaper
 # ExecStartPost in default.nix. eDP survived that race only because ExecStartPost retries it;
 # the external wallpapers have no such backstop, so docked boots lost them silently.
+hyprpaper_ready=0
 for _ in $(seq 1 20); do
-    hyprctl hyprpaper listactive >/dev/null 2>&1 && break
+    if hyprctl hyprpaper listactive >/dev/null 2>&1; then
+        hyprpaper_ready=1
+        break
+    fi
     sleep 0.3
 done
 
-if hyprctl hyprpaper listactive >/dev/null 2>&1; then
+if [ "$hyprpaper_ready" -eq 1 ]; then
     [ -n "$LEFT_SAMSUNG" ]  && hc hyprpaper wallpaper "$LEFT_SAMSUNG,$WALL_LEFT"
     [ -n "$RIGHT_SAMSUNG" ] && hc hyprpaper wallpaper "$RIGHT_SAMSUNG,$WALL_RIGHT"
     hc hyprpaper wallpaper "$EDP,$WALL_EDP"
+else
+    echo "FAIL: hyprpaper IPC socket never came up — wallpapers skipped"
+    fails=$((fails + 1))
 fi
 
 # Surface failures: this script's whole output goes to $LOG, so without a notification a
