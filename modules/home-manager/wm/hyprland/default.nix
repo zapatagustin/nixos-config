@@ -40,6 +40,12 @@ let
     text = builtins.readFile ./scripts/audio-device-watcher.sh;
   };
 
+  # `hl.dsp.dpms` with a non-table argument silently means TOGGLE — see
+  # tableToggleAction in Hyprland's src/config/lua/bindings/LuaBindingsInternal.cpp, which
+  # returns TOGGLE_ACTION_TOGGLE when arg 1 is not a table. So `hl.dsp.dpms("on")` parses,
+  # answers `ok`, and does the wrong thing; the state has to go in `{ action = ... }`.
+  dpms = state: "hyprctl dispatch 'hl.dsp.dpms({ action = \"${state}\" })'";
+
   # hyprpaper 0.8.4 ignores config-file `wallpaper=`/`preload=` (hyprtoolkit-rewrite
   # regression: logs "Monitor eDP-1 has no target" at every startup, sets nothing).
   # Only the IPC path works, so apply the built-in-display wallpaper via
@@ -53,9 +59,6 @@ let
     ${pkgs.hyprland}/bin/hyprctl hyprpaper wallpaper "eDP-1,${walls}/keyboard.jpg"
   '';
 
-  ws = builtins.genList (i: toString (i + 1)) 9; # ["1".."9"]
-  # workspace binds call scripts via `bash` so no exec-bit needed on store files
-  mkWsBinds = mod: script: map (n: "${mod}, ${n}, exec, bash ~/.config/hypr/${script} ${n}") ws;
 in
 {
   home.packages = with pkgs; [
@@ -84,179 +87,219 @@ in
     enable = true;
     # uwsm manages the session (programs.hyprland.withUWSM at system level)
     systemd.enable = false;
-    # stateVersion 26.05 flips the HM default to configType="lua", whose generator
-    # emits invalid Lua for hyprlang-style keys ($mainMod, exec-once) -> Hyprland
-    # falls back to emergency mode. Our settings are hyprlang; pin the format.
-    configType = "hyprlang";
+    # hyprlang is deprecated since 0.55 and upstream drops it "after 1 - 2 releases"
+    # (hypr.land/news/26_lua), so the config is Lua now.
+    # Kept as one raw Lua block rather than `settings`: binds take `hl.dsp.*`
+    # dispatcher objects, which the HM attrset -> Lua generator can only emit as
+    # quoted strings. Validate edits with `Hyprland --verify-config -c <file>`.
+    #
+    # A Lua config also switches the IPC parser, so every external caller had to move too:
+    # `hyprctl dispatch <hyprlang>` now parses its argument as Lua, and `hyprctl keyword`
+    # is refused outright ("keyword can't work with non-legacy parsers. Use eval.").
+    # The map used across scripts/ and quickshell/ (verified against Hyprland 0.56.1
+    # src/config/lua/bindings/LuaBindingsDispatchers.cpp):
+    #
+    #   dispatch workspace N               -> dispatch hl.dsp.focus({ workspace = N })
+    #   dispatch focusmonitor M            -> dispatch hl.dsp.focus({ monitor = "M" })
+    #   dispatch moveworkspacetomonitor W M-> dispatch hl.dsp.workspace.move({ workspace = W, monitor = "M" })
+    #   dispatch movetoworkspacesilent W   -> dispatch hl.dsp.window.move({ workspace = W, follow = false })
+    #   ... same, but ",address:0xA"       -> ... plus `window = "address:0xA"`
+    #   dispatch dpms on                   -> dispatch hl.dsp.dpms({ action = "on" })   # see `dpms` above
+    #   dispatch exec CMD                  -> dispatch hl.dsp.exec_cmd("CMD")
+    #   keyword monitor "O,MODE,POS,S"     -> eval hl.monitor({ output = "O", mode = "MODE", position = "POS", scale = S })
+    #   keyword workspace "N, monitor:M, persistent:true"
+    #                                      -> eval hl.workspace_rule({ workspace = "N", monitor = "M", persistent = true })
+    #
+    # `follow = false` is the old `...silent` suffix. Note the dispatchers' "unrecognized
+    # arguments. Expected one of: ..." errors list only the mode keys, not every accepted
+    # key (`window` and `follow` are absent from it but both work).
+    configType = "lua";
 
-    settings = {
-      "$mainMod" = "SUPER";
-      "$terminal" = "kitty";
-
-      env = [
-        "WALLPAPER_DIR,${walls}"
-        "EDP_SCALE,${iscale}" # setup-monitors.sh reuses the per-host eDP scale on dock
-      ];
-
-      monitor = [
-        "eDP-1,preferred,auto,${iscale}" # scale per host (myDesktop.internalScale); externals via setup-monitors.sh
-        ",preferred,auto,auto" # fallback for unknown monitors
-      ] ++ lib.optional mm
-        "HDMI-A-1,3840x2160@60,0x0,2,bitdepth,10,cm,wide"; # TV 4K: 10-bit + wide gamut (SDR desktop); tv-scale toggles game/HDR
-
-      general = {
-        gaps_in = 3;
-        gaps_out = 6;
-        border_size = 1;
-        "col.active_border" = "rgba(d79921ff) rgba(fe8019ff) 45deg";
-        "col.inactive_border" = "rgba(3c3836ff)";
-        resize_on_border = false;
-        allow_tearing = false;
-        layout = "dwindle";
-      };
-
-      decoration = {
-        rounding = 0;
-        active_opacity = 1.0;
-        inactive_opacity = 1.0;
-        shadow.enabled = false;
-        blur.enabled = false;
-      };
-
-      animations.enabled = false; # cachy disabled them ("enabled = no, please :)")
-
-      master.new_status = "master";
-
-      # HW cursor plane renders at a fixed size and ignores per-monitor scale, so
-      # the pointer looks a different size on the fractional-scaled eDP (1.57) vs
-      # the scale-1 externals. Software cursors rescale correctly per output.
-      cursor.no_hardware_cursors = true;
-
-      misc = {
-        force_default_wallpaper = 1;
-        disable_hyprland_logo = true;
-        vrr = 1; # adaptive sync (free win on panels that support it)
-      };
-
-      render.direct_scanout = true; # bypass compositing on fullscreen surfaces (perf; lost in the cachy port)
-
-      input = {
-        kb_layout = "es,us";
-        kb_variant = ",dvorak";
-        kb_options = "grp:ctrl_alt_toggle";
-        follow_mouse = 1;
-        sensitivity = 0;
-        touchpad = {
-          disable_while_typing = true;
-          natural_scroll = true;
-          tap-to-click = true;
-        };
-      };
-
-      gesture = "4, horizontal, workspace";
-      binds.allow_workspace_cycles = true;
-
-      exec-once = [
-        "uwsm finalize HYPRLAND_INSTANCE_SIGNATURE"
-        "systemctl --user start hyprpolkitagent"
-        "wl-paste --type text --watch cliphist store"
-        "wl-paste --type image --watch cliphist store"
-        "echo dark > /tmp/qs-theme" # Stylix is fixed-dark; tell quickshell
-      ] ++ lib.optional mm "bash ~/.config/hypr/setup-monitors.sh";
-
-      bind = [
-        # apps
-        "$mainMod, RETURN, exec, uwsm app -- $terminal"
-        "$mainMod, C, killactive,"
-        "$mainMod, Space, togglefloating,"
-        "$mainMod, F, fullscreen"
-        "$mainMod, D, exec, echo toggle >> /tmp/qs-launcher"
-        "ALT, Tab, cyclenext,"
-        "ALT, Tab, bringactivetotop,"
-        "SUPER SHIFT, L, exec, loginctl lock-session"
-        "SUPER, P, exec, echo toggle >> /tmp/qs-clipboard"
-        "SUPER SHIFT, P, exec, echo toggle >> /tmp/qs-clipboard"
-        "SUPER SHIFT, N, exec, echo toggle >> /tmp/qs-notif"
-        # screenshots (via bash → no exec-bit needed)
-        ", Print, exec, bash ~/.config/hypr/screenshot.sh region"
-        "SHIFT, Print, exec, bash ~/.config/hypr/screenshot.sh window"
-        "CTRL, Print, exec, bash ~/.config/hypr/screenshot.sh output"
-        "SUPER, Print, exec, bash ~/.config/hypr/screenshot.sh screen"
-        "$mainMod SHIFT, S, exec, bash ~/.config/hypr/screenshot.sh edit"
-        # focus (vim + arrows)
-        "$mainMod, h, movefocus, l"
-        "$mainMod, l, movefocus, r"
-        "$mainMod, k, movefocus, u"
-        "$mainMod, j, movefocus, d"
-        "$mainMod, left, movefocus, l"
-        "$mainMod, right, movefocus, r"
-        "$mainMod, up, movefocus, u"
-        "$mainMod, down, movefocus, d"
-        # move window (vim + arrows)
-        "$mainMod SHIFT, h, movewindow, l"
-        "$mainMod SHIFT, l, movewindow, r"
-        "$mainMod SHIFT, k, movewindow, u"
-        "$mainMod SHIFT, j, movewindow, d"
-        "$mainMod SHIFT, left, movewindow, l"
-        "$mainMod SHIFT, right, movewindow, r"
-        "$mainMod SHIFT, up, movewindow, u"
-        "$mainMod SHIFT, down, movewindow, d"
-        # scroll workspaces
-        "$mainMod, mouse_down, workspace, e+1"
-        "$mainMod, mouse_up, workspace, e-1"
-      ]
-      ++ mkWsBinds "$mainMod" "switch-monitor.sh"
-      ++ mkWsBinds "ALT" "switch-group.sh"
-      ++ mkWsBinds "$mainMod SHIFT" "move-to-group.sh"
-      ++ mkWsBinds "ALT SHIFT" "move-all-to-group.sh"
-      ++ lib.optional mm "$mainMod SHIFT, T, exec, ${tvScale}/bin/tv-scale";
-
-      bindm = [
-        "$mainMod, mouse:272, movewindow"
-        "$mainMod, mouse:273, resizewindow"
-      ];
-
-      bindel = [
-        ",XF86AudioRaiseVolume, exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ && echo . >> /tmp/qs-volume"
-        ",XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && echo . >> /tmp/qs-volume"
-        ",XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && echo . >> /tmp/qs-volume"
-        ",XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
-        ",XF86MonBrightnessUp, exec, ${brightnessScript}/bin/brightness up"
-        ",XF86MonBrightnessDown, exec, ${brightnessScript}/bin/brightness down"
-      ];
-
-      bindl = [
-        ", XF86AudioNext, exec, playerctl next"
-        ", XF86AudioPause, exec, playerctl play-pause"
-        ", XF86AudioPlay, exec, playerctl play-pause"
-        ", XF86AudioPrev, exec, playerctl previous"
-      ];
-    };
-
-    # rules.conf uses the new structured windowrule{} block syntax — not a clean
-    # attr mapping, kept verbatim.
     extraConfig = ''
-      windowrule {
-          name = suppress-maximize-events
-          match:class = .*
-          suppress_event = maximize
-      }
-      windowrule {
-          name = fix-xwayland-drags
-          match:class = ^$
-          match:title = ^$
-          match:xwayland = true
-          match:float = true
-          match:fullscreen = false
-          match:pin = false
-          no_focus = true
-      }
-      windowrule {
-          name = move-hyprland-run
-          match:class = hyprland-run
-          move = 20 monitor_h-120
-          float = yes
-      }
+      local mainMod = "SUPER"
+      local terminal = "kitty"
+      local hyprDir = "~/.config/hypr"
+
+      hl.env("WALLPAPER_DIR", "${walls}")
+      hl.env("EDP_SCALE", "${iscale}") -- setup-monitors.sh reuses the per-host eDP scale on dock
+
+      -- scale per host (myDesktop.internalScale); externals via setup-monitors.sh
+      hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = ${iscale} })
+      hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" }) -- fallback for unknown monitors
+      -- TV 4K: 10-bit + wide gamut (SDR desktop); tv-scale toggles game/HDR
+      ${lib.optionalString mm ''hl.monitor({ output = "HDMI-A-1", mode = "3840x2160@60", position = "0x0", scale = 2, bitdepth = 10, cm = "wide" })''}
+
+      -- Virtual-desktop slots: 1-9 left external, 10-18 right external, 19-27 eDP-1.
+      -- Only the external slots depend on which port each Samsung landed on, so only those
+      -- are applied at runtime by setup-monitors.sh. eDP-1 is always present and always
+      -- owns 19-27, so those rules live here: applied at parse time, they cannot fail over
+      -- IPC. That failure is exactly what broke the laptop's virtual desktops when the
+      -- runtime `hyprctl keyword workspace` calls started being rejected.
+      for i = 19, 27 do
+          hl.workspace_rule({ workspace = tostring(i), monitor = "eDP-1", persistent = true, default = true })
+      end
+
+      hl.config({
+          general = {
+              gaps_in     = 3,
+              gaps_out    = 6,
+              border_size = 1,
+              col = {
+                  active_border   = { colors = { "rgba(d79921ff)", "rgba(fe8019ff)" }, angle = 45 },
+                  inactive_border = "rgba(3c3836ff)",
+              },
+              resize_on_border = false,
+              allow_tearing    = false,
+              layout           = "dwindle",
+          },
+
+          decoration = {
+              rounding         = 0,
+              active_opacity   = 1.0,
+              inactive_opacity = 1.0,
+              shadow = { enabled = false },
+              blur   = { enabled = false },
+          },
+
+          animations = { enabled = false }, -- cachy disabled them ("enabled = no, please :)")
+
+          master = { new_status = "master" },
+
+          -- HW cursor plane renders at a fixed size and ignores per-monitor scale, so
+          -- the pointer looks a different size on the fractional-scaled eDP (1.57) vs
+          -- the scale-1 externals. Software cursors rescale correctly per output.
+          cursor = { no_hardware_cursors = true },
+
+          misc = {
+              force_default_wallpaper = 1,
+              disable_hyprland_logo   = true,
+              vrr                     = 1, -- adaptive sync (free win on panels that support it)
+          },
+
+          -- bypass compositing on fullscreen surfaces (perf; lost in the cachy port)
+          render = { direct_scanout = true },
+
+          input = {
+              kb_layout    = "es,us",
+              kb_variant   = ",dvorak",
+              kb_options   = "grp:ctrl_alt_toggle",
+              follow_mouse = 1,
+              sensitivity  = 0,
+              touchpad = {
+                  disable_while_typing = true,
+                  natural_scroll       = true,
+                  tap_to_click         = true,
+              },
+          },
+
+          binds = { allow_workspace_cycles = true },
+      })
+
+      hl.gesture({ fingers = 4, direction = "horizontal", action = "workspace" })
+
+      hl.on("hyprland.start", function()
+          hl.exec_cmd("uwsm finalize HYPRLAND_INSTANCE_SIGNATURE")
+          hl.exec_cmd("systemctl --user start hyprpolkitagent")
+          hl.exec_cmd("wl-paste --type text --watch cliphist store")
+          hl.exec_cmd("wl-paste --type image --watch cliphist store")
+          hl.exec_cmd("echo dark > /tmp/qs-theme") -- Stylix is fixed-dark; tell quickshell
+          ${lib.optionalString mm ''hl.exec_cmd("bash " .. hyprDir .. "/setup-monitors.sh")''}
+      end)
+
+      -- apps
+      hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd("uwsm app -- " .. terminal))
+      hl.bind(mainMod .. " + C", hl.dsp.window.close())
+      hl.bind(mainMod .. " + Space", hl.dsp.window.float({ action = "toggle" }))
+      hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
+      hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("echo toggle >> /tmp/qs-launcher"))
+      hl.bind("ALT + Tab", hl.dsp.window.cycle_next())
+      hl.bind("ALT + Tab", hl.dsp.window.bring_to_top())
+      hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd("loginctl lock-session"))
+      hl.bind("SUPER + P", hl.dsp.exec_cmd("echo toggle >> /tmp/qs-clipboard"))
+      hl.bind("SUPER + SHIFT + P", hl.dsp.exec_cmd("echo toggle >> /tmp/qs-clipboard"))
+      hl.bind("SUPER + SHIFT + N", hl.dsp.exec_cmd("echo toggle >> /tmp/qs-notif"))
+
+      -- screenshots (via bash -> no exec-bit needed)
+      hl.bind("Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh region"))
+      hl.bind("SHIFT + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh window"))
+      hl.bind("CTRL + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh output"))
+      hl.bind("SUPER + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh screen"))
+      hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh edit"))
+
+      -- focus / move window (vim + arrows)
+      for _, d in ipairs({
+          { key = "h",     dir = "left"  },
+          { key = "l",     dir = "right" },
+          { key = "k",     dir = "up"    },
+          { key = "j",     dir = "down"  },
+          { key = "left",  dir = "left"  },
+          { key = "right", dir = "right" },
+          { key = "up",    dir = "up"    },
+          { key = "down",  dir = "down"  },
+      }) do
+          hl.bind(mainMod .. " + " .. d.key, hl.dsp.focus({ direction = d.dir }))
+          hl.bind(mainMod .. " + SHIFT + " .. d.key, hl.dsp.window.move({ direction = d.dir }))
+      end
+
+      -- scroll workspaces
+      hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
+      hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
+
+      -- workspace/group binds call scripts via `bash` so no exec-bit is needed on store files
+      for _, s in ipairs({
+          { mods = mainMod,               script = "switch-monitor.sh"    },
+          { mods = "ALT",                 script = "switch-group.sh"      },
+          { mods = mainMod .. " + SHIFT", script = "move-to-group.sh"     },
+          { mods = "ALT + SHIFT",         script = "move-all-to-group.sh" },
+      }) do
+          for i = 1, 9 do
+              hl.bind(s.mods .. " + " .. i, hl.dsp.exec_cmd("bash " .. hyprDir .. "/" .. s.script .. " " .. i))
+          end
+      end
+
+      ${lib.optionalString mm ''hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("${tvScale}/bin/tv-scale"))''}
+
+      hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
+      hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+
+      hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ && echo . >> /tmp/qs-volume"), { locked = true, repeating = true })
+      hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && echo . >> /tmp/qs-volume"), { locked = true, repeating = true })
+      hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && echo . >> /tmp/qs-volume"), { locked = true, repeating = true })
+      hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, repeating = true })
+      hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("${brightnessScript}/bin/brightness up"), { locked = true, repeating = true })
+      hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("${brightnessScript}/bin/brightness down"), { locked = true, repeating = true })
+
+      hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })
+      hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+      hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+      hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
+
+      -- window rules
+      hl.window_rule({
+          name  = "suppress-maximize-events",
+          match = { class = ".*" },
+          suppress_event = "maximize",
+      })
+
+      hl.window_rule({
+          name  = "fix-xwayland-drags",
+          match = {
+              class      = "^$",
+              title      = "^$",
+              xwayland   = true,
+              float      = true,
+              fullscreen = false,
+              pin        = false,
+          },
+          no_focus = true,
+      })
+
+      hl.window_rule({
+          name  = "move-hyprland-run",
+          match = { class = "hyprland-run" },
+          move  = "20 monitor_h-120",
+          float = true,
+      })
     '';
   };
 
@@ -282,12 +325,12 @@ in
       general = {
         lock_cmd = "pidof hyprlock || hyprlock";
         before_sleep_cmd = "loginctl lock-session";
-        after_sleep_cmd = "hyprctl dispatch dpms on";
+        after_sleep_cmd = dpms "on";
       };
       listener = [
         { timeout = 240; on-timeout = "brightnessctl -s set 20%"; on-resume = "brightnessctl -r"; }
-        { timeout = 300; on-timeout = "loginctl lock-session"; on-resume = "hyprctl dispatch dpms on"; }
-        { timeout = 360; on-timeout = "hyprctl dispatch dpms off"; on-resume = "hyprctl dispatch dpms on"; }
+        { timeout = 300; on-timeout = "loginctl lock-session"; on-resume = dpms "on"; }
+        { timeout = 360; on-timeout = dpms "off"; on-resume = dpms "on"; }
         { timeout = 900; on-timeout = "systemctl suspend"; }
       ];
     };
@@ -410,7 +453,7 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
-  # scripts deployed individually so they coexist with the generated hyprland.conf
+  # scripts deployed individually so they coexist with the generated hyprland.lua
   xdg.configFile = {
     "hypr/monitors-detect.sh".source = ./scripts/monitors-detect.sh;
     "hypr/switch-monitor.sh".source = ./scripts/switch-monitor.sh;

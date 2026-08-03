@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import Quickshell.Io
 
 PanelWindow {
@@ -84,8 +83,16 @@ PanelWindow {
         if (filteredApps.length === 0) return
         var cmd = filteredApps[selectedIndex].exec
         doHide()
-        // uwsm app -- lanza cada app en su propio systemd scope (cleanup ordenado)
-        Hyprland.dispatch("exec uwsm app -- " + cmd)
+        // uwsm app -- lanza cada app en su propio systemd scope (cleanup ordenado).
+        // Spawn directo en vez de `hyprctl dispatch exec`: lanzar una app no necesita al
+        // compositor, y así no depende de qué parser use hyprctl (con config Lua el
+        // argumento de dispatch se interpreta como Lua, no como hyprlang).
+        //
+        // execDetached, no un Process reusado: `uwsm app` sigue attacheado al scope y no
+        // retorna hasta que la app cierra, así que un Process compartido queda running
+        // para siempre tras el primer lanzamiento y todos los siguientes se ignoran
+        // (asignar command/running sobre un Process en curso es un no-op).
+        Quickshell.execDetached(["bash", "-c", "uwsm app -- " + cmd])
     }
 
     function doShow() {

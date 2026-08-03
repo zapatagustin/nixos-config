@@ -31,5 +31,7 @@ echo "MONITOR=$MONITOR ACTIVE_WS=$ACTIVE_WS TARGET=$TARGET" >&2
 echo "addrs to move: $ADDRS" >&2
 
 for ADDR in $ADDRS; do
-    hyprctl dispatch movetoworkspacesilent "$TARGET,address:$ADDR"
+    # Lua dispatcher (Hyprland 0.55+): `follow = false` is the old `...silent` suffix and
+    # `window` is the per-window selector the hyprlang "WS,address:0x.." arg used to carry.
+    hyprctl dispatch "hl.dsp.window.move({ workspace = $TARGET, follow = false, window = \"address:$ADDR\" })"
 done

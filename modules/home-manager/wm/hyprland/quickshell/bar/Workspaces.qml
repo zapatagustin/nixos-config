@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 
 Item {
     id: workspaces
@@ -19,6 +20,14 @@ Item {
 
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
+
+    // Spawn directo en vez de `hyprctl dispatch exec`: el script no necesita al
+    // compositor para arrancar, y así no depende de qué parser use hyprctl (con config
+    // Lua el argumento de dispatch se interpreta como Lua, no como hyprlang).
+    Process {
+        id: switchProc
+        running: false
+    }
 
     RowLayout {
         id: row
@@ -52,7 +61,10 @@ Item {
 
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: Hyprland.dispatch("exec ~/.config/hypr/switch-group.sh " + vdId)
+                    onClicked: {
+                        switchProc.command = ["bash", "-c", "bash ~/.config/hypr/switch-group.sh " + vdId]
+                        switchProc.running = true
+                    }
                 }
             }
         }

@@ -7,15 +7,14 @@ source "$(dirname "$0")/monitors-detect.sh"
 
 CURRENT=$(hyprctl monitors | awk '/^Monitor/{name=$2} /focused: yes/{print name}')
 
-if [ -n "$LEFT_SAMSUNG" ]; then
-    hyprctl dispatch focusmonitor "$LEFT_SAMSUNG"
-    hyprctl dispatch workspace "$N"
-fi
-if [ -n "$RIGHT_SAMSUNG" ]; then
-    hyprctl dispatch focusmonitor "$RIGHT_SAMSUNG"
-    hyprctl dispatch workspace "$((N+9))"
-fi
-hyprctl dispatch focusmonitor "$EDP"
-hyprctl dispatch workspace "$((N+18))"
+# Lua dispatchers (Hyprland 0.55+): focusmonitor/workspace both map onto hl.dsp.focus.
+focus_ws() {
+    hyprctl dispatch "hl.dsp.focus({ monitor = \"$1\" })"
+    hyprctl dispatch "hl.dsp.focus({ workspace = $2 })"
+}
 
-hyprctl dispatch focusmonitor "${CURRENT:-$LEFT_SAMSUNG}"
+[ -n "$LEFT_SAMSUNG" ]  && focus_ws "$LEFT_SAMSUNG"  "$N"
+[ -n "$RIGHT_SAMSUNG" ] && focus_ws "$RIGHT_SAMSUNG" "$((N+9))"
+focus_ws "$EDP" "$((N+18))"
+
+hyprctl dispatch "hl.dsp.focus({ monitor = \"${CURRENT:-$LEFT_SAMSUNG}\" })"

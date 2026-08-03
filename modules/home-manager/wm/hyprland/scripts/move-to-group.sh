@@ -14,5 +14,6 @@ case "$MONITOR" in
 esac
 
 WS=$((N + OFFSET))
-hyprctl dispatch moveworkspacetomonitor "$WS" "$MONITOR" 2>/dev/null
-hyprctl dispatch movetoworkspacesilent "$WS"
+# Lua dispatchers (Hyprland 0.55+). `follow = false` is the old `...silent` suffix.
+hyprctl dispatch "hl.dsp.workspace.move({ workspace = $WS, monitor = \"$MONITOR\" })" 2>/dev/null
+hyprctl dispatch "hl.dsp.window.move({ workspace = $WS, follow = false })"

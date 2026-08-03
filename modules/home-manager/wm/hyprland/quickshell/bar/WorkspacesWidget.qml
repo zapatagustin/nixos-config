@@ -76,7 +76,8 @@ Item {
                 // Click para cambiar workspace
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: HyprlandIpc.dispatch("workspace " + wsItem.wsId)
+                    // Lua dispatcher (Hyprland 0.55+); hyprlang strings no longer parse.
+                    onClicked: HyprlandIpc.dispatch("hl.dsp.focus({ workspace = " + wsItem.wsId + " })")
                     cursorShape: Qt.PointingHandCursor
                 }
             }

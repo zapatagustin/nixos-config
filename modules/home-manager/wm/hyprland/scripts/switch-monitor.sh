@@ -15,5 +15,7 @@ case "$MONITOR" in
 esac
 
 WS=$((N + OFFSET))
-hyprctl dispatch moveworkspacetomonitor "$WS" "$MONITOR" 2>/dev/null
-hyprctl dispatch workspace "$WS"
+# Hyprland 0.55+ with a Lua config parses `hyprctl dispatch` arguments as Lua, so the
+# hyprlang dispatcher names no longer work. Translation map in wm/hyprland/default.nix.
+hyprctl dispatch "hl.dsp.workspace.move({ workspace = $WS, monitor = \"$MONITOR\" })" 2>/dev/null
+hyprctl dispatch "hl.dsp.focus({ workspace = $WS })"
