@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Io
 
 Item {
     id: workspaces
@@ -12,7 +11,7 @@ Item {
 
     readonly property var jpNumbers: ["一", "二", "三", "四", "五", "六", "七", "八", "九"]
 
-    // VD activo en ESTE monitor: ws 1-9 → VD=ws, ws 10-18 → VD=ws-9, ws 19-27 → VD=ws-18
+    // VD active on THIS monitor: ws 1-9 → VD=ws, ws 10-18 → VD=ws-9, ws 19-27 → VD=ws-18
     readonly property int activeVD: {
         var wsId = monitor?.activeWorkspace?.id ?? 0
         return wsId > 0 ? ((wsId - 1) % 9) + 1 : 1
@@ -21,13 +20,14 @@ Item {
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 
-    // Spawn directo en vez de `hyprctl dispatch exec`: el script no necesita al
-    // compositor para arrancar, y así no depende de qué parser use hyprctl (con config
-    // Lua el argumento de dispatch se interpreta como Lua, no como hyprlang).
-    Process {
-        id: switchProc
-        running: false
-    }
+    // Spawn directly instead of `hyprctl dispatch exec`: the script doesn't need the
+    // compositor to start, so it doesn't depend on which parser hyprctl uses (with a
+    // Lua config, dispatch's argument is parsed as Lua, not hyprlang).
+    //
+    // execDetached, not a reused Process: switch-group.sh does two `hyprctl -j monitors
+    // | jq` calls plus several dispatches, so it's still running when the second click
+    // lands. Assigning command/running on a Process that's still running is a no-op
+    // (same issue as Launcher.qml — see the comment there).
 
     RowLayout {
         id: row
@@ -44,7 +44,7 @@ Item {
                 property bool isActive: workspaces.activeVD === vdId
 
                 property bool isOccupied: {
-                    // VD N ocupa ws N, N+9, N+18
+                    // VD N occupies ws N, N+9, N+18
                     for (var i = 0; i < Hyprland.workspaces.values.length; i++) {
                         var ws = Hyprland.workspaces.values[i]
                         if ((ws.id === vdId || ws.id === vdId + 9 || ws.id === vdId + 18)
@@ -62,8 +62,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        switchProc.command = ["bash", "-c", "bash ~/.config/hypr/switch-group.sh " + vdId]
-                        switchProc.running = true
+                        Quickshell.execDetached(["bash", "-c", "bash ~/.config/hypr/switch-group.sh " + vdId])
                     }
                 }
             }
