@@ -69,18 +69,21 @@
       # nor the QML below, so either fails only at runtime (compositor emergency
       # mode / a dead quickshell bar).
       #
-      # pkgs.hyprland here is nixpkgs', while each host deploys through the chaotic
-      # overlay. They resolve to the same store path today, so the check validates
-      # the binary that is actually deployed -- but nothing enforces that. If chaotic
-      # ever repins Hyprland independently, this would silently start checking
-      # against a different schema than the one running.
+      # The verifying binary comes from the host's own config, not from a bare
+      # nixpkgs. That matters because the chaotic overlay is in each host's module
+      # list, so programs.hyprland.package already reflects whatever it resolves to
+      # -- the check therefore parses with the exact binary uwsm launches
+      # (withUWSM = true in modules/wm/hyprland.nix), and stays correct if chaotic
+      # ever repins Hyprland away from nixpkgs. Verifying with a schema from a
+      # different build than the one running is the failure this avoids.
       hyprlandConfigCheck = hostname:
         let
-          luaConfig = nixosConfigurations.${hostname}.config.home-manager.users.${hostname}
+          hostCfg = nixosConfigurations.${hostname}.config;
+          luaConfig = hostCfg.home-manager.users.${hostname}
             .xdg.configFile."hypr/hyprland.lua".source;
         in
         pkgs.runCommand "hyprland-config-${hostname}"
-          { nativeBuildInputs = [ pkgs.hyprland ]; } ''
+          { nativeBuildInputs = [ hostCfg.programs.hyprland.package ]; } ''
           export XDG_RUNTIME_DIR=$TMPDIR/xdgrt
           mkdir -p -m700 "$XDG_RUNTIME_DIR"
           cp ${luaConfig} cfg.lua
