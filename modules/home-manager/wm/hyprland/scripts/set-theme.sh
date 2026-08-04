@@ -21,14 +21,13 @@
 # Consequence: a `nixos-rebuild switch` re-runs that unit and puts you back on
 # dark, which is why the mode file alone cannot be trusted as current state — see
 # active_mode below. The theme-sync unit runs `auto` at login to re-sync.
+#
+# The boundary hours below are mirrored by theme-sync.timer's OnCalendar entries
+# in ../default.nix — change both together or the transition fires at the wrong
+# wall-clock time.
 set -u
 
-usage() {
-  echo "usage: set-theme {dark|light|toggle|auto}" >&2
-  exit 2
-}
-
-LIGHT_FROM=9  # inclusive
+LIGHT_FROM=9   # inclusive
 LIGHT_UNTIL=18 # exclusive
 
 state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
@@ -38,6 +37,22 @@ mode_file="$state_dir/theme-mode"
 # NOT persist — the same split Paths.qml already makes for its other qs-* files.
 runtime_dir="${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}"
 signal_file="$runtime_dir/qs-theme"
+log="$runtime_dir/set-theme.log"
+lock="$runtime_dir/set-theme.lock"
+
+# Every failure path has to reach a user who clicked a bar button, where there is
+# no terminal and Quickshell.execDetached discards stderr. Same notify-on-failure
+# convention as audio-device-watcher.sh and screenshot.sh.
+fail() {
+  echo "set-theme: $*" >&2
+  notify-send -a set-theme -u critical "Theme switch failed" "$*" 2>/dev/null || true
+  exit 1
+}
+
+usage() {
+  echo "usage: set-theme {dark|light|toggle|auto}" >&2
+  exit 2
+}
 
 want=${1:-}
 case "$want" in
@@ -45,18 +60,26 @@ case "$want" in
   *) usage ;;
 esac
 
+# Serialise against a concurrent run. The bar invokes this detached while the
+# theme-sync timer can fire independently, and two home-manager activations
+# interleaving over the same target files can leave a half-applied palette (gtk
+# light, kitty still dark) with neither process seeing an error. Same hazard
+# brightness.sh solves with flock. Waiting rather than skipping (-n) so a
+# scheduled transition is not silently dropped when it lands on a click; the
+# no-op guard below makes the second run cheap when the state already matches.
+exec 9>"$lock" || fail "cannot create $lock"
+flock -w 30 9 || fail "another set-theme run held the lock for over 30s"
+
 unit="home-manager-$(id -un).service"
 # ExecStart holds two store paths (hm-setup-env, then the generation). Only the
 # generation ends in -home-manager-generation and the pattern cannot span the
-# separating space, so this matches exactly one token.
+# separating space, so this matches exactly one token. The unit is root-owned and
+# only nixos-rebuild rewrites it, so the value is trusted input.
 parent=$(systemctl show -p ExecStart --value "$unit" 2>/dev/null |
   grep -o '/nix/store/[^ ]*-home-manager-generation' | head -n1)
 
-if [ -z "$parent" ]; then
-  echo "set-theme: could not read the home-manager generation from $unit" >&2
-  echo "set-theme: is home-manager wired as a NixOS module on this host?" >&2
-  exit 1
-fi
+[ -n "$parent" ] ||
+  fail "could not read the home-manager generation from $unit — is home-manager wired as a NixOS module here?"
 
 light_gen="$parent/specialisation/light"
 
@@ -95,20 +118,22 @@ case "$want" in
     ;;
 esac
 
-# Record the mode and push it to the bar. Done for every invocation, including the
-# no-op path below, so a stale mode file left by a rebuild gets corrected even when
-# no activation is needed.
+# Record the mode and push it to the bar. Runs on every invocation, including the
+# no-op path, so a stale mode file left by a rebuild gets corrected even when no
+# activation is needed. Returns non-zero on failure — callers MUST check: an
+# unwritable state dir used to exit 0 here, which left theme-sync reporting
+# success forever while the bar kept reading stale state at every login.
 publish() {
-  mkdir -p "$state_dir"
-  printf '%s\n' "$1" >"$mode_file"
-  printf '%s\n' "$1" >>"$signal_file"
+  mkdir -p "$state_dir" || return 1
+  printf '%s\n' "$1" >"$mode_file" || return 1
+  printf '%s\n' "$1" >>"$signal_file" || return 1
 }
 
 # Already in the target state: skip the activation. It takes seconds and this path
 # runs at every login and on every timer fire, so the guard is what keeps `auto`
 # from being a recurring stall.
 if [ "$mode" = "$active" ]; then
-  publish "$mode"
+  publish "$mode" || fail "could not record the theme mode under $state_dir"
   exit 0
 fi
 
@@ -119,24 +144,19 @@ else
 fi
 
 if [ ! -x "$activate" ]; then
-  echo "set-theme: $activate is missing or not executable" >&2
   if [ "$mode" = light ]; then
-    echo "set-theme: rebuild after adding specialisation.light to modules/home-manager/stylix.nix" >&2
+    fail "no light generation yet — rebuild after adding specialisation.light to modules/home-manager/stylix.nix"
   fi
-  exit 1
+  fail "$activate is missing or not executable"
 fi
 
 # Activation is chatty and takes a few seconds. Keep a log for debugging but don't
-# spam the caller — a bar click has no terminal attached.
-log="$runtime_dir/set-theme.log"
-if ! "$activate" >"$log" 2>&1; then
-  echo "set-theme: activation of '$mode' failed, see $log" >&2
-  exit 1
-fi
+# spam the caller.
+"$activate" >"$log" 2>&1 || fail "activation of '$mode' failed — see $log"
 
 # Only after activation succeeded, so a failed switch never leaves the bar and the
 # filesystem disagreeing about what is on screen.
-publish "$mode"
+publish "$mode" || fail "switched to '$mode' but could not record it under $state_dir"
 
 # Already-running apps do not re-read the files activation just relinked. kitty
 # reloads its whole config on SIGUSR1 (documented in kitty's own conf docs), which

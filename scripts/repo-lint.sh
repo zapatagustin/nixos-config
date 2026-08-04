@@ -36,6 +36,27 @@ is_root() {
   esac
 }
 
+# Is $1 referenced as a path by any .nix file other than $2?
+#
+# Comments are stripped first and the needle must be preceded by a slash. Both
+# matter: an earlier version grepped raw file content for the bare name, so a
+# passing MENTION in prose satisfied it. Demonstrated live — deleting the only
+# real import of shells/starship/starship.nix still reported ok, because
+# modules/home-manager/stylix.nix has a comment containing "starship.nix".
+#
+# Stripping at `#` can also blank a real reference that sits after a `#` on the
+# same line. That direction is deliberate: it can only produce a false POSITIVE
+# (a used file reported as orphaned), which is loud and immediately fixable,
+# never a silent miss.
+referenced_as_path() {
+  local needle=$1 self=$2 cand
+  while read -r cand; do
+    [ "$cand" = "$self" ] && continue
+    if sed 's/#.*//' "$cand" | grep -qF -- "/$needle"; then return 0; fi
+  done < <(nix_files)
+  return 1
+}
+
 while read -r f; do
   is_root "$f" && continue
   base=$(basename "$f")
@@ -45,11 +66,8 @@ while read -r f; do
   else
     needle="$base"
   fi
-  # Any other .nix naming it? --fixed-strings: these are paths, not patterns.
-  if ! grep -rlF --include='*.nix' -- "$needle" . 2>/dev/null |
-    grep -qv "^${f}$"; then
-    note "orphan: $f is not named in any imports list (dead file, or you forgot to wire it)"
-  fi
+  referenced_as_path "$needle" "$f" ||
+    note "orphan: $f is not imported by any .nix file (dead file, or you forgot to wire it)"
 done < <(nix_files)
 
 # ── 2. Every ~/.config/hypr/*.sh referenced must exist AND be deployed ───────────

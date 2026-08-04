@@ -39,7 +39,7 @@ let
   # Also on home.packages so the bar can call it by name.
   setTheme = pkgs.writeShellApplication {
     name = "set-theme";
-    runtimeInputs = with pkgs; [ systemd coreutils gnugrep procps hyprland ];
+    runtimeInputs = with pkgs; [ systemd coreutils gnugrep procps hyprland util-linux libnotify ];
     bashOptions = [ "nounset" ]; # script uses `set -u`; errexit would abort the best-effort kitty/hyprctl pokes
     text = builtins.readFile ./scripts/set-theme.sh;
   };
@@ -506,8 +506,12 @@ in
   systemd.user.timers.theme-sync = {
     Unit.Description = "Switch the gruvbox palette at 09:00 and 18:00";
     Timer = {
+      # Mirrors LIGHT_FROM/LIGHT_UNTIL in scripts/set-theme.sh. Nothing ties the
+      # two together, so change both or the transition fires at the wrong time.
       OnCalendar = [ "*-*-* 09:00:00" "*-*-* 18:00:00" ];
-      # Laptop: a transition that lands while suspended still fires on resume.
+      # Fires on resume for a boundary missed while the machine was off. (A
+      # realtime OnCalendar already re-evaluates across a plain suspend; this
+      # covers shutdown/hibernate, which suspend alone does not.)
       Persistent = true;
     };
     Install.WantedBy = [ "timers.target" ];

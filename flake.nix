@@ -95,12 +95,19 @@
       # (withUWSM = true in modules/wm/hyprland.nix), and stays correct if chaotic
       # ever repins Hyprland away from nixpkgs. Verifying with a schema from a
       # different build than the one running is the failure this avoids.
-      hyprlandConfigCheck = hostname:
+      #
+      # `variant` selects which home-manager generation's Lua to verify. The
+      # borders now come from base16, so the light specialisation emits DIFFERENT
+      # colour literals -- checking only the parent would leave the palette you get
+      # from `set-theme light` unverified.
+      hyprlandConfigCheck = hostname: variant:
         let
           hostCfg = nixosConfigurations.${hostname}.config;
-          luaConfig = hostCfg.home-manager.users.${hostname}.xdg.configFile."hypr/hyprland.lua".source;
+          hmCfg = hostCfg.home-manager.users.${hostname};
+          cfgFor = if variant == "light" then hmCfg.specialisation.light.configuration else hmCfg;
+          luaConfig = cfgFor.xdg.configFile."hypr/hyprland.lua".source;
         in
-        pkgs.runCommand "hyprland-config-${hostname}"
+        pkgs.runCommand "hyprland-config-${hostname}-${variant}"
           { nativeBuildInputs = [ hostCfg.programs.hyprland.package ]; } ''
           export XDG_RUNTIME_DIR=$TMPDIR/xdgrt
           mkdir -p -m700 "$XDG_RUNTIME_DIR"
@@ -212,11 +219,17 @@
       nixpkgsFmtCheck = pkgs.runCommand "nixpkgs-fmt-check"
         { nativeBuildInputs = [ pkgs.nixpkgs-fmt pkgs.findutils ]; } ''
         cd ${nixSources}
+        set -o pipefail # decide on nixpkgs-fmt's exit code, not on its wording
         # nixpkgs-fmt has no exclude flag, so hand it an explicit file list.
-        find . -name '*.nix' ! -name '${generatedNix}' -print0 \
-          | xargs -0 nixpkgs-fmt --check 2>&1 | tee $out
-        # --check exits non-zero on drift, but the pipe hides that.
-        if grep -qv '^0 / ' $out && grep -q 'would have been reformatted' $out; then
+        mapfile -d "" files < <(find . -name '*.nix' ! -name '${generatedNix}' -print0)
+        # An empty list would make `nixpkgs-fmt --check` with no arguments exit
+        # non-zero with a message matching nothing, which an output-grep version of
+        # this check read as success. Fail loudly instead of checking nothing.
+        if [ "''${#files[@]}" -eq 0 ]; then
+          echo "no .nix files found under the check source — the fileset is wrong" >&2
+          exit 1
+        fi
+        if ! nixpkgs-fmt --check "''${files[@]}" 2>&1 | tee $out; then
           echo "run: nix fmt" >&2
           exit 1
         fi
@@ -269,19 +282,14 @@
         let scripts = ./modules/home-manager/wm/hyprland/scripts; in
         pkgs.runCommand "hypr-scripts-shellcheck"
           { nativeBuildInputs = [ pkgs.shellcheck ]; } ''
-          # Three codes are excluded by name rather than by lowering the severity
-          # floor, so that any FUTURE info-level finding still fails the build.
-          # All three are artifacts of the deliberate `source "$(dirname "$0")/x.sh"`
-          # pattern these scripts must use (they are deployed flat into
-          # ~/.config/hypr, see the xdg.configFile block in wm/hyprland):
-          #   SC1091  cannot follow a source path built at runtime
-          #   SC2034  monitors-detect.sh assigns vars its *consumers* read
-          #   SC2154  move-all-to-group.sh reads `fails`, which hyprctl-classify.sh sets
-          # Verified at the time of writing that these were the ONLY findings, so the
-          # gate starts genuinely clean rather than muffled.
+          # Exclusions live in ../.shellcheckrc, with the reason for each. Passed
+          # via --rcfile because the scripts are read from the store, where
+          # shellcheck's own upward search would never find the repo's rcfile —
+          # and because scripts/hooks/pre-commit passes the same file, so the two
+          # callers cannot drift (the list used to be duplicated in both).
           set -o pipefail # tee must not mask shellcheck's exit code
           shellcheck --shell=bash --external-sources \
-            --exclude=SC1091,SC2034,SC2154 \
+            --rcfile=${./.shellcheckrc} \
             ${scripts}/*.sh 2>&1 | tee $out
         '';
     in
@@ -291,8 +299,10 @@
       formatter.x86_64-linux = pkgs.nixpkgs-fmt;
 
       checks.x86_64-linux = {
-        hyprland-lua-surface = hyprlandConfigCheck "surface";
-        hyprland-lua-thinkpad = hyprlandConfigCheck "thinkpad";
+        hyprland-lua-surface = hyprlandConfigCheck "surface" "dark";
+        hyprland-lua-thinkpad = hyprlandConfigCheck "thinkpad" "dark";
+        hyprland-lua-surface-light = hyprlandConfigCheck "surface" "light";
+        hyprland-lua-thinkpad-light = hyprlandConfigCheck "thinkpad" "light";
         quickshell-bar-qmllint = quickshellBarQmllint;
         quickshell-bar-qmldir = quickshellBarQmldir;
         nixpkgs-fmt = nixpkgsFmtCheck;

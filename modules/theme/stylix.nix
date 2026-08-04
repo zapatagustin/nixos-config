@@ -39,8 +39,13 @@
     #targets.starship.enable = false;
     # bat's stylix theme is a home-manager target, disabled in shells/shells.nix
 
-    # Let stylix drive hyprlock's input-field colors (base16). Layout/fonts/bg
-    # stay in programs.hyprlock; the hardcoded input-field rgba were removed.
-    #targets.hyprlock.enable = true;
+    # hyprlock: do NOT enable stylix's target, here or at the HM level. Besides
+    # being HM-only (so it could never work from this file), it also forces
+    # settings.background to a solid base00, which collides with the blurred
+    # wallpaper list in modules/home-manager/wm/hyprland/default.nix ("defined
+    # multiple times ... expected to be unique"). The input-field colours are
+    # written there directly from config.lib.stylix.colors instead — the same
+    # base16 values the target would have set, so they still follow the light/dark
+    # specialisation. See the matching note in modules/home-manager/stylix.nix.
   };
 }

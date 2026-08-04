@@ -1,0 +1,18 @@
+# Single source of truth for shellcheck exclusions. Passed explicitly via
+# --rcfile by BOTH callers (the hypr-scripts-shellcheck flake check in flake.nix
+# and scripts/hooks/pre-commit) so they cannot drift apart — the list used to be
+# duplicated as a literal in both.
+#
+# Excluded by NAME rather than by lowering the severity floor, so that any future
+# info-level finding still fails the build. All three are artifacts of the
+# deliberate `source "$(dirname "$0")/x.sh"` pattern the hypr scripts must use:
+# they are deployed flat into ~/.config/hypr and source each other at runtime.
+#
+#   SC1091  cannot follow a source path built at runtime
+#   SC2034  monitors-detect.sh assigns variables its *consumers* read
+#   SC2154  move-all-to-group.sh reads `fails`, which hyprctl-classify.sh sets
+#
+# These were the only findings when the gate was introduced, so it starts
+# genuinely clean rather than muffled. Adding a code here needs a reason on the
+# same line.
+disable=SC1091,SC2034,SC2154

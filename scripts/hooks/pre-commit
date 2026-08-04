@@ -61,10 +61,10 @@ if [ ${#nix_staged[@]} -gt 0 ]; then
 fi
 
 if [ ${#sh_staged[@]} -gt 0 ]; then
-  # Same exclusions as the flake check: all three are artifacts of the deliberate
-  # `source "$(dirname "$0")/x.sh"` pattern in the hypr scripts.
+  # --rcfile points at the same .shellcheckrc the flake check uses, so the hook
+  # and the gate can never disagree about what is excluded.
   have shellcheck && step "shellcheck" \
-    shellcheck --shell=bash --external-sources --exclude=SC1091,SC2034,SC2154 "${sh_staged[@]}"
+    shellcheck --shell=bash --external-sources --rcfile=.shellcheckrc "${sh_staged[@]}"
 fi
 
 if [ "$fails" -gt 0 ]; then
