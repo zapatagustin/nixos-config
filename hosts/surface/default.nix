@@ -11,7 +11,7 @@
   };
 
   # Surface is a work laptop — no LAN services, no gaming.
-  services.pihole.enable = false; # LAN DNS sinkhole — off here AND on thinkpad (nobody serves it yet)
+  services.pihole.enable = false; # LAN DNS sinkhole — off explicitly here, off by default on thinkpad
   services.gaming.enable = false; # Steam + GameMode + Wine
   hardware.trackpoint.enable = false; # no TrackPoint on Surface
 

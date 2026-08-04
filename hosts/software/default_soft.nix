@@ -35,7 +35,8 @@
     wget
 
     # Wayland
-    wl-clipboard
+    # wl-clipboard lives in the hyprland HM module, next to the other session tools
+    # the binds and scripts need on PATH. It was declared in both layers.
 
     # Nix tooling
     # comma comes from programs.nix-index-database.comma (shells/shells.nix), which
