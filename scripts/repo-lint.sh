@@ -95,6 +95,31 @@ if [ -n "$hits" ]; then
   done <<<"$hits"
 fi
 
+# ── 4. No `preload: false` on a FileView in the quickshell bar ──────────────────
+#
+# In quickshell 0.3.0, FileView.reload() does NOT start a FIRST read when preload
+# is off: Quickshell/Io/FileView.qml's onPathChanged leaves __preload false, so
+# assigning `path` arms nothing and the following reload() fires neither onLoaded
+# nor onLoadFailed. Brightness.qml shipped that way and showed "--" forever with
+# NOTHING in the log, because no read was ever attempted.
+#
+# This is a static proxy for a runtime semantic, and deliberately so: exercising
+# the real behaviour needs a running quickshell, which needs a Wayland display,
+# which the Nix build sandbox does not have. qmllint cannot see it either -- it is
+# not a type error, and the qmllint gate passes on the broken version. So the
+# pattern is banned by grep instead. If a FileView ever genuinely needs preload
+# off, it must not depend on reload() for its first read, and this rule needs the
+# exception spelled out here.
+#
+# `//` comments are stripped first so the warning comments in Brightness.qml that
+# name the pattern do not trip the rule that exists because of them.
+bar="$hypr/quickshell/bar"
+while read -r qml; do
+  if sed 's|//.*||' "$qml" | grep -qE 'preload[[:space:]]*:[[:space:]]*false'; then
+    note "preload: false in $qml — reload() will not perform the FIRST read (quickshell 0.3.0); see rule 4 in $0"
+  fi
+done < <(find "$bar" -name '*.qml' 2>/dev/null | sort)
+
 if [ "$fails" -gt 0 ]; then
   echo "repo-lint: $fails finding(s)" >&2
   exit 1

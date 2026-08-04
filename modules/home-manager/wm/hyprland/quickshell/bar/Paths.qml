@@ -41,6 +41,11 @@ QtObject {
         return s !== "" ? s : Quickshell.env("HOME") + "/.local/state"
     }
     readonly property string themeMode: stateHome + "/hypr/theme-mode"
+    // Fixed path to the theme switcher. QML cannot interpolate a Nix store path,
+    // so wm/hyprland/default.nix deploys a shim here that forwards to the wrapped
+    // binary -- see the xdg.configFile comment there for why this is not just
+    // `set-theme` on PATH.
+    readonly property string setTheme: Quickshell.env("HOME") + "/.config/hypr/set-theme.sh"
     readonly property string launcher: runtimeDir + "/qs-launcher"
     readonly property string clipboard: runtimeDir + "/qs-clipboard"
     // Genuine user data (not an ephemeral IPC signal/log), so it must survive

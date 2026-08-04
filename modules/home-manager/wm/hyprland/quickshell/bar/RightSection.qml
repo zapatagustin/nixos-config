@@ -91,7 +91,7 @@ Item {
                 // rather than from isDark, so the script stays the single source of
                 // truth and the bar cannot desync it. The bar's own palette flips
                 // when set-theme pushes to the qs-theme pipe (see shell.qml).
-                onClicked: Quickshell.execDetached(["set-theme", "toggle"])
+                onClicked: Quickshell.execDetached(["bash", Paths.setTheme, "toggle"])
             }
         }
 

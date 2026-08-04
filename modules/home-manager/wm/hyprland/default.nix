@@ -493,6 +493,14 @@ in
       Description = "Apply the time-of-day gruvbox palette (light 09:00-18:00, dark otherwise)";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
+      # The timer is WantedBy=timers.target, so it fires from ANY login that
+      # starts the user systemd manager -- including a bare SSH session, where a
+      # multi-second home-manager generation switch is an unwanted surprise and
+      # there is no bar to update. After= does not prevent that (it only orders).
+      # Hyprland creates $XDG_RUNTIME_DIR/hypr/<signature>, so this is the cheapest
+      # honest "is there a desktop here" test. A failed Condition skips the unit
+      # quietly rather than logging a failure, unlike Requisite=.
+      ConditionPathExistsGlob = "%t/hypr/*";
     };
     Service = {
       Type = "oneshot";
@@ -526,6 +534,19 @@ in
     "hypr/move-to-group.sh".source = ./scripts/move-to-group.sh;
     "hypr/move-all-to-group.sh".source = ./scripts/move-all-to-group.sh;
     "hypr/screenshot.sh".source = ./scripts/screenshot.sh;
+    # Thin shim so the bar can reach set-theme at a FIXED path. QML is a static
+    # file and cannot interpolate a store path, and every other consumer here
+    # invokes wrapped scripts by absolute `${pkg}/bin/name`. Calling `set-theme`
+    # by bare name would have worked (home.packages lands in
+    # /etc/profiles/per-user/$USER/bin, which is on the systemd user PATH) but it
+    # depends on the session environment rather than on the closure, and
+    # execDetached fails silently when a name does not resolve. Forwarding through
+    # the wrapper also keeps its runtimeInputs, and puts the reference back under
+    # repo-lint's ~/.config/hypr/*.sh rule, which does not see bare-name calls.
+    "hypr/set-theme.sh".text = ''
+      #!/usr/bin/env bash
+      exec ${setTheme}/bin/set-theme "$@"
+    '';
     "quickshell".source = ./quickshell;
   } // lib.optionalAttrs mm {
     "hypr/setup-monitors.sh".source = ./scripts/setup-monitors.sh;
