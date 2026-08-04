@@ -257,8 +257,10 @@
         statix check . 2>&1 | tee $out
       '';
 
-      # sops.nix is excluded only because its unused `config` argument has not been
-      # removed yet -- drop it from this list once that one-word edit lands.
+      # Only the two generated hyprland.lua wrappers are excluded, and only because
+      # they are generated. Every hand-written .nix in the repo is linted, including
+      # modules/secrets/sops.nix, which used to sit on this list for an unused
+      # `config` argument that has since been dropped.
       deadnixCheck = pkgs.runCommand "deadnix-check"
         { nativeBuildInputs = [ pkgs.deadnix ]; } ''
         cd ${nixSources}
@@ -268,7 +270,6 @@
         deadnix --fail \
           --exclude ./hosts/surface/${generatedNix} \
                     ./hosts/thinkpad/${generatedNix} \
-                    ./modules/secrets/sops.nix \
           -- . 2>&1 | tee $out
       '';
 

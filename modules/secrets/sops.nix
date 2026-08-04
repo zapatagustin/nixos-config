@@ -1,4 +1,4 @@
-{ config, username, ... }:
+{ username, ... }:
 {
   # Encrypted secrets file, safe to commit (see README "Secrets" section).
   sops.defaultSopsFile = ./secrets.yaml;
