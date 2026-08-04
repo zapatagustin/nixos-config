@@ -1,31 +1,29 @@
-{ pkgs, config, ... }: {
+{ pkgs, config, ... }:
+let
+  # Scheme, fonts and cursor are shared with the HM stylix instance -- stylix does
+  # not propagate them, so both files declare them and ./tokens.nix is the one place
+  # they are written.
+  tokens = import ./tokens.nix pkgs;
+in
+{
   # ecomono: autoEnable=false + explicit targets to avoid missing-option
   # errors from targets referencing DE configs we don't have (gnome, kmscon, etc.)
   stylix = {
     enable = true;
     autoEnable = false;
     polarity = "dark";
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml";
+    base16Scheme = tokens.scheme "dark";
 
     # No DE/compositor: wallpaper is just a solid bg pixel.
     image = config.lib.stylix.pixel "base00";
 
-    fonts = {
-      # Terminess = Terminus patched by Nerd Fonts: same look + glyphs (bar/prompt
-      # icons). Used for all three roles so stylix targets that pick sansSerif for
-      # UI (gtk.font, zed ui_font) render Terminess too, not a different family.
-      monospace = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font Mono"; };
-      sansSerif = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font"; };
-      serif = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font"; };
-    };
+    inherit (tokens) fonts;
 
-    # Cursor: stylix sets XCURSOR_SIZE + HYPRCURSOR_SIZE (was XCURSOR_SIZE/HYPRCURSOR_SIZE=24
-    # in cachy's uwsm/env) plus the theme. Name verified against the release's share/icons dirs.
-    cursor = {
-      package = pkgs.capitaine-cursors-themed;
-      name = "Capitaine Cursors (Gruvbox)";
-      size = 24;
-    };
+    # Sets environment.variables.XCURSOR_SIZE plus the theme name. The session's own
+    # XCURSOR_/HYPRCURSOR_ vars come from home.pointerCursor (home-manager/home.nix),
+    # which reads the same tokens.cursor. Name verified against the release's
+    # share/icons dirs.
+    inherit (tokens) cursor;
 
     # stylix's starship & hyprlock targets are HM-only (no nixos.nix).
     # gnome target needs explicit disable since we don't have GNOME.

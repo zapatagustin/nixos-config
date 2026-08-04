@@ -29,12 +29,11 @@
 
   # stylix.cursor never applies because homeManagerIntegration.autoImport=false,
   # so set the pointer here directly: installs the theme to ~/.icons and sets
-  # XCURSOR_THEME + hyprcursor env for Hyprland/GTK. Mirrors stylix.cursor.
-  home.pointerCursor = {
+  # XCURSOR_THEME + hyprcursor env for Hyprland/GTK. package/name/size come from
+  # ../theme/tokens.nix, the same values the system stylix.cursor reads — they used
+  # to be two independent copies and the size had already drifted (24 vs 36).
+  home.pointerCursor = (import ../theme/tokens.nix pkgs).cursor // {
     enable = true;
-    package = pkgs.capitaine-cursors-themed;
-    name = "Capitaine Cursors (Gruvbox)";
-    size = 36;
     gtk.enable = true;
     hyprcursor.enable = true;
   };

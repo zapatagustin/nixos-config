@@ -1,6 +1,9 @@
 { pkgs, lib, inputs, ... }:
 let
-  scheme = variant: "${pkgs.base16-schemes}/share/themes/gruvbox-${variant}-medium.yaml";
+  # Shared with the system stylix instance (../theme/stylix.nix), which cannot
+  # propagate them here. See ../theme/tokens.nix.
+  tokens = import ../theme/tokens.nix pkgs;
+  inherit (tokens) scheme;
 
   # Activation steps a palette switch must not pay for. Measured per step on a
   # real switch of this config:
@@ -100,13 +103,9 @@ in
 
     # This HM instance does NOT inherit fonts from the system stylix (modules/theme/
     # stylix.nix) — it falls back to stylix's DejaVu defaults. HM targets (gtk.font,
-    # zed ui_font, kitty font) read THESE, so mirror the system fonts here: Terminess
-    # everywhere, including sansSerif/serif, so no target picks DejaVu.
-    fonts = {
-      monospace = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font Mono"; };
-      sansSerif = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font"; };
-      serif = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font"; };
-    };
+    # zed ui_font, kitty font) read THESE, so both instances read ../theme/tokens.nix
+    # instead of each carrying its own copy.
+    inherit (tokens) fonts;
 
     targets = {
       neovim.enable = true;
