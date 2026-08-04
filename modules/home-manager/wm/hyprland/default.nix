@@ -501,6 +501,13 @@ in
       # honest "is there a desktop here" test. A failed Condition skips the unit
       # quietly rather than logging a failure, unlike Requisite=.
       ConditionPathExistsGlob = "%t/hypr/*";
+      # Do not let a home-manager activation start or restart this unit. set-theme
+      # IS what triggers that activation, and HM's reloadSystemd step would then
+      # start theme-sync inside it, re-entering set-theme one level deep on every
+      # single switch. The lock in the script makes that nested call harmless, but
+      # this stops it being spawned at all — a theme switch has no business
+      # re-running the thing that asked for it.
+      X-SwitchMethod = "keep-old";
     };
     Service = {
       Type = "oneshot";

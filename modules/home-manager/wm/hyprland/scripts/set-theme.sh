@@ -60,15 +60,27 @@ case "$want" in
   *) usage ;;
 esac
 
-# Serialise against a concurrent run. The bar invokes this detached while the
-# theme-sync timer can fire independently, and two home-manager activations
-# interleaving over the same target files can leave a half-applied palette (gtk
-# light, kitty still dark) with neither process seeing an error. Same hazard
-# brightness.sh solves with flock. Waiting rather than skipping (-n) so a
-# scheduled transition is not silently dropped when it lands on a click; the
-# no-op guard below makes the second run cheap when the state already matches.
+# Serialise against a concurrent run: two home-manager activations interleaving
+# over the same target files can leave a half-applied palette (gtk light, kitty
+# still dark) with neither process seeing an error. Same hazard brightness.sh
+# solves with flock.
+#
+# MUST be -n (skip), never -w (wait). This script's own activation runs HM's
+# reloadSystemd step, which starts theme-sync.service, which runs this script
+# again — so every switch nests one call inside itself. A waiting lock made that
+# nested call block on the outer one until it timed out, so each toggle cost the
+# full timeout, the unit ended in `failed`, and HM reported the user session
+# degraded. Skipping makes the nested call an instant no-op instead.
+#
+# Consequence, accepted: a scheduled transition that lands exactly on a manual
+# switch is dropped rather than queued. That is the right trade — the manual
+# switch just set what the user asked for, and theme-sync runs again at the next
+# boundary and at every login.
 exec 9>"$lock" || fail "cannot create $lock"
-flock -w 30 9 || fail "another set-theme run held the lock for over 30s"
+if ! flock -n 9; then
+  echo "set-theme: another run holds the lock, nothing to do" >&2
+  exit 0
+fi
 
 unit="home-manager-$(id -un).service"
 # ExecStart holds two store paths (hm-setup-env, then the generation). Only the
