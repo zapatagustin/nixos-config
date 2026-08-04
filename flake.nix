@@ -262,6 +262,59 @@
           -- . 2>&1 | tee $out
       '';
 
+      # Enforces the two invariants that make it safe for the light specialisation
+      # to skip reloadSystemd and ecomonoAgents (modules/home-manager/stylix.nix).
+      # Without this the skips are a comment nobody rechecks: the day someone makes
+      # a user unit depend on the palette, a theme switch would stop restarting it
+      # and the reason would be invisible. That is the exact comment-rot this repo
+      # has been bitten by three times.
+      themeSpecialisationInvariants = hostname:
+        let
+          hm = nixosConfigurations.${hostname}.config.home-manager.users.${hostname};
+          dark = hm.home.activationPackage;
+          light = hm.specialisation.light.configuration.home.activationPackage;
+          darkSpec = hm.specialisation.dark.configuration.home.activationPackage;
+        in
+        pkgs.runCommand "theme-specialisation-invariants-${hostname}" { } ''
+          set -o pipefail
+          {
+            echo "== systemd user units must be identical =="
+            d=${dark}/home-files/.config/systemd/user
+            l=${light}/home-files/.config/systemd/user
+            if [ -e "$d" ] || [ -e "$l" ]; then
+              diff -rq "$d" "$l" || {
+                echo "A user unit differs between the dark and light generations." >&2
+                echo "reloadSystemd is skipped in the light specialisation precisely" >&2
+                echo "because nothing there could change. Stop skipping it, or keep" >&2
+                echo "the unit palette-independent." >&2
+                exit 1
+              }
+            fi
+            echo "ok"
+
+            echo "== home-path must be identical (no package differs by palette) =="
+            [ "${dark}/home-path" = "${light}/home-path" ] || \
+              [ "$(readlink -f ${dark}/home-path)" = "$(readlink -f ${light}/home-path)" ] || {
+                echo "The two generations install different packages, so a theme" >&2
+                echo "switch is no longer just a relink and the timing reasoning" >&2
+                echo "in stylix.nix no longer holds." >&2
+                exit 1
+              }
+            echo "ok"
+
+            echo "== the dark specialisation must be a faithful stand-in for the parent =="
+            # set-theme activates specialisation/dark rather than the parent, to get
+            # the trimmed activation. That is only correct if it deploys exactly the
+            # same files the parent would.
+            diff -rq ${dark}/home-files ${darkSpec}/home-files || {
+              echo "specialisation.dark deploys different files than the parent, so" >&2
+              echo "switching to dark would no longer restore the rebuilt state." >&2
+              exit 1
+            }
+            echo "ok"
+          } | tee $out
+        '';
+
       # Structural checks no off-the-shelf linter covers: orphaned .nix files,
       # dangling ~/.config/hypr script references, host-name literals in shared HM
       # modules. Same script the pre-commit hook runs, so the two cannot disagree.
@@ -310,6 +363,8 @@
         deadnix = deadnixCheck;
         hypr-scripts-shellcheck = hyprScriptsShellcheck;
         repo-lint = repoLint;
+        theme-invariants-surface = themeSpecialisationInvariants "surface";
+        theme-invariants-thinkpad = themeSpecialisationInvariants "thinkpad";
       };
     };
 }

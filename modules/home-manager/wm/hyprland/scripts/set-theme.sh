@@ -149,17 +149,15 @@ if [ "$mode" = "$active" ]; then
   exit 0
 fi
 
-if [ "$mode" = light ]; then
-  activate="$light_gen/activate"
-else
-  activate="$parent/activate"
-fi
+# ALWAYS a specialisation, never the parent — including for dark. The parent runs
+# the full untrimmed activation (reloadSystemd + ecomonoAgents, ~11.5s of the
+# 12.5s), so activating it to "go back to dark" made that direction 12x slower
+# than going to light. specialisation/dark carries the same palette as the parent
+# but the trimmed activation. See modules/home-manager/stylix.nix.
+activate="$parent/specialisation/$mode/activate"
 
 if [ ! -x "$activate" ]; then
-  if [ "$mode" = light ]; then
-    fail "no light generation yet — rebuild after adding specialisation.light to modules/home-manager/stylix.nix"
-  fi
-  fail "$activate is missing or not executable"
+  fail "no '$mode' generation yet — rebuild after adding specialisation.$mode to modules/home-manager/stylix.nix"
 fi
 
 # Activation is chatty and takes a few seconds. Keep a log for debugging but don't
