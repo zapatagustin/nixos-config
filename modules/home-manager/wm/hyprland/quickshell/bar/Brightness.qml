@@ -11,11 +11,11 @@ Item {
 
     property int percent: 100
 
-    // Instant refresh: the brightness binds (binds.conf) write to this pipe
-    // after running brightnessctl. sysfs doesn't emit reliable inotify events,
-    // hence the explicit push instead of aggressive polling. Guarded by
-    // `detected`: before detectBacklight resolves a device, the readers'
-    // `path` is still empty, so reload() would be a no-op race anyway.
+    // Instant refresh: scripts/brightness.sh appends to this pipe after running
+    // brightnessctl. sysfs doesn't emit reliable inotify events, hence the
+    // explicit push instead of aggressive polling. Guarded by `detected` so a
+    // keypress arriving before detectBacklight resolves a device doesn't reload
+    // an empty path.
     Process {
         running: true
         command: ["sh", "-c", "touch " + Paths.brightness + " && tail -n 0 -f " + Paths.brightness]
@@ -80,9 +80,18 @@ Item {
         }
     }
 
+    // Do NOT set `preload: false` here. With preload off, FileView.qml's
+    // onPathChanged leaves __preload false, and reload() will not start a FIRST
+    // read — it only re-reads an already-loaded file. Assigning `path` from
+    // detectBacklight then produced no read at all: neither onLoaded nor
+    // onLoadFailed ever fired, so currentOk/maxOk stayed false and the widget
+    // showed "--" forever with nothing in the log to explain it (verified against
+    // quickshell 0.3.0). With preload on, the path assignment itself loads, and
+    // reload() still works for the pipe/timer refresh below. An empty initial
+    // path does not emit a spurious load failure, so the guard is unnecessary.
+    // qmllint cannot catch this — it is a runtime semantic, not a type error.
     FileView {
         id: currentReader
-        preload: false
         onLoaded: {
             var v = parseInt(currentReader.text())
             brightness.currentOk = !isNaN(v)
@@ -96,9 +105,9 @@ Item {
         }
     }
 
+    // Same as currentReader above: preload must stay on or reload() never fires.
     FileView {
         id: maxReader
-        preload: false
         onLoaded: {
             var v = parseInt(maxReader.text())
             brightness.maxOk = !isNaN(v) && v > 0
