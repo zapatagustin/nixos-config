@@ -32,6 +32,18 @@ let
     text = builtins.readFile ./scripts/brightness.sh;
   };
 
+  # System-wide gruvbox dark/light switch. Wrapped rather than deployed into
+  # ~/.config/hypr because the systemd timers below invoke it and a user unit does
+  # not inherit the session PATH — it needs systemd/procps/coreutils declared. It
+  # sources nothing, so it has no reason to sit flat next to the other scripts.
+  # Also on home.packages so the bar can call it by name.
+  setTheme = pkgs.writeShellApplication {
+    name = "set-theme";
+    runtimeInputs = with pkgs; [ systemd coreutils gnugrep procps hyprland ];
+    bashOptions = [ "nounset" ]; # script uses `set -u`; errexit would abort the best-effort kitty/hyprctl pokes
+    text = builtins.readFile ./scripts/set-theme.sh;
+  };
+
   # Audio device watcher: notifies when sinks/sources change (USB headset, HDMI, etc.)
   audioDeviceWatcher = pkgs.writeShellApplication {
     name = "audio-device-watcher";
@@ -72,6 +84,7 @@ in
     slurp
     brightnessctl
     playerctl
+    setTheme # gruvbox dark/light switch; the bar's theme toggle calls it by name
     jq
     socat
     libnotify
@@ -144,9 +157,17 @@ in
               gaps_in     = 3,
               gaps_out    = 6,
               border_size = 1,
+              -- Borders come from base16 so they follow the dark/light
+              -- specialisation (modules/home-manager/stylix.nix) instead of pinning
+              -- gruvbox-dark hexes that would survive a switch to light.
+              -- base01/base09 are byte-identical to the values these lines used to
+              -- hardcode; base0A replaces a dimmer d79921 and happens to be exactly
+              -- the bar's own accent (shell.qml darkTheme.accent), so the border and
+              -- the bar now agree. hl.config takes rgba(RRGGBBAA), hence the bare
+              -- hex plus "ff" rather than lib.stylix.colors.withHashtag.
               col = {
-                  active_border   = { colors = { "rgba(d79921ff)", "rgba(fe8019ff)" }, angle = 45 },
-                  inactive_border = "rgba(3c3836ff)",
+                  active_border   = { colors = { "rgba(${config.lib.stylix.colors.base0A}ff)", "rgba(${config.lib.stylix.colors.base09}ff)" }, angle = 45 },
+                  inactive_border = "rgba(${config.lib.stylix.colors.base01}ff)",
               },
               resize_on_border = false,
               allow_tearing    = false,
@@ -386,11 +407,21 @@ in
           valign = "center";
         }
       ];
-      # input-field colors come from stylix.targets.hyprlock (base16)
+      # base16 input-field colors, written here rather than via
+      # stylix.targets.hyprlock: that target also forces settings.background to a
+      # solid base00, which collides with the blurred-wallpaper background above.
+      # These are the exact values it would have set (see stylix modules/hyprlock/
+      # hm.nix), so the lock screen follows the light/dark specialisation either way.
       "input-field" = [{
         monitor = "";
         size = "280, 42";
-        placeholder_text = ''<span foreground="##a89984">contraseña...</span>'';
+        outer_color = "rgb(${config.lib.stylix.colors.base03})";
+        inner_color = "rgb(${config.lib.stylix.colors.base00})";
+        font_color = "rgb(${config.lib.stylix.colors.base05})";
+        fail_color = "rgb(${config.lib.stylix.colors.base08})";
+        check_color = "rgb(${config.lib.stylix.colors.base0A})";
+        # doubled ## is hyprlock's escape for a literal # inside pango markup
+        placeholder_text = ''<span foreground="##${config.lib.stylix.colors.base04}">contraseña...</span>'';
         hide_input = false;
         dots_size = 0.30;
         dots_spacing = 0.20;
@@ -451,6 +482,35 @@ in
       RestartSec = 2;
     };
     Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  # Time-of-day palette. One service + one timer rather than a light/dark pair:
+  # `set-theme auto` derives the mode from the hour, so both OnCalendar entries can
+  # drive the same unit. It no-ops when already in the target mode, so firing it at
+  # login is free.
+  systemd.user.services.theme-sync = {
+    Unit = {
+      Description = "Apply the time-of-day gruvbox palette (light 09:00-18:00, dark otherwise)";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${setTheme}/bin/set-theme auto";
+    };
+    # Also runs at login, which re-syncs after a nixos-rebuild switch (that reverts
+    # to the parent/dark generation).
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.timers.theme-sync = {
+    Unit.Description = "Switch the gruvbox palette at 09:00 and 18:00";
+    Timer = {
+      OnCalendar = [ "*-*-* 09:00:00" "*-*-* 18:00:00" ];
+      # Laptop: a transition that lands while suspended still fires on resume.
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
   };
 
   # scripts deployed individually so they coexist with the generated hyprland.lua

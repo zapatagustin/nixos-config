@@ -10,10 +10,12 @@ ShellRoot {
 
     property bool isDark: true
 
-    // Leer el tema actual al iniciar (Quickshell resetea isDark al reiniciar)
+    // Leer el tema actual al iniciar (Quickshell resetea isDark al reiniciar).
+    // Lee el modo PERSISTIDO, no el pipe: el pipe vive en XDG_RUNTIME_DIR y se
+    // borra al cerrar sesión, así que al arrancar no dice nada.
     Process {
         id: themeInit
-        command: ["sh", "-c", "cat " + Paths.theme + " 2>/dev/null"]
+        command: ["sh", "-c", "cat " + Paths.themeMode + " 2>/dev/null"]
         running: true
         stdout: SplitParser {
             onRead: (line) => {

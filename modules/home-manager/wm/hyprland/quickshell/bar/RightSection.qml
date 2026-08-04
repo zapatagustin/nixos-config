@@ -82,15 +82,16 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
-                onClicked: themeToggle.running = true
-            }
-
-            Process {
-                id: themeToggle
-                command: ["bash", "-c", rightSection.isDark
-                    ? "bash ~/.config/hypr/set-theme.sh light"
-                    : "bash ~/.config/hypr/set-theme.sh dark"]
-                running: false
+                // execDetached, NOT a reused Process: set-theme blocks for seconds
+                // while home-manager activates the other generation, and a Process
+                // that is still running silently ignores every later start — the
+                // same trap that broke Launcher.qml and Workspaces.qml.
+                //
+                // `toggle` derives the current mode from the active generation
+                // rather than from isDark, so the script stays the single source of
+                // truth and the bar cannot desync it. The bar's own palette flips
+                // when set-theme pushes to the qs-theme pipe (see shell.qml).
+                onClicked: Quickshell.execDetached(["set-theme", "toggle"])
             }
         }
 

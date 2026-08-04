@@ -25,7 +25,22 @@ QtObject {
                           + "toggles will not work. Expected it from the systemd user session.")
     }
 
+    // Theme has TWO paths on purpose. `theme` is the ephemeral push channel that
+    // set-theme appends to so the bar flips instantly. `themeMode` is the persisted
+    // choice, which must survive logout — otherwise every login starts on dark
+    // regardless of the hour.
+    //
+    // themeMode deliberately does NOT use Quickshell.stateDir like clipboardPinned
+    // does: stateDir is scoped per shell-id (~/.local/state/quickshell/by-shell/<id>),
+    // which a plain shell script cannot resolve. XDG_STATE_HOME is computable
+    // identically from both sides. Unlike XDG_RUNTIME_DIR it also has a spec-defined
+    // default, so falling back here is correct rather than a silent downgrade.
     readonly property string theme: runtimeDir + "/qs-theme"
+    readonly property string stateHome: {
+        var s = Quickshell.env("XDG_STATE_HOME")
+        return s !== "" ? s : Quickshell.env("HOME") + "/.local/state"
+    }
+    readonly property string themeMode: stateHome + "/hypr/theme-mode"
     readonly property string launcher: runtimeDir + "/qs-launcher"
     readonly property string clipboard: runtimeDir + "/qs-clipboard"
     // Genuine user data (not an ephemeral IPC signal/log), so it must survive
