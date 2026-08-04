@@ -17,8 +17,15 @@
     # browsed picked the default queue. Add printers explicitly when one is needed.
     browsed.enable = false;
   };
-  # Add the Flathub remote once: flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  services.flatpak.enable = true;
+  # disabled: enabled for a year with no Flathub remote and zero apps installed
+  # (`flatpak remotes` and `flatpak list --app` both came back empty). Declaring the
+  # remote would need the nix-flatpak input -- a whole flake input to declare a
+  # repository nothing is installed from. Unlike gaming/pihole, which are modules
+  # left switched OFF and cost nothing, this one was RUNNING: a service plus the
+  # portal closure, for nothing. Re-enable here and add the remote when an app
+  # actually needs it:
+  #   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  # services.flatpak.enable = true;
 
   boot.kernelPackages = pkgs.linuxPackages_cachyos;
 

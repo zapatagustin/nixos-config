@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Multi-host NixOS flake: `surface` (work laptop, docks to external monitors) and `thinkpad` (nomad laptop, never docks). Per host, user and hostname equal the host name. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar. Flatpak is enabled on both hosts. `services.gaming` and `services.pihole` are declared modules but currently enabled on **neither** host — don't assume Steam/Pi-hole are live.
+Multi-host NixOS flake: `surface` (work laptop, docks to external monitors) and `thinkpad` (nomad laptop, never docks). Per host, user and hostname equal the host name. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar. Flatpak is declared but **disabled** (it ran for a year with no remote and no apps). `services.gaming` and `services.pihole` are declared modules but currently enabled on **neither** host — don't assume Steam/Pi-hole are live.
 
 ## Commands
 

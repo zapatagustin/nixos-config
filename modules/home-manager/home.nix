@@ -65,7 +65,9 @@
     teams-for-linux
     pavucontrol
     superfile
-    # stremio removed from nixpkgs (qt5 webengine dep); use flatpak
+    # stremio removed from nixpkgs (qt5 webengine dep). Flatpak was the suggested
+    # way out, but it is disabled now (see the reasoning in default.nix) -- turning
+    # it back on is the first step if stremio is ever actually wanted.
     # stremio
   ];
 }
