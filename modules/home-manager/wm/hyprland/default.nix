@@ -14,13 +14,6 @@ let
     text = builtins.readFile ./scripts/monitor-watcher.sh;
   };
 
-  # TV 4K HDR toggle (Super+Shift+T). Invoked by store path from the bind, gated by `mm`.
-  tvScale = pkgs.writeShellApplication {
-    name = "tv-scale";
-    runtimeInputs = with pkgs; [ hyprland coreutils gnugrep gawk ];
-    bashOptions = [ "nounset" ]; # script uses `set -u`
-    text = builtins.readFile ./scripts/tv-scale.sh;
-  };
   # Brightness keys: internal backlight always, external DDC monitors only when
   # multiMonitor (dock) is enabled — ddcutil is only pulled in then, so on the
   # nomad host `command -v ddcutil` fails and the script stays internal-only.
@@ -151,8 +144,6 @@ in
       -- scale per host (myDesktop.internalScale); externals via setup-monitors.sh
       hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = ${iscale} })
       hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" }) -- fallback for unknown monitors
-      -- TV 4K: 10-bit + wide gamut (SDR desktop); tv-scale toggles game/HDR
-      ${lib.optionalString mm ''hl.monitor({ output = "HDMI-A-1", mode = "3840x2160@60", position = "0x0", scale = 2, bitdepth = 10, cm = "wide" })''}
 
       -- Virtual-desktop slots: 1-9 left external, 10-18 right external, 19-27 eDP-1.
       -- Only the external slots depend on which port each Samsung landed on, so only those
@@ -289,8 +280,6 @@ in
               hl.bind(s.mods .. " + " .. i, hl.dsp.exec_cmd("bash " .. hyprDir .. "/" .. s.script .. " " .. i))
           end
       end
-
-      ${lib.optionalString mm ''hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("${tvScale}/bin/tv-scale"))''}
 
       hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
       hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })

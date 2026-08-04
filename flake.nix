@@ -326,7 +326,7 @@
       '';
 
       # The hypr scripts deployed via xdg.configFile never pass through
-      # writeShellApplication, so unlike the wrapped ones (brightness, tv-scale,
+      # writeShellApplication, so unlike the wrapped ones (brightness,
       # monitor-watcher, audio-device-watcher, set-theme) nothing ever ran
       # shellcheck over them. This closes that half of the split without changing
       # how they are deployed -- they must stay flat in ~/.config/hypr because they

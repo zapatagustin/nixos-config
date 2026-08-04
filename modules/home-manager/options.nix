@@ -1,7 +1,7 @@
 { lib, ... }:
 {
   options.myDesktop.multiMonitor.enable = lib.mkEnableOption
-    "dual-Samsung dock multimonitor daemon + TV HDR (docking host only)";
+    "dual-Samsung dock multimonitor daemon (docking host only)";
 
   # Fractional scale for the internal (eDP-1) panel. Per host: the surface's
   # 2256x1504 13.5" panel needs ~1.3333; keep 1.0 elsewhere. Must yield integer

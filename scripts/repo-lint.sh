@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Repo-specific structural checks that no off-the-shelf linter covers.
 #
-# All three exist because this repo already shipped the exact bug each one catches,
-# and `nix flake check` stayed green through every one of them:
+# Each one exists because this repo already shipped the exact bug it catches, and
+# `nix flake check` stayed green through every one of them:
 #   1. modules/theme/generic-dm-stub.nix sat unimported for weeks. The import-tree
 #      convention has no lint, so an orphaned file is invisible.
 #   2. quickshell's bar called ~/.config/hypr/set-theme.sh, which did not exist. The
@@ -119,6 +119,35 @@ while read -r qml; do
     note "preload: false in $qml — reload() will not perform the FIRST read (quickshell 0.3.0); see rule 4 in $0"
   fi
 done < <(find "$bar" -name '*.qml' 2>/dev/null | sort)
+
+# ── 5. No display-connector literals in shared home-manager modules ─────────────
+#
+# Same reasoning as rule 3, one level deeper: `HDMI-A-1` is not a host name, but it
+# is still one host's hardware, and modules/home-manager/** is evaluated for both.
+# A hardcoded `HDMI-A-1` monitor line plus tv-scale.sh sat here for three weeks, so
+# surface's TV port was baked into thinkpad's config too -- invisible only because
+# that port happens not to exist there. It was dead config in the end (no TV was
+# ever attached) and got deleted, but the shape of the mistake is what this catches.
+#
+# The working pattern is the one setup-monitors.sh and monitors-detect.sh use:
+# discover outputs at runtime from the EDID, never name a port. Anything that truly
+# cannot be discovered belongs in an option (modules/home-manager/options.nix), set
+# per host under hosts/<host>/ -- the way internalScale already works.
+#
+# eDP-N is deliberately allowed: every laptop has exactly one built-in panel on it,
+# so it is a platform convention rather than host data. The `[^A-Za-z]` guard is
+# what keeps `eDP-1` from matching the `DP-N` alternative.
+#
+# Comments are NOT stripped, unlike rule 4: a connector named in prose inside a
+# shared module is documentation that drifts the moment the code moves, and this
+# rule's own explanation lives here in scripts/, where it cannot trip itself.
+hits=$(grep -rnE '(^|[^A-Za-z])(HDMI-A|DP|DVI-[DI]|VGA)-[0-9]+' \
+  --include='*.nix' --include='*.sh' --include='*.qml' modules/home-manager 2>/dev/null || true)
+if [ -n "$hits" ]; then
+  while read -r line; do
+    note "display connector literal in a shared HM module: $line"
+  done <<<"$hits"
+fi
 
 if [ "$fails" -gt 0 ]; then
   echo "repo-lint: $fails finding(s)" >&2

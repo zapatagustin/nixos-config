@@ -1,7 +1,7 @@
 { username, ... }:
 {
   imports = [ ../../configuration.nix ];
-  # surface docks to 2x Samsung LF27T35 → multimonitor daemon + TV HDR.
+  # surface docks to 2x Samsung LF27T35 → multimonitor daemon.
   # internalScale: 2256x1504 13.5" panel, 1.566667 → 1440x960 logical (exact).
   # Hyprland only accepts scales where 2256/scale and 1504/scale are integers on
   # the 1/120 grid; valid steps above 1.3333 (4/3) are 1.566667 and 1.6 only.
