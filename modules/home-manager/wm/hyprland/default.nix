@@ -2,7 +2,11 @@
 let
   mm = config.myDesktop.multiMonitor.enable;
   iscale = toString config.myDesktop.internalScale; # eDP-1 fractional scale (per host)
-  walls = ../../../../wallpapers; # repo-root/wallpapers (only the used images, ~1.7MB)
+  # repo-root/wallpapers, copied whole into the store. Every image here is
+  # referenced by exact filename (below, and setup-monitors.sh) -- nothing picks one
+  # dynamically, so an unreferenced file is dead bytes in the closure. Four of them
+  # were, ~1.7MB; the remaining four are ~12MB, mostly View_of_Vent (8.4MB).
+  walls = ../../../../wallpapers;
 
   # monitor-watcher is the only monitor script behind a systemd unit, so it's the only
   # one that needs its deps declared (the rest live in ~/.config/hypr and use the session

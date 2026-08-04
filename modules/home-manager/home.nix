@@ -59,7 +59,6 @@
     nnn
     # Zed lives in ./editors/zed now (programs.zed-editor + stylix + sops wrapper).
     sone
-    calibre
     claude-code
     zapzap
     slack
