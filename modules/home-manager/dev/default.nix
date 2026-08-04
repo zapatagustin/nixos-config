@@ -14,5 +14,12 @@
     statix
     deadnix
     shellcheck
+
+    # sops-nix decrypts at activation, but editing modules/secrets/secrets.yaml
+    # needs the CLI, and it was missing: adding or rotating a secret meant
+    # `nix run nixpkgs#sops` every time. Never hand-edit that file -- it carries a
+    # MAC over the whole document, so a text edit breaks decryption at activation.
+    sops
+    age # ssh-to-age / age-keygen, per the enrollment steps in README.md
   ];
 }
