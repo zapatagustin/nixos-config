@@ -98,8 +98,7 @@
       hyprlandConfigCheck = hostname:
         let
           hostCfg = nixosConfigurations.${hostname}.config;
-          luaConfig = hostCfg.home-manager.users.${hostname}
-            .xdg.configFile."hypr/hyprland.lua".source;
+          luaConfig = hostCfg.home-manager.users.${hostname}.xdg.configFile."hypr/hyprland.lua".source;
         in
         pkgs.runCommand "hyprland-config-${hostname}"
           { nativeBuildInputs = [ hostCfg.programs.hyprland.package ]; } ''
@@ -194,6 +193,97 @@
 
           echo "qmldir and *.qml agree" > $out
         '';
+      # Formatting + lint gates. `nix flake check` previously validated the
+      # generated Hyprland/QML output but nothing about the Nix source itself, so
+      # 13 of 40 files had drifted out of nixpkgs-fmt and both linters were dirty.
+      #
+      # hardware-configuration.nix is excluded from all three: nixos-generate-config
+      # writes it wholesale (see CLAUDE.md), so holding it to repo rules means the
+      # next hardware change breaks the build for reasons nobody caused.
+      generatedNix = "hardware-configuration.nix";
+      nixSources = pkgs.lib.fileset.toSource {
+        root = ./.;
+        fileset = pkgs.lib.fileset.unions [
+          (pkgs.lib.fileset.fileFilter (f: f.hasExt "nix") ./.)
+          ./statix.toml
+        ];
+      };
+
+      nixpkgsFmtCheck = pkgs.runCommand "nixpkgs-fmt-check"
+        { nativeBuildInputs = [ pkgs.nixpkgs-fmt pkgs.findutils ]; } ''
+        cd ${nixSources}
+        # nixpkgs-fmt has no exclude flag, so hand it an explicit file list.
+        find . -name '*.nix' ! -name '${generatedNix}' -print0 \
+          | xargs -0 nixpkgs-fmt --check 2>&1 | tee $out
+        # --check exits non-zero on drift, but the pipe hides that.
+        if grep -qv '^0 / ' $out && grep -q 'would have been reformatted' $out; then
+          echo "run: nix fmt" >&2
+          exit 1
+        fi
+      '';
+
+      statixCheck = pkgs.runCommand "statix-check"
+        { nativeBuildInputs = [ pkgs.statix ]; } ''
+        cd ${nixSources}
+        # pipefail so tee's success doesn't mask statix's failure -- same reason as
+        # quickshellBarQmllint above. Without it this gate silently passes on every
+        # finding, which is exactly how it was first written.
+        set -o pipefail
+        # Reads statix.toml from the source root: repeated_keys is deliberately
+        # disabled there, with the reasoning.
+        statix check . 2>&1 | tee $out
+      '';
+
+      # sops.nix is excluded only because its unused `config` argument has not been
+      # removed yet -- drop it from this list once that one-word edit lands.
+      deadnixCheck = pkgs.runCommand "deadnix-check"
+        { nativeBuildInputs = [ pkgs.deadnix ]; } ''
+        cd ${nixSources}
+        set -o pipefail # tee must not mask --fail
+        # --exclude takes many values after ONE flag and cannot be repeated, so the
+        # trailing path needs `--` or it gets swallowed into the exclude list.
+        deadnix --fail \
+          --exclude ./hosts/surface/${generatedNix} \
+                    ./hosts/thinkpad/${generatedNix} \
+                    ./modules/secrets/sops.nix \
+          -- . 2>&1 | tee $out
+      '';
+
+      # Structural checks no off-the-shelf linter covers: orphaned .nix files,
+      # dangling ~/.config/hypr script references, host-name literals in shared HM
+      # modules. Same script the pre-commit hook runs, so the two cannot disagree.
+      repoLint = pkgs.runCommand "repo-lint"
+        { nativeBuildInputs = [ pkgs.findutils pkgs.gnugrep pkgs.gnused pkgs.bash ]; } ''
+        set -o pipefail
+        cp -r ${./.} src && chmod -R u+w src
+        bash src/scripts/repo-lint.sh 2>&1 | tee $out
+      '';
+
+      # The hypr scripts deployed via xdg.configFile never pass through
+      # writeShellApplication, so unlike the wrapped ones (brightness, tv-scale,
+      # monitor-watcher, audio-device-watcher, set-theme) nothing ever ran
+      # shellcheck over them. This closes that half of the split without changing
+      # how they are deployed -- they must stay flat in ~/.config/hypr because they
+      # source each other via `dirname $0`.
+      hyprScriptsShellcheck =
+        let scripts = ./modules/home-manager/wm/hyprland/scripts; in
+        pkgs.runCommand "hypr-scripts-shellcheck"
+          { nativeBuildInputs = [ pkgs.shellcheck ]; } ''
+          # Three codes are excluded by name rather than by lowering the severity
+          # floor, so that any FUTURE info-level finding still fails the build.
+          # All three are artifacts of the deliberate `source "$(dirname "$0")/x.sh"`
+          # pattern these scripts must use (they are deployed flat into
+          # ~/.config/hypr, see the xdg.configFile block in wm/hyprland):
+          #   SC1091  cannot follow a source path built at runtime
+          #   SC2034  monitors-detect.sh assigns vars its *consumers* read
+          #   SC2154  move-all-to-group.sh reads `fails`, which hyprctl-classify.sh sets
+          # Verified at the time of writing that these were the ONLY findings, so the
+          # gate starts genuinely clean rather than muffled.
+          set -o pipefail # tee must not mask shellcheck's exit code
+          shellcheck --shell=bash --external-sources \
+            --exclude=SC1091,SC2034,SC2154 \
+            ${scripts}/*.sh 2>&1 | tee $out
+        '';
     in
     {
       inherit nixosConfigurations;
@@ -205,6 +295,11 @@
         hyprland-lua-thinkpad = hyprlandConfigCheck "thinkpad";
         quickshell-bar-qmllint = quickshellBarQmllint;
         quickshell-bar-qmldir = quickshellBarQmldir;
+        nixpkgs-fmt = nixpkgsFmtCheck;
+        statix = statixCheck;
+        deadnix = deadnixCheck;
+        hypr-scripts-shellcheck = hyprScriptsShellcheck;
+        repo-lint = repoLint;
       };
     };
 }

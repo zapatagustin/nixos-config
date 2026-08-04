@@ -23,7 +23,7 @@
 
   fonts = {
     enableDefaultPackages = true;
-    packages = with pkgs; [ udev-gothic nerd-fonts.terminess-ttf ];  # stylix.fonts refs these but autoEnable=false doesn't install them
+    packages = with pkgs; [ udev-gothic nerd-fonts.terminess-ttf ]; # stylix.fonts refs these but autoEnable=false doesn't install them
     fontconfig.enable = true;
     # defaultFonts managed by stylix (modules/theme/stylix.nix)
   };

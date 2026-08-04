@@ -1,11 +1,11 @@
-{ ... }: {
+_: {
   networking = {
     networkmanager = {
       enable = true;
       wifi.backend = "wpa_supplicant";
     };
-    nftables.enable = true;                            # modern firewall backend
-    firewall.trustedInterfaces = [ "tailscale0" ];     # don't filter tailnet traffic
+    nftables.enable = true; # modern firewall backend
+    firewall.trustedInterfaces = [ "tailscale0" ]; # don't filter tailnet traffic
   };
 
   services.resolved.enable = true;

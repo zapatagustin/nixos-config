@@ -1,4 +1,4 @@
-{ pkgs, lib, inputs, ... }:
+{ pkgs, lib, ... }:
 let
   luaFile = name: lib.fileContents (./lua + "/${name}");
 in

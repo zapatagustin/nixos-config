@@ -15,7 +15,31 @@ nh os switch .                                # nh wrapper (installed), nicer bu
 nh os boot .                                  # activate on next boot only
 ```
 
-There are no tests. Validation is `nix flake check` + a build.
+There are no unit tests. Validation is `nix flake check` + a build.
+
+`nix flake check` gates nine things — four on the generated output (both hosts'
+Hyprland Lua via the real `--verify-config`, qmllint, qmldir) and five on the
+source (`nixpkgs-fmt --check`, `statix`, `deadnix`, `shellcheck` over the hypr
+scripts, and `repo-lint`). Each was verified to actually FAIL when its target
+breaks — a gate that cannot fail is worse than no gate.
+
+`scripts/repo-lint.sh` covers what no off-the-shelf linter does, and every rule
+is there because the repo already shipped that bug with a green check: an
+orphaned `.nix` nobody imports, a `~/.config/hypr/*.sh` referenced but never
+deployed, and a host-name literal inside a shared home-manager module.
+
+Optional, once per clone — same checks on staged files, in milliseconds:
+
+```sh
+git config core.hooksPath scripts/hooks   # enables scripts/hooks/pre-commit
+```
+
+The hook deliberately skips `nix flake check` (minutes) and warns instead of
+blocking when the linters aren't installed yet. `--no-verify` bypasses it.
+`hardware-configuration.nix` is excluded from every source gate: it is generated
+and overwritten, so holding it to repo rules would break the build on the next
+hardware change. `statix.toml` disables only `repeated_keys`, with the reasoning
+in the file.
 
 ## Architecture
 

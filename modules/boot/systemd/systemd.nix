@@ -1,4 +1,4 @@
-{ lib, config, ... }: {
+_: {
   boot = {
     # NOTE: boot.resumeDevice is per-host (swap UUID differs per machine) and
     # lives in hosts/<host>/default.nix — needed so HybridSleep
@@ -11,7 +11,7 @@
         enable = true;
         configurationLimit = 5;
         consoleMode = "max";
-        editor = false;                  # no edit-cmdline at boot menu (security)
+        editor = false; # no edit-cmdline at boot menu (security)
       };
     };
 

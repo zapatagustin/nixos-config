@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Pre-commit gate for this flake. Enable once per clone:
+#
+#   git config core.hooksPath scripts/hooks
+#
+# It deliberately does NOT run `nix flake check`: that evaluates both hosts and
+# builds Hyprland --verify-config plus qmllint, which is minutes. Everything here
+# is grep-speed and runs on STAGED content only. `nix flake check` remains the
+# authority and gates the same four linters -- this hook just tells you before the
+# commit instead of after.
+#
+# Bypass with `git commit --no-verify` when you genuinely need to.
+set -uo pipefail
+
+repo="$(git rev-parse --show-toplevel)"
+cd "$repo" || exit 1
+
+fails=0
+step() {
+  local name=$1
+  shift
+  if "$@"; then
+    printf '  ok    %s\n' "$name"
+  else
+    printf '  FAIL  %s\n' "$name"
+    fails=$((fails + 1))
+  fi
+}
+
+# Staged, still-existing files only. A deletion must not be linted.
+staged() { git diff --cached --name-only --diff-filter=ACMR -- "$@"; }
+
+mapfile -t nix_staged < <(staged '*.nix' | grep -v 'hardware-configuration\.nix$' || true)
+mapfile -t sh_staged < <(staged '*.sh' || true)
+
+echo "pre-commit: ${#nix_staged[@]} nix, ${#sh_staged[@]} sh staged"
+
+# The four linters come from modules/home-manager/dev. Before the first rebuild that
+# installs them they are simply absent -- warn rather than block, so a fresh clone
+# can still commit the very change that adds them.
+missing=()
+for t in nixpkgs-fmt statix deadnix shellcheck; do
+  command -v "$t" >/dev/null || missing+=("$t")
+done
+if [ ${#missing[@]} -gt 0 ]; then
+  echo "pre-commit: not on PATH, skipping those: ${missing[*]}" >&2
+  echo "pre-commit: run a rebuild to install them (modules/home-manager/dev)" >&2
+fi
+have() { command -v "$1" >/dev/null; }
+
+# Structural checks: orphaned modules, dangling script refs, host literals. Cheap
+# and repo-specific, so always run regardless of what is staged.
+step "repo-lint" bash scripts/repo-lint.sh
+
+if [ ${#nix_staged[@]} -gt 0 ]; then
+  have nixpkgs-fmt && step "nixpkgs-fmt" nixpkgs-fmt --check "${nix_staged[@]}"
+  have deadnix && step "deadnix" deadnix --fail "${nix_staged[@]}"
+  # statix takes a directory, not a file list, and is fast enough on the whole repo.
+  # It reads statix.toml (repeated_keys is disabled there, on purpose).
+  have statix && step "statix" statix check .
+fi
+
+if [ ${#sh_staged[@]} -gt 0 ]; then
+  # Same exclusions as the flake check: all three are artifacts of the deliberate
+  # `source "$(dirname "$0")/x.sh"` pattern in the hypr scripts.
+  have shellcheck && step "shellcheck" \
+    shellcheck --shell=bash --external-sources --exclude=SC1091,SC2034,SC2154 "${sh_staged[@]}"
+fi
+
+if [ "$fails" -gt 0 ]; then
+  echo "pre-commit: $fails check(s) failed -- commit aborted" >&2
+  echo "pre-commit: 'nix fmt' fixes formatting; --no-verify bypasses this hook" >&2
+  exit 1
+fi
+echo "pre-commit: all good"
