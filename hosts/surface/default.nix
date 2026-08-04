@@ -11,9 +11,9 @@
   };
 
   # Surface is a work laptop — no LAN services, no gaming.
-  services.pihole.enable = false;   # LAN DNS sinkhole (thinkpad serves the home LAN)
-  services.gaming.enable = false;   # Steam + GameMode + Wine
-  hardware.trackpoint.enable = false;  # no TrackPoint on Surface
+  services.pihole.enable = false; # LAN DNS sinkhole — off here AND on thinkpad (nobody serves it yet)
+  services.gaming.enable = false; # Steam + GameMode + Wine
+  hardware.trackpoint.enable = false; # no TrackPoint on Surface
 
   # DDC/CI so the brightness keys drive the docked monitors too (not just the
   # internal backlight). hardware.i2c loads i2c-dev + udev rules granting the

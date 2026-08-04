@@ -10,7 +10,11 @@
   users.users.${username} = {
     isNormalUser = true;
     description = username;
-    extraGroups = [ "networkmanager" "wheel" "docker" "audio" "video" "tss" ];
+    # No "docker" here: containers/containers.nix runs podman (with dockerCompat),
+    # so users.groups.docker is never declared. NixOS silently drops an extraGroups
+    # entry for an undeclared group — no assertion, no build error — so the old
+    # entry was a long-lived no-op. Rootless podman needs no group membership.
+    extraGroups = [ "networkmanager" "wheel" "audio" "video" "tss" ];
     shell = pkgs.zsh;
     # This file is imported by both hosts, so both keys below are authorized on both
     # surface and thinkpad (PasswordAuthentication is off). Add new keys to this list.

@@ -55,7 +55,7 @@
   nixpkgs.config.allowUnfree = true;
 
   home.packages = with pkgs; [
-    (callPackage ../../pkgs/brave-origin.nix { }) # Brave Origin (not in nixpkgs); see pkgs/brave-origin.nix
+    brave-origin # was a local pkgs/brave-origin.nix repack; nixpkgs carries it now
     inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     nnn
     # Zed lives in ./editors/zed now (programs.zed-editor + stylix + sops wrapper).

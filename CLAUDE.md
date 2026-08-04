@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Multi-host NixOS flake: `surface` (work laptop, docks to external monitors) and `thinkpad` (nomad laptop, never docks). Per host, user and hostname equal the host name. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar; gaming and flatpak are enabled.
+Multi-host NixOS flake: `surface` (work laptop, docks to external monitors) and `thinkpad` (nomad laptop, never docks). Per host, user and hostname equal the host name. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar. Flatpak is enabled on both hosts. `services.gaming` and `services.pihole` are declared modules but currently enabled on **neither** host — don't assume Steam/Pi-hole are live.
 
 ## Commands
 
@@ -32,20 +32,34 @@ flake.nix                      # mkHost builds nixosConfigurations.{surface,thin
 ```
 
 - **System modules** live under `modules/` and are wired via `modules/modules.nix` (boot, containers, dev, hardware, gaming, performance, theme/stylix, wm/hyprland). `secrets/sops.nix` is active (declares SOPS-backed secrets — `secrets.yaml` exists in the repo).
-- **Home Manager** is wired via `flake.nix` (`mkHost`) per host. Its root is `modules/home-manager/home.nix`, which imports `shells/`, `terminals/`, `editors/neovim`, `editors/emacs`, `wm/hyprland`, `ai/`, `opencode/`, and `claude-code/`. `options.nix` declares `myDesktop.multiMonitor.enable`, read by the hyprland module.
+- **Home Manager** is wired via `flake.nix` (`mkHost`) per host. Its root is `modules/home-manager/home.nix`, which imports `shells/`, `terminals/`, `editors/neovim`, `editors/emacs`, `wm/hyprland`, `ai/`, plus `inputs.ecomono.homeModules.default`. `options.nix` declares `myDesktop.multiMonitor.enable`, read by the hyprland module.
 - **neovim** (`modules/home-manager/editors/neovim`) is Nix-managed: `programs.neovim` with nixpkgs plugins and LSP servers on PATH (no Mason). The per-plugin lua lives inline plus `lua/*.lua` files loaded via `initLua`/`fileContents`.
 - **Hyprland HM module** (`modules/home-manager/wm/hyprland`) deploys the `quickshell/` bar config (only `bar/` is actually run, via the `quickshell.service` user unit) and `scripts/`. The monitor-watcher unit + per-monitor/group scripts + TV-scale bind are gated behind `myDesktop.multiMonitor.enable` (surface only).
-- **AI agent stack**: `ai/` installs the `opencode`/`gentle-ai`/`engram` binaries (the latter two from `pkgs/`) and idempotently installs Claude Code + opencode plugins on activation. `opencode/` and `claude-code/` manage the *declarative* config (opencode.json settings, CLAUDE.md, hooks, agents, commands, skills) via `programs.opencode`/`programs.claude-code`. Claude's `settings.json` is intentionally left manual (Claude writes it at runtime).
+- **AI agent stack**: sourced from the external `ecomono` flake input (`github:zapatagustin/ecomono`), imported as `inputs.ecomono.homeModules.default` in `home.nix`. It owns the Claude Code + opencode declarative config (CLAUDE.md, hooks, agents, commands, skills) and the `gentle-ai` binary. `modules/home-manager/ai/` is now only `home.packages = [ opencode opencode-desktop ]`. The local `claude-code/` and `opencode/` module trees were a second, silently-drifting copy of that flake and were deleted in `eacf9e6` — do not recreate them; edit the `ecomono` repo instead.
 
 `hardware-configuration.nix` is copied into the repo (git-tracked) and imported via a relative path, so rebuilds work without `--impure`. If hardware changes, regenerate it (`nixos-generate-config --show-hardware-config`) and overwrite the repo copy.
 
 ## Inputs
 
-`nixpkgs` (unstable), `home-manager`, `chaotic` (chaotic-cx/nyx — provides CachyOS packages), `zen-browser`. `inputs` is threaded through via `specialArgs`/`extraSpecialArgs`, so modules can take `inputs` as an arg (e.g. `inputs.zen-browser.packages...` in `home.nix`).
+`nixpkgs` (unstable), `home-manager`, `chaotic` (chaotic-cx/nyx — provides CachyOS packages), `zen-browser`, `stylix` (theming), `sops-nix` (secrets), `ecomono` (AI agent config).
+
+`zen-browser` is a flake input because there is genuinely no `zen-browser` package
+in nixpkgs — verified absent in nixos-unstable, nixos-unstable-small and
+nixos-25.11. search.nixos.org shows it under its **Flakes** tab (indexing
+`zen-browser-flake`), not Packages; that is the same flake this input points at,
+so don't "simplify" it to `pkgs.zen-browser`.
+
+Every input except `chaotic`'s siblings follows the root `nixpkgs`, and `chaotic`
+now follows both `nixpkgs` and `home-manager`. The lockfile therefore holds exactly
+one nixpkgs. Before that, chaotic tracked nixos-unstable independently and merely
+happened to match — a partial `nix flake update` would have pulled a second full
+nixpkgs into the closure.
+
+`inputs` is threaded through via `specialArgs`/`extraSpecialArgs`, so modules can take `inputs` as an arg (e.g. `inputs.zen-browser.packages...` in `home.nix`). Alongside it, `hostname`, `username` and `flakePath` are threaded into **both** layers — use `flakePath` instead of hardcoding a repo path, since the same HM files are evaluated for both hosts.
 
 ## Conventions
 
 - Two git identities exist: flake commits use `zapatagustin`; the HM `programs.git` block sets `zapatagustin4@gmail.com` for the built system.
 - Disabled-not-deleted: dead config is left in place with a `# disabled until ...` comment rather than removed. Follow that pattern.
 - `stateVersion` is `26.05` in both system and HM — don't bump casually.
-- Skills are duplicated per agent (`claude-code/claude/skills/` and `opencode/config/skills/`) and hand-maintained; the copies legitimately differ (opencode has an orchestrator-gate preamble, different frontmatter). After editing any skill, run `scripts/skill-drift.sh` and mirror the change to the other copy — the script reports which skills diverge and by how much (small drifts are usually accidental).
+- Agent skills live in the `ecomono` flake, not here. It carries its own `check-persona-drift.sh` / `check-gate-drift.sh` for the claude/opencode copies, so there is nothing to mirror in this repo.

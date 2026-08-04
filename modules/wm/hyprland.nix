@@ -29,8 +29,8 @@
   # backend to actually compress/extract.
   environment.systemPackages = [ pkgs.xarchiver ];
 
-  services.gvfs.enable = true;
-  # udisks2 enabled in modules/hardware/hardware.nix (removed redundant enable here)
+  # udisks2 and gvfs are both enabled in modules/hardware/hardware.nix (removed
+  # redundant enables here) — Thunar/volman consume them, they don't own them.
   services.tumbler.enable = true;
 
   # hyprlock needs a PAM entry to authenticate — without it you can't unlock.

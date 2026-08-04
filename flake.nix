@@ -7,7 +7,17 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
+    # chaotic (CachyOS packages, incl. the kernel). It tracks nixos-unstable itself,
+    # so before these follows its nixpkgs merely HAPPENED to match ours whenever both
+    # were updated in the same run — a partial `nix flake update` would have split
+    # them and pulled a second full nixpkgs into the closure. Its home-manager input
+    # only feeds chaotic's own homeManagerModules, which this repo does not use (it
+    # takes chaotic.nixosModules.default).
+    chaotic = {
+      url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -20,7 +30,6 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    hermes-agent.url = "github:NousResearch/hermes-agent";
     # Claude Code + opencode config. Single source of truth: this flake used to
     # carry its own copy under modules/home-manager/{claude-code,opencode},
     # which drifted from it silently.
@@ -32,22 +41,32 @@
 
   outputs = { nixpkgs, home-manager, chaotic, ... }@inputs:
     let
+      # Where this repo is checked out on the host. surface keeps it under
+      # ~/personal; every other host uses ~/nixos-config. Defined once and
+      # threaded into BOTH layers, so NH_FLAKE (hosts/host.nix) and the zsh
+      # rebuild aliases (shells/zsh/zsh.nix) cannot drift apart — the aliases
+      # used to hardcode surface's path and rebuilt the wrong host on thinkpad.
+      flakePathFor = hostname:
+        if hostname == "surface"
+        then "/home/surface/personal/nixos-config"
+        else "/home/${hostname}/nixos-config";
+
       mkHost = hostname:
+        let flakePath = flakePathFor hostname; in
         nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          specialArgs = { inherit inputs hostname; username = hostname; };
+          specialArgs = { inherit inputs hostname flakePath; username = hostname; };
           modules = [
             ./hosts/${hostname}/default.nix
             chaotic.nixosModules.default
             inputs.stylix.nixosModules.stylix
             inputs.sops-nix.nixosModules.sops
-            inputs.hermes-agent.nixosModules.default
             home-manager.nixosModules.home-manager
             {
               home-manager.useUserPackages = true;
               # back up (instead of clobber) pre-existing unmanaged dotfiles, e.g. ~/.zshrc -> ~/.zshrc.hm-bak
               home-manager.backupFileExtension = "hm-bak";
-              home-manager.extraSpecialArgs = { inherit inputs hostname; username = hostname; };
+              home-manager.extraSpecialArgs = { inherit inputs hostname flakePath; username = hostname; };
 
               home-manager.users.${hostname} = import ./modules/home-manager/home.nix;
             }
