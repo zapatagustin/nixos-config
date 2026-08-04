@@ -37,6 +37,16 @@
       url = "github:zapatagustin/ecomono";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Prebuilt nix-index database. programs.nix-index has been enabled since
+    # forever, but the database it needs is generated locally and never was, so
+    # every unknown command printed an I/O error instead of naming the package,
+    # and `comma` was broken for the same reason. Generating it by hand is a manual
+    # step that goes stale as nixpkgs moves; this input ships it and updates with
+    # `nix flake update`.
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { nixpkgs, home-manager, chaotic, ... }@inputs:

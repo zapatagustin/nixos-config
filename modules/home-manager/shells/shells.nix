@@ -1,8 +1,14 @@
-{ ... }: {
+{ inputs, ... }: {
   imports = [
     ./zsh/zsh.nix
     ./starship/starship.nix
     ./zellij/zellij.nix
+    # Ships the prebuilt database programs.nix-index below needs: it points
+    # programs.nix-index at the with-db package and symlinks the database into
+    # $XDG_CACHE_HOME/nix-index/files, which is what was missing. Also provides the
+    # comma wrapper enabled below, replacing the plain pkgs.comma that had no
+    # database to read.
+    inputs.nix-index-database.homeModules.nix-index
   ];
 
   programs.direnv = {
@@ -17,6 +23,7 @@
   # activation, accepted for a palette that matches the rest of the system.
   programs.gh.enable = true;
   programs.nix-index.enable = true;
+  programs.nix-index-database.comma.enable = true; # `,` / `comma`, wrapped with the db above
 
   programs.eza = {
     enable = true;
