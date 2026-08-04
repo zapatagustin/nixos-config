@@ -97,6 +97,14 @@ Item {
 
         Sep {}
 
+        // ── Toggle caffeine (inhibir idle/suspend) ───────────────
+        Caffeine {
+            theme: rightSection.theme
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        Sep {}
+
         // ── Notificaciones ───────────────────────────────────────
         Item {
             id: notifItem

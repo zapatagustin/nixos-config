@@ -46,6 +46,12 @@ QtObject {
     // binary -- see the xdg.configFile comment there for why this is not just
     // `set-theme` on PATH.
     readonly property string setTheme: Quickshell.env("HOME") + "/.config/hypr/set-theme.sh"
+    // Caffeine (idle/suspend inhibitor). Only the ephemeral push channel here: the
+    // persisted counterpart themeMode has no equivalent on purpose — the inhibitor
+    // must never survive a logout, and its real state is the caffeine.service unit,
+    // which `caffeine status` reads back at bar startup.
+    readonly property string caffeine: runtimeDir + "/qs-caffeine"
+    readonly property string caffeineCmd: Quickshell.env("HOME") + "/.config/hypr/caffeine.sh"
     readonly property string launcher: runtimeDir + "/qs-launcher"
     readonly property string clipboard: runtimeDir + "/qs-clipboard"
     // Genuine user data (not an ephemeral IPC signal/log), so it must survive

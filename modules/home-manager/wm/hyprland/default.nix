@@ -44,6 +44,17 @@ let
     text = builtins.readFile ./scripts/set-theme.sh;
   };
 
+  # Idle/sleep inhibitor toggle. Wrapped rather than left to the session PATH for
+  # the same reason as set-theme: the bar calls it through a fixed-path shim and
+  # execDetached fails silently when a bare name does not resolve. Also on
+  # home.packages so `caffeine` works from a terminal.
+  caffeine = pkgs.writeShellApplication {
+    name = "caffeine";
+    runtimeInputs = with pkgs; [ systemd coreutils libnotify ];
+    bashOptions = [ "nounset" ]; # script uses `set -u`; errexit would abort the best-effort notify-send calls
+    text = builtins.readFile ./scripts/caffeine.sh;
+  };
+
   # Audio device watcher: notifies when sinks/sources change (USB headset, HDMI, etc.)
   audioDeviceWatcher = pkgs.writeShellApplication {
     name = "audio-device-watcher";
@@ -85,6 +96,7 @@ in
     brightnessctl
     playerctl
     setTheme # gruvbox dark/light switch; the bar's theme toggle calls it by name
+    caffeine # idle/suspend inhibitor toggle; the bar's coffee icon calls it too
     jq
     socat
     libnotify
@@ -357,6 +369,26 @@ in
     };
   };
 
+  # The lock that `caffeine` flips. Holding it is the unit's entire job, so the
+  # inhibitor's lifetime is exactly the unit's lifetime — nothing to clean up and
+  # nothing to leak. Deliberately NO Install.WantedBy: it is started on demand
+  # only. PartOf graphical-session.target so logging out cannot leave a machine
+  # that refuses to suspend.
+  systemd.user.services.caffeine = {
+    Unit = {
+      Description = "Inhibit idle, sleep and lid-switch handling (caffeine mode)";
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      # --mode=block, the default, is the one hypridle sees: it reads logind's
+      # BlockInhibited, which lists block locks only. `idle` is what stops
+      # hypridle's listeners, `sleep` blocks an explicit `systemctl suspend`, and
+      # handle-lid-switch keeps a closed lid running — logind's own lid policy is
+      # otherwise unconfigured here, so its default (suspend) would apply.
+      ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=idle:sleep:handle-lid-switch --who=caffeine --why=caffeine-mode ${pkgs.coreutils}/bin/sleep infinity";
+    };
+  };
+
   programs.hyprlock = {
     enable = true;
     settings = {
@@ -553,6 +585,11 @@ in
     "hypr/set-theme.sh".text = ''
       #!/usr/bin/env bash
       exec ${setTheme}/bin/set-theme "$@"
+    '';
+    # Same shim rationale as set-theme.sh above.
+    "hypr/caffeine.sh".text = ''
+      #!/usr/bin/env bash
+      exec ${caffeine}/bin/caffeine "$@"
     '';
     "quickshell".source = ./quickshell;
   } // lib.optionalAttrs mm {
