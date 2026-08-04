@@ -1,72 +1,84 @@
 # nixos-config
 
-Single-host NixOS flake for a ThinkPad (`thinkpad`). CachyOS kernel, Home Manager
-as a NixOS module, no desktop environment (console only), gruvbox via Stylix.
+Multi-host NixOS flake: `surface` (work laptop, docks to two Samsung LF27T35) and
+`thinkpad` (nomad, never docks). Per host, the user name and the host name are the
+same. CachyOS kernel, Home Manager as a NixOS module, Hyprland under uwsm with a
+custom quickshell bar (no desktop environment), gruvbox via Stylix.
 
 ## Build
 
 ```sh
-sudo nixos-rebuild switch --flake /home/thinkpad/nixos-config#thinkpad
-# or, with nh (NH_FLAKE is set):
-nh os switch
+sudo nixos-rebuild switch --flake .#surface     # or .#thinkpad
+nh os switch                                     # NH_FLAKE is set per host, no path needed
+nh os boot                                       # activate on next boot only
+```
+
+`NH_FLAKE` comes from `flakePath`, which is `~/personal/nixos-config` on surface and
+`~/nixos-config` everywhere else — so `nh` works from any directory.
+
+## Checks
+
+```sh
+nix flake check   # eval both hosts + every gate
+nix fmt           # nixpkgs-fmt, the flake formatter
+```
+
+There are no unit tests; `nix flake check` plus a build is the validation. It gates
+the generated Hyprland Lua (via the real `--verify-config`), the quickshell QML, the
+source linters, and `scripts/repo-lint.sh`, whose rules exist because this repo
+already shipped each of those bugs with a green check. See CLAUDE.md for the list.
+
+Optional, once per clone — the same source checks on staged files, in milliseconds:
+
+```sh
+git config core.hooksPath scripts/hooks
 ```
 
 ## Secrets (sops-nix)
 
-Secrets are encrypted with **age** and committed to the repo encrypted. The
-thinkpad decrypts them at boot using its **SSH host key** (no extra key to
-manage). A personal age key lets you edit secrets.
+Active. Secrets live encrypted in `modules/secrets/secrets.yaml` and are committed
+that way. Each host decrypts at boot with its own **SSH host key**
+(`sops.age.sshKeyPaths`), so there is no extra key to deploy. Decrypted values
+appear under `/run/secrets/`.
 
-The sops module is wired but **disabled until the encrypted file exists** — the
-import in `modules/modules.nix` is commented out so the flake still evaluates.
+`.sops.yaml` lists the recipients: both hosts' host keys, plus a personal age key at
+`~/.config/sops/age/keys.txt` so that secrets can be edited by hand from surface.
 
-### One-time setup (run on the thinkpad)
-
-```sh
-# 0. tooling
-nix shell nixpkgs#ssh-to-age nixpkgs#age nixpkgs#sops
-
-# 1. host recipient (from the SSH host key)
-ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub
-#   -> prints age1... (HOST key)
-
-# 2. personal recipient (to edit secrets yourself)
-age-keygen -o ~/.config/sops/age/keys.txt
-#   -> prints "Public key: age1..." (PERSONAL key). Back up keys.txt safely.
-
-# 3. paste both age keys into .sops.yaml, replacing the PLACEHOLDER lines
-#    (host_thinkpad = HOST key, user_agustin = PERSONAL key)
-
-# 4. create + encrypt the secrets file
-sops secrets/secrets.yaml
-#    editor opens — add:
-#        tailscale:
-#            authkey: tskey-auth-xxxxxxalkjf...
-#    sops saves it ENCRYPTED. Get the authkey from:
-#      - Tailscale SaaS: login.tailscale.com -> Settings -> Keys -> Auth keys, OR
-#      - Headscale:      headscale preauthkeys create
-
-# 5. enable the module: uncomment ./secrets/sops.nix in modules/modules.nix
-
-# 6. rebuild
-sudo nixos-rebuild switch --flake .#thinkpad
-```
-
-After this, `secrets/secrets.yaml` (encrypted) is safe to commit and push.
-
-### Editing secrets later
+### Editing
 
 ```sh
-sops secrets/secrets.yaml      # decrypts in-memory, re-encrypts on save
+sops modules/secrets/secrets.yaml            # decrypts in memory, re-encrypts on save
+sops unset modules/secrets/secrets.yaml '["key"]'   # remove a key
+sops -d modules/secrets/secrets.yaml >/dev/null     # verify it still decrypts
 ```
 
-### Adding a new secret
+**Never edit that file with a text editor.** It carries a MAC over the whole
+document, so a hand edit breaks decryption at activation and takes every secret in
+it down at once. The `sops` and `age` CLIs are installed via
+`modules/home-manager/dev`.
 
-1. Add a key under `secrets/secrets.yaml` (via `sops`).
-2. Declare it: `sops.secrets."path/name" = {};` in `modules/secrets/sops.nix`.
-3. Reference its path: `config.sops.secrets."path/name".path`.
+### Adding a secret
+
+1. `sops modules/secrets/secrets.yaml` and add the key.
+2. Declare it: `sops.secrets."path/name" = { };` in `modules/secrets/sops.nix`.
+3. Read it from `/run/secrets/path/name`, or reference
+   `config.sops.secrets."path/name".path`.
+
+### Enrolling a new host
+
+```sh
+ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub   # run ON the new host
+```
+
+Add the resulting `age1...` to `keys:` and to the `creation_rules` key group in
+`.sops.yaml`, then re-encrypt for the new recipient list:
+
+```sh
+sops updatekeys modules/secrets/secrets.yaml
+```
 
 ## Layout
 
-See `CLAUDE.md` for the module import tree and conventions. Design specs for
-larger changes live in `docs/superpowers/specs/`.
+`CLAUDE.md` has the module import tree and the conventions. Design docs for larger
+changes live in `docs/superpowers/specs/`. `docs/config-review.md` is a dated
+snapshot of one audit, not a description of the current config.

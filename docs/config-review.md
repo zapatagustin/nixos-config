@@ -3,6 +3,12 @@
 Revisión general de la configuración en busca de problemas de performance,
 conflictos, y seguridad. Fecha: 2026-07-17.
 
+> **Snapshot de esa fecha, no el estado actual.** Dos hallazgos cambiaron desde
+> entonces y quedaron marcados abajo: **#1 (SSH)** se arregló en `bd341b2` y **#8
+> (electron)** dejó de aplicar cuando `bitwarden-desktop` salió del config. El resto
+> sigue como dice la tabla de acciones al final. Se marcan en lugar de borrarse: el
+> documento es el registro de una auditoría, no una descripción del config vivo.
+
 ## Resumen
 
 Arquitectura limpia, módulos bien separados, comentarios que explican el *por
@@ -13,7 +19,11 @@ y un par de services redundantes.
 
 ## 🟥 Críticos
 
-### 1. SSH: `PasswordAuthentication = true`
+### 1. SSH: `PasswordAuthentication = true` — RESUELTO ✅
+
+**Resuelto en `bd341b2`** (authorize keys and disable password authentication).
+`default.nix:18` hoy dice `PasswordAuthentication = false`. El hallazgo original
+queda abajo tal como se escribió.
 
 **Archivo:** `default.nix:18`
 
@@ -108,7 +118,10 @@ hardware.enableRedistributableFirmware = true;
 
 Da microcode + firmwares wifi redistribuibles sin arrastrar el resto.
 
-### 8. `electron-39.8.10` en `permittedInsecurePackages`
+### 8. `electron-39.8.10` en `permittedInsecurePackages` — YA NO APLICA ✅
+
+`bitwarden-desktop` salió del config y con él la excepción: hoy no existe ningún
+`permittedInsecurePackages` en el repo, ni ninguna referencia a electron.
 
 **Archivo:** `modules/home-manager/home.nix:49`
 
@@ -142,14 +155,14 @@ Alternativa: `bitwarden-cli` + extensión de navegador, o evaluar si
 
 | Prioridad | Acción | Archivo |
 |-----------|--------|---------|
-| ⏸ Diferido | `PasswordAuthentication = false` (sin key SSH instalada) | `default.nix` |
+| ✅ Hecho | `PasswordAuthentication = false` + keys autorizadas (`bd341b2`) | `default.nix` |
 | ✅ Hecho | `connect-timeout` subido a 15 | `hosts/host.nix` |
 | ✅ Hecho | `throttled` deshabilitado (medido: no-op, thermal-bound) | `modules/hardware/hardware.nix` |
 | ✅ Hecho | `splash` sacado de kernelParams | `modules/boot/systemd/systemd.nix` |
 | ✅ Hecho | `udisks2` duplicado sacado de hyprland.nix | `modules/wm/hyprland.nix` |
 | ✅ Hecho | `ananicy` deshabilitado (BORE ya prioriza interactivos) | `modules/performance/performance.nix` |
 | ✅ Hecho | `enableRedistributableFirmware` (medido: cubre todo el HW cargado) | `modules/hardware/hardware.nix` |
-| Info | `electron-39.8.10` inseguro por `bitwarden-desktop` | `modules/home-manager/home.nix` |
+| ✅ Ya no aplica | `electron-39.8.10`: `bitwarden-desktop` salió del config | `modules/home-manager/home.nix` |
 
 > **Nota:** `vm.swappiness = 180` salió de la lista de acciones — es la config
 > correcta para un sistema con zram, no un problema.

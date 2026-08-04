@@ -1,98 +1,47 @@
-# Quickshell Bar — Gruvbox + Hyprland
+# Quickshell bar
 
-Barra de estado estilo DWM para Hyprland con tema Gruvbox dinámico.
+DWM-style status bar for Hyprland: workspaces in Japanese numerals on the left,
+active window title centred, system tray and clock on the right.
 
-## Características
+## How it is deployed
 
-- **Workspaces** a la izquierda con numeración japonesa (一 二 三 ...)
-- **Título de ventana activa** centrado
-- **System tray** + reloj con fecha a la derecha
-- **Gruvbox Dark** de noche (20:00 → 07:00), **Gruvbox Light** de día
-- Indicador luna/sol (requiere Nerd Fonts)
+Nix, not by hand. `../../default.nix` copies this whole directory into the store via
+`xdg.configFile."quickshell".source` and runs it from the `quickshell.service` user
+unit — there is no `cp` step, no `exec-once` line, and `~/.config/quickshell` is a
+read-only symlink into the store. Editing a `.qml` here takes effect on the next
+rebuild, not on save.
 
-## Dependencias
+Everything configurable — the unit, the fonts, the icon theme, which scripts the bar
+may call — is declared in that same `default.nix`. This file deliberately does not
+restate it: an earlier version of this README described an Arch install with
+`pacman`, a manual `cp *.qml`, and a day/night schedule that had not matched the code
+for months.
 
-```bash
-# CachyOS / Arch
-sudo pacman -S quickshell noto-fonts-cjk ttf-nerd-fonts-symbols
-```
+## Colours
 
-> Asegurate de tener `quickshell` compilado con soporte para:
-> - `Quickshell.Hyprland`
-> - `Quickshell.Services.SystemTray`
+`shell.qml` holds two hardcoded gruvbox palettes, `darkTheme` and `lightTheme`, and
+`theme` picks between them from `root.isDark`. That is a deliberate fourth copy of
+the palette (the others are the two Stylix instances and starship): Stylix exposes
+only ONE palette per evaluation, and the bar needs both at once so it can flip
+without a rebuild.
 
-## Instalación
+`isDark` is not computed from the clock. It is read at startup from
+`$XDG_STATE_HOME/hypr/theme-mode` and flipped live by an `IpcWatcher` on
+`$XDG_RUNTIME_DIR/qs-theme`, both written by `../../scripts/set-theme.sh`
+(`set-theme dark|light|toggle|auto`). The schedule lives in the `theme-sync` timer in
+`../../default.nix`, at 09:00 and 18:00 — not in this directory.
 
-```bash
-# 1. Copiar al directorio de configuración
-mkdir -p ~/.config/quickshell/bar
-cp *.qml ~/.config/quickshell/bar/
+So: to recolour the bar, edit the two palettes here. To change WHEN it flips, edit
+the timer. To change what the rest of the system does, see
+`modules/home-manager/stylix.nix`.
 
-# 2. Lanzar (para probar)
-quickshell -p ~/.config/quickshell/bar
+## Constraints worth knowing before editing
 
-# 3. Auto-inicio con Hyprland
-#    En ~/.config/hypr/hyprland.conf agregar:
-exec-once = quickshell -p ~/.config/quickshell/bar
-```
-
-## Estructura de archivos
-
-```
-~/.config/quickshell/bar/
-├── shell.qml          ← Entry point (ShellRoot + tema)
-├── Bar.qml            ← Layout principal
-├── Workspaces.qml     ← Lógica de workspaces
-├── WorkspaceButton.qml← Botón individual
-├── ActiveWindow.qml   ← Título ventana activa
-├── RightSection.qml   ← Tray + reloj wrapper
-├── TrayIcon.qml       ← Ícono de tray con menú
-└── Clock.qml          ← Reloj + fecha
-```
-
-## Personalización
-
-### Cambiar horario día/noche
-
-En `shell.qml`, modificar la propiedad `isDark`:
-```qml
-property bool isDark: {
-    var h = new Date().getHours()
-    return h >= 20 || h < 7   // ← ajustar estas horas
-}
-```
-
-### Cambiar cantidad de workspaces
-
-En `Workspaces.qml`, cambiar el `model` del `Repeater`:
-```qml
-model: 9   // ← cambiar a la cantidad deseada (máx 10 con números japoneses)
-```
-
-### Fuente
-
-La barra usa `Terminess Nerd Font Mono` para el texto y `Symbols Nerd Font Mono`
-para los íconos de luna/sol. Si no tenés Nerd Fonts, podés reemplazar
-los íconos en `RightSection.qml`:
-```qml
-text: rightSection.isDark ? "N" : "D"   // fallback sin nerd fonts
-```
-
-## Hyprland — configuración recomendada
-
-En `~/.config/hypr/hyprland.conf`:
-
-```ini
-# Reservar espacio para la barra (Quickshell lo hace automáticamente
-# via exclusiveZone, pero por las dudas):
-monitor = ,preferred,auto,1
-
-# Gaps que se ven bien con la barra
-general {
-    gaps_in = 4
-    gaps_out = 6
-    border_size = 2
-    col.active_border = rgba(d79921ff)    # Gruvbox yellow
-    col.inactive_border = rgba(504945ff) # Gruvbox bg2
-}
-```
+- `FileView` must keep `preload` on. In quickshell 0.3.0 `reload()` does not perform
+  the first read when preload is off, so the view stays empty with nothing in the
+  log. `scripts/repo-lint.sh` rule 4 fails the build on it.
+- Any `~/.config/hypr/*.sh` this tree calls has to exist under `../../scripts/` and
+  be deployed by an `xdg.configFile` entry. `repo-lint.sh` rule 2 checks that too —
+  the bar's theme button once called a script that was never deployed and failed
+  silently.
+- `qmllint` and a `qmldir`-versus-filesystem check run in `nix flake check`.
