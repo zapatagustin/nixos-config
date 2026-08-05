@@ -52,7 +52,14 @@ referenced_as_path() {
   local needle=$1 self=$2 cand
   while read -r cand; do
     [ "$cand" = "$self" ] && continue
-    if sed 's/#.*//' "$cand" | grep -qF -- "/$needle"; then return 0; fi
+    # Redirect, NOT `sed ... | grep -q`. Under `set -o pipefail` that pipeline is a
+    # race: grep -q exits at the first match and sed, still writing, takes SIGPIPE
+    # (141), which pipefail then makes the pipeline's status — so a real match
+    # intermittently reads as "not referenced". It made rule 1 flake on
+    # modules/home-manager/home.nix (matched at flake.nix:97, ~100 lines from EOF)
+    # roughly 2 runs in 5. A process substitution keeps grep the only command whose
+    # status counts. Same fix in rule 4 below.
+    if grep -qF -- "/$needle" < <(sed 's/#.*//' "$cand"); then return 0; fi
   done < <(nix_files)
   return 1
 }
@@ -115,7 +122,11 @@ fi
 # name the pattern do not trip the rule that exists because of them.
 bar="$hypr/quickshell/bar"
 while read -r qml; do
-  if sed 's|//.*||' "$qml" | grep -qE 'preload[[:space:]]*:[[:space:]]*false'; then
+  # Redirect rather than pipe, for the pipefail/SIGPIPE reason spelled out in
+  # referenced_as_path. Here the race loses a REAL finding instead of inventing a
+  # false one, which is the silent direction — the whole point of this rule is that
+  # nothing else catches the pattern.
+  if grep -qE 'preload[[:space:]]*:[[:space:]]*false' < <(sed 's|//.*||' "$qml"); then
     note "preload: false in $qml — reload() will not perform the FIRST read (quickshell 0.3.0); see rule 4 in $0"
   fi
 done < <(find "$bar" -name '*.qml' 2>/dev/null | sort)
