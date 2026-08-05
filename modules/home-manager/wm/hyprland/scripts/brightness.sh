@@ -84,23 +84,13 @@ buses="$runtime_dir/ddc-buses"
     wait
   done
 
-  # A keypress writes once and is done: the monitor is awake and the internal
-  # percent is settled. A sync is neither. It runs while the link is still coming
-  # back, and it races hypridle's own on-resume chain -- the 240s listener restores
-  # the internal panel with `brightnessctl -r`, and hypridle promises no order
-  # between listeners, so the loop above can read a percent that is still the dimmed
-  # one. Writing blind there would leave the externals at 20% while the laptop sits
-  # at 41%, which is the same drift this whole mode exists to remove.
-  #
-  # So: read back, and only stop once every bus agrees with the internal panel.
-  # Bounded and silent -- worst case the user presses a brightness key, exactly as
-  # before this mode existed.
   # A keypress writes once and is done: the monitor is awake and the internal percent
   # has settled. A sync is neither. It races hypridle's own on-resume chain -- the
-  # 240s listener restores the panel with `brightnessctl -r`, and hypridle promises no
-  # order between listeners -- so the loop above can write a percent that is still the
-  # dimmed one and leave the externals at 20% under a 41% laptop. Keep watching the
-  # internal value for a moment and chase it if the restore lands late.
+  # dim-then-restore listener in ../default.nix puts the panel back with
+  # `brightnessctl -r`, and hypridle promises no order between listeners -- so the
+  # loop above can write a percent that is still the dimmed one and leave the
+  # externals at 20% under a 41% laptop. Keep watching the internal value for a
+  # moment and chase it if the restore lands late.
   #
   # Deliberately NOT a DDC read-back to confirm the monitors took the value. That was
   # the first cut of this and it cost 1.24s of the 3.38s: i2c is serialised in
