@@ -17,12 +17,26 @@ pkgs: {
   scheme = variant: "${pkgs.base16-schemes}/share/themes/gruvbox-${variant}-medium.yaml";
 
   # Terminess = Terminus patched by Nerd Fonts: same look + glyphs (bar/prompt
-  # icons). Used for all three roles so stylix targets that pick sansSerif for UI
-  # (gtk.font, zed ui_font) render Terminess too, not a different family.
+  # icons). Monospace only.
+  #
+  # sansSerif/serif used to be Terminess too, so that stylix targets picking
+  # sansSerif for UI (gtk.font, zed ui_font, qt general font) stayed in one family.
+  # That is the wrong tradeoff: Terminess is drawn for a fixed pixel grid and a
+  # terminal's cell metrics, and it renders badly as proportional UI text --
+  # especially on a light background, where the thin stems lose the contrast that
+  # made them legible on dark. The visible symptom was "the font looks wrong in
+  # light mode"; the font was equally wrong in dark, just less obvious.
+  #
+  # IBM Plex Sans/Serif for the UI roles. The quickshell bar is unaffected: every
+  # bar element pins "Terminess Nerd Font Mono" (or "Symbols Nerd Font") by name in
+  # its QML, so the Nerd Font glyphs never went through sansSerif.
+  #
+  # Sizes stay at stylix's defaults (desktop 10, applications 12, terminal ->
+  # applications, popups -> desktop): they were never part of this bug.
   fonts = {
     monospace = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font Mono"; };
-    sansSerif = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font"; };
-    serif = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font"; };
+    sansSerif = { package = pkgs.ibm-plex; name = "IBM Plex Sans"; };
+    serif = { package = pkgs.ibm-plex; name = "IBM Plex Serif"; };
   };
 
   # Consumed by stylix.cursor (system, which exports XCURSOR_SIZE into

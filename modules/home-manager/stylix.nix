@@ -50,13 +50,18 @@ in
   # Runtime light/dark switch, with no per-target rules to maintain.
   #
   # stylix has no dual-scheme or runtime-switch support: base16Scheme is one value
-  # per evaluation. (polarity is NOT the switch axis here — with base16Scheme set
-  # explicitly, polarity only feeds stylix's wallpaper-driven palette generator,
-  # and none of the targets enabled below read it.) So the light palette is a
-  # home-manager specialisation: a second full evaluation of this config. Every
-  # stylix target regenerates for free — verified, 11 files differ between the two
-  # generations (kitty, neovim, bat, yazi, zellij, zathura, zed, gtk-3.0, gtk-4.0,
-  # and stylix's own palette.json/html).
+  # per evaluation. So the light palette is a home-manager specialisation: a second
+  # full evaluation of this config. Every stylix target regenerates for free —
+  # verified, 11 files differ between the two generations (kitty, neovim, bat, yazi,
+  # zellij, zathura, zed, gtk-3.0, gtk-4.0, and stylix's own palette.json/html).
+  #
+  # `polarity` is switched alongside base16Scheme. It used to be pinned to "dark"
+  # in both, on the reasoning that no ENABLED target reads it (still true of
+  # targets.gtk — checked against stylix's modules/gtk/, which never mentions it).
+  # But polarity is also the natural place for *us* to branch on, and home.nix now
+  # does: the XDG portal's color-scheme and the Papirus icon variant are both
+  # derived from it. Leaving it at "dark" is what made "light mode" a lie to every
+  # app that asks the portal instead of reading our gtk.css.
   #
   # mkForce is required, not optional: inheritParentConfig is on, so the parent's
   # base16Scheme definition below is also present and must be outranked rather
@@ -76,16 +81,20 @@ in
   #
   # A rebuild therefore lands on the parent, i.e. dark, and theme-sync's `auto`
   # run at login puts the time-of-day palette back.
-  specialisation = {
-    light.configuration = {
-      stylix.base16Scheme = lib.mkForce (scheme "light");
-      home.activation = trimmedActivation;
+  specialisation =
+    let
+      mode = variant: {
+        configuration = {
+          stylix.polarity = lib.mkForce variant;
+          stylix.base16Scheme = lib.mkForce (scheme variant);
+          home.activation = trimmedActivation;
+        };
+      };
+    in
+    {
+      light = mode "light";
+      dark = mode "dark";
     };
-    dark.configuration = {
-      stylix.base16Scheme = lib.mkForce (scheme "dark");
-      home.activation = trimmedActivation;
-    };
-  };
 
   # Central HM stylix instance. The stylix HM module computes read-only options
   # (stylix.base16), so it must be imported and configured exactly ONCE — a second
