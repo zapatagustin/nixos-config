@@ -98,7 +98,11 @@ ShellRoot {
         id: notifPopup
         theme: root.theme
         notifServer: notifSrv
+        // Only the value until the first notification lands: the popup reassigns
+        // screen through resolveScreen() on every notification, so it opens on
+        // whichever monitor the pointer is on rather than always the first one.
         screen: Quickshell.screens[0]
+        resolveScreen: root.focusedScreen
     }
 
     NotificationCenter {

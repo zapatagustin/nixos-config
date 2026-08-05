@@ -9,6 +9,13 @@ PanelWindow {
     required property var theme
     required property var notifServer
 
+    // Returns the QuickShell screen the popup should appear on. Injected rather
+    // than computed here: shell.qml's focusedScreen() is the single place that
+    // maps a Hyprland monitor onto a Quickshell.screens entry, and the
+    // notification centre already resolves its own screen through it. Duplicating
+    // that lookup would be a second source of truth for the same question.
+    required property var resolveScreen
+
     anchors.top: true
     anchors.right: true
     implicitWidth: 360
@@ -22,6 +29,16 @@ PanelWindow {
     Connections {
         target: popup.notifServer
         function onNotification(notif) {
+            // Move BEFORE assigning current, which is what makes the window
+            // visible. The other order maps the layer surface on the old monitor
+            // and then migrates it, i.e. one frame on the wrong screen.
+            // This breaks the `screen:` binding in shell.qml permanently, which is
+            // intended and is what NotificationCenter does too -- that binding is
+            // only the value used until the first notification arrives.
+            // input:follow_mouse is 1 (wm/hyprland/default.nix), so Hyprland's
+            // focused monitor is the one the pointer is over; there is no need to
+            // read the cursor position.
+            popup.screen = popup.resolveScreen()
             notif.tracked = true
             popup.current = notif
             var timeout = notif.expireTimeout > 0 ? notif.expireTimeout : 5000
