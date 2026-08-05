@@ -1,5 +1,6 @@
 ;;; init.el -*- lexical-binding: t; -*-
-;; Doom module selection. After changing this file: rebuild, then `doom sync`.
+;; Doom module selection. After changing this file: rebuild. Nix resolves the
+;; package set from this block, so there is no `doom sync` to run.
 
 (doom! :completion
        (corfu +orderless)     ; in-buffer completion

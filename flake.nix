@@ -37,6 +37,22 @@
       url = "github:zapatagustin/ecomono";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Doom Emacs built by nix (see modules/home-manager/editors/emacs). Replaces
+    # the old writable ~/.config/emacs checkout, whose `doom sync` cloned 142
+    # unpinned straight.el repos: nothing recorded what they resolved to, so a
+    # rebuild got whatever upstream shipped that day. Its own doomemacs input is
+    # github:doomemacs/core, the same v3 core this config used to clone.
+    #
+    # nixpkgs.follows = "" rather than "nixpkgs" (as upstream's README suggests):
+    # the home-manager module builds against the consuming config's pkgs, so this
+    # input's nixpkgs would only feed its own checks/devShell. Dropping it keeps it
+    # out of the lockfile instead of merely deduplicating it. Its emacs-overlay
+    # input already pins nixpkgs.follows = "" itself, so there is still exactly
+    # one nixpkgs in the lockfile.
+    nix-doom-emacs-unstraightened = {
+      url = "github:marienz/nix-doom-emacs-unstraightened";
+      inputs.nixpkgs.follows = "";
+    };
     # Prebuilt nix-index database. programs.nix-index has been enabled since
     # forever, but the database it needs is generated locally and never was, so
     # every unknown command printed an I/O error instead of naming the package,
