@@ -141,11 +141,67 @@ publish() {
   printf '%s\n' "$1" >>"$signal_file" || return 1
 }
 
+# Push the palette into the running Hyprland WITHOUT reloading its config.
+#
+# THIS IS THE WHOLE REASON A SWITCH IS CHEAP. Hyprland's only theme-dependent
+# setting is three colours under `general.col`. Deriving them from stylix in
+# hyprland.lua looked obviously right and was the expensive mistake: it left that
+# file differing between the two generations, so home-manager's onChange hook for
+# it ran `hyprctl reload config-only` on every switch.
+#
+# What that reload costs, measured on the hardware rather than reasoned about:
+# both external monitors' DDC brightness went 41% -> 100%, reproducibly, with
+# monitor-watcher.service stopped so setup-monitors.sh could not be the cause.
+# They do not persist a DDC write and fall back to their OSD default when the link
+# is re-initialised, and nothing ever puts the value back. The internal panel is
+# unaffected because it is sysfs backlight, not DDC. `config-only` does not help --
+# it limits Hyprland's own monitor pass, not the re-init.
+#
+# So hyprland.lua now carries static hexes and this pushes the live palette over
+# `hyprctl eval`: no reload, no `configreloaded`, no monitor-watcher wakeup, no
+# flicker, brightness untouched. theme-invariants-<host> fails if hyprland.lua ever
+# starts differing between the palettes again.
+#
+# The hexes come from stylix's own palette.json, which linkGeneration just
+# relinked, so they always match the generation that is live and there is no second
+# copy to keep in sync here.
+#
+# hyprctl's exit code is unusable under the Lua config parser, so classify the
+# output text instead — same reason as every other script here.
+push_hyprland_palette() {
+  local palette b01 b09 b0A out
+  palette="${XDG_CONFIG_HOME:-$HOME/.config}/stylix/palette.json"
+  [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && command -v hyprctl >/dev/null || return 0
+
+  read -r b01 b09 b0A < <(jq -r '[.base01, .base09, .base0A] | @tsv' "$palette" 2>/dev/null)
+  # A missing file, a missing key (jq prints "null") or a renamed scheme format all
+  # land here. Cosmetic-only, so it warns rather than failing the switch: every
+  # other target already has the new palette, and the borders correct themselves on
+  # the next rebuild.
+  if [[ ${b01-}${b09-}${b0A-} =~ ^[0-9a-fA-F]{18}$ ]]; then
+    out=$(hyprctl eval "hl.config({ general = { col = { active_border = { colors = { \"rgba(${b0A}ff)\", \"rgba(${b09}ff)\" }, angle = 45 }, inactive_border = \"rgba(${b01}ff)\" } } })" 2>&1 || true)
+    case "$out" in
+      "" | ok | warning:*) ;;
+      *) echo "set-theme: hyprctl eval said: $out" >&2 ;;
+    esac
+  else
+    echo "set-theme: no usable base01/base09/base0A in $palette — hyprland borders keep the old palette until the next reload" >&2
+  fi
+}
+
 # Already in the target state: skip the activation. It takes seconds and this path
 # runs at every login and on every timer fire, so the guard is what keeps `auto`
 # from being a recurring stall.
 if [ "$mode" = "$active" ]; then
   publish "$mode" || fail "could not record the theme mode under $state_dir"
+  # Not redundant on this path. hyprland.lua carries the DARK hexes as its
+  # parse-time baseline (they have to be static -- see the long comment on
+  # general.col in ../default.nix), so a session that starts while light is the
+  # active generation draws dark borders until something corrects them. This is
+  # that something: theme-sync runs `auto` at every login, lands here, and pushes
+  # the live palette. Same reasoning as publish() above -- the no-op path still
+  # owes the system a correction.
+  push_hyprland_palette
   exit 0
 fi
 
@@ -175,15 +231,6 @@ publish "$mode" || fail "switched to '$mode' but could not record it under $stat
 # inherent to the approach, not a gap in this script.
 pkill -USR1 -x kitty 2>/dev/null || true
 
-# Only meaningful once hyprland.lua derives its colours from stylix; harmless
-# before that. hyprctl's exit code is unusable under the Lua config parser, so
-# classify the output text instead — same reason as every other script here.
-if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && command -v hyprctl >/dev/null; then
-  out=$(hyprctl reload 2>&1 || true)
-  case "$out" in
-    "" | ok | warning:*) ;;
-    *) echo "set-theme: hyprctl reload said: $out" >&2 ;;
-  esac
-fi
+push_hyprland_palette
 
 exit 0

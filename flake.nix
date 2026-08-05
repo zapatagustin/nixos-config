@@ -298,6 +298,9 @@
       themeSpecialisationInvariants = hostname:
         let
           hm = nixosConfigurations.${hostname}.config.home-manager.users.${hostname};
+          # Same single source the two stylix instances read, so the hex check below
+          # is pinned to the actual scheme rather than to a second copy of the path.
+          inherit ((import ./modules/theme/tokens.nix pkgs)) scheme;
           dark = hm.home.activationPackage;
           light = hm.specialisation.light.configuration.home.activationPackage;
           darkSpec = hm.specialisation.dark.configuration.home.activationPackage;
@@ -327,6 +330,70 @@
                 echo "in stylix.nix no longer holds." >&2
                 exit 1
               }
+            echo "ok"
+
+            echo "== hyprland.lua must NOT differ between the two palettes =="
+            # This one is not about the activation skips: it is what keeps a theme
+            # switch from reloading Hyprland at all. home-manager attaches an
+            # onChange hook to .config/hypr/hyprland.lua that runs `hyprctl reload
+            # config-only`, and that reload resets the external monitors' DDC
+            # brightness to 100% -- measured on the hardware, 41 -> 100 on both,
+            # with setup-monitors.sh stopped so nothing else could be blamed. The
+            # externals do not persist a DDC write and revert to their OSD default
+            # when the link is re-initialised. So the border colours are literals in
+            # wm/hyprland/default.nix and set-theme.sh pushes the live palette over
+            # `hyprctl eval`. Put a config.lib.stylix.colors reference back into that
+            # file and the switch silently starts reloading again.
+            diff -q ${dark}/home-files/.config/hypr/hyprland.lua \
+                    ${light}/home-files/.config/hypr/hyprland.lua || {
+              echo "hyprland.lua differs between the dark and light generations, so" >&2
+              echo "home-manager's onChange hook will reload Hyprland on every theme" >&2
+              echo "switch. Keep the colours in that file static and let set-theme.sh" >&2
+              echo "push the palette at runtime." >&2
+              exit 1
+            }
+            echo "ok"
+
+            echo "== hyprland's own config watcher must stay off =="
+            # The sibling of the check above. Keeping hyprland.lua identical stops
+            # home-manager's onChange hook from firing, but Hyprland ALSO watches the
+            # config path itself, and linkGeneration moves that path on every switch
+            # (the home-manager-files hash changes because the other palette files in
+            # it did). Measured: two relinks to byte-identical content produced two
+            # reloads. Under nix the watcher can only ever be a false positive -- the
+            # file is an immutable store symlink, so no hand-edit can reach it.
+            grep -q 'disable_autoreload *= *true' \
+              ${dark}/home-files/.config/hypr/hyprland.lua || {
+              echo "misc.disable_autoreload is no longer set in hyprland.lua, so" >&2
+              echo "Hyprland will reload itself every time home-manager relinks the" >&2
+              echo "config -- i.e. on every theme switch, blanking the externals and" >&2
+              echo "resetting their DDC brightness." >&2
+              exit 1
+            }
+            echo "ok"
+
+            echo "== those static hexes must still be the dark palette =="
+            # The literals only stay correct as long as nobody changes the scheme in
+            # modules/theme/tokens.nix. Pin them to the yaml stylix itself reads
+            # rather than to a comment.
+            for pair in base0A:fabd2f base09:fe8019 base01:3c3836; do
+              key=''${pair%%:*}; want=''${pair##*:}
+              # Entries look like `  base0A: "#fabd2f" # yellow` -- indented, quoted,
+              # hash-prefixed and trailing-commented, so anchor on the key and pull
+              # the six hex digits out of the middle rather than matching a shape.
+              got=$(sed -n "s/^[[:space:]]*$key:[^0-9a-fA-F]*\([0-9a-fA-F]\{6\}\).*/\1/p" \
+                    ${scheme "dark"} | head -n1)
+              [ "$got" = "$want" ] || {
+                echo "$key is $got in the dark scheme but wm/hyprland/default.nix" >&2
+                echo "hardcodes $want. Update the literal, or the parse-time border" >&2
+                echo "colour stops matching the palette everything else uses." >&2
+                exit 1
+              }
+              grep -qF "rgba($want" ${dark}/home-files/.config/hypr/hyprland.lua || {
+                echo "$key ($want) is no longer present in the generated hyprland.lua." >&2
+                exit 1
+              }
+            done
             echo "ok"
 
             echo "== the dark specialisation must be a faithful stand-in for the parent =="

@@ -10,13 +10,31 @@
 set -u
 
 step=5
-case "${1:-up}" in
+mode=${1:-up}
+case "$mode" in
   up)   brightnessctl -e4 -n2 set "${step}%+" >/dev/null ;;
   down) brightnessctl -e4 -n2 set "${step}%-" >/dev/null ;;
+  # sync: change nothing, just re-assert the current percent on the externals.
+  #
+  # They need it because a DDC write is not durable on them: the monitors revert to
+  # their OSD default (100%) whenever the link is re-initialised, and nothing used
+  # to put the value back. Measured triggers, all of them ordinary: `dpms off/on`
+  # (hypridle fires it after 6 minutes idle), a lock/unlock, suspend/resume, a dock
+  # change, and any `hyprctl reload`. The internal panel is unaffected because it is
+  # sysfs backlight, not DDC -- which is exactly why the two used to drift apart.
+  sync) ;;
+  *)
+    echo "usage: brightness {up|down|sync}" >&2
+    exit 2
+    ;;
 esac
 runtime_dir="${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}"
 
-echo . >> "$runtime_dir/qs-brightness" # OSD refresh (bar tails this file)
+# OSD refresh (bar tails this file). Only for the key presses: a sync is a repair
+# nobody asked for, and popping the OSD on every idle-resume would announce it.
+case "$mode" in
+  up | down) echo . >> "$runtime_dir/qs-brightness" ;;
+esac
 
 # External monitors: DDC/CI via ddcutil. No-op when ddcutil is absent (undocked
 # host / thinkpad) or no external DDC display is present.
@@ -60,6 +78,43 @@ buses="$runtime_dir/ddc-buses"
     # One ddcutil per bus, all at once: every external lands in the same DDC
     # round instead of one after the other. --noverify skips the slow read-back;
     # --sleep-multiplier trims DDC delays.
+    while read -r bus; do
+      ddcutil --bus "$bus" --noverify --sleep-multiplier=.5 setvcp 10 "$cur" >/dev/null 2>&1 &
+    done < "$buses"
+    wait
+  done
+
+  # A keypress writes once and is done: the monitor is awake and the internal
+  # percent is settled. A sync is neither. It runs while the link is still coming
+  # back, and it races hypridle's own on-resume chain -- the 240s listener restores
+  # the internal panel with `brightnessctl -r`, and hypridle promises no order
+  # between listeners, so the loop above can read a percent that is still the dimmed
+  # one. Writing blind there would leave the externals at 20% while the laptop sits
+  # at 41%, which is the same drift this whole mode exists to remove.
+  #
+  # So: read back, and only stop once every bus agrees with the internal panel.
+  # Bounded and silent -- worst case the user presses a brightness key, exactly as
+  # before this mode existed.
+  # A keypress writes once and is done: the monitor is awake and the internal percent
+  # has settled. A sync is neither. It races hypridle's own on-resume chain -- the
+  # 240s listener restores the panel with `brightnessctl -r`, and hypridle promises no
+  # order between listeners -- so the loop above can write a percent that is still the
+  # dimmed one and leave the externals at 20% under a 41% laptop. Keep watching the
+  # internal value for a moment and chase it if the restore lands late.
+  #
+  # Deliberately NOT a DDC read-back to confirm the monitors took the value. That was
+  # the first cut of this and it cost 1.24s of the 3.38s: i2c is serialised in
+  # hardware, so reading two buses "in parallel" takes 1.24s against 1.54s
+  # sequentially -- 0.31s for a subshell, word splitting and a shellcheck exception.
+  # It also only ever answered yes: a write lands reliably once the link is up,
+  # measured across dpms, unlock and dock cycles. What actually goes wrong is the
+  # internal percent moving, and brightnessctl reads that in 0.00s.
+  [ "$mode" = sync ] || exit 0
+  for _ in 1 2 3 4; do
+    sleep 0.25
+    cur=$(brightnessctl -m | cut -d, -f4 | tr -d '%')
+    [ "$cur" = "$last" ] && continue
+    last=$cur
     while read -r bus; do
       ddcutil --bus "$bus" --noverify --sleep-multiplier=.5 setvcp 10 "$cur" >/dev/null 2>&1 &
     done < "$buses"

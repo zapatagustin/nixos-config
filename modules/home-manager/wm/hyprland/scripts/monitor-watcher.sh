@@ -36,11 +36,17 @@ ensure_hyprpaper() {
 }
 
 run_setup() {
-    # DDC bus list (brightness.sh) is stale after a hotplug; rebuilt on next keypress.
+    # DDC bus list (brightness.sh) is stale after a hotplug; rebuilt by the sync below.
     rm -f "${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}/ddc-buses"
     ensure_hyprpaper
     bash "$SETUP"
     ensure_quickshell
+    # Los eventos que nos despiertan (dock, undock, configreloaded) re-inicializan el
+    # link, y los externos no persisten el valor DDC: vuelven al 100% de su OSD. El
+    # panel interno no, porque es sysfs. Sin esto quedaban desparejos hasta la
+    # siguiente tecla de brillo. `sync` no cambia nada del interno, solo re-aplica su
+    # porcentaje a los externos -- y verifica, porque acá el link recién vuelve.
+    brightness sync
 }
 
 pending_pid=0

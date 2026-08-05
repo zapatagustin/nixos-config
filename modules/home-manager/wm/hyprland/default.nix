@@ -13,7 +13,10 @@ let
   # PATH). runtimeInputs also covers setup-monitors.sh, which the watcher spawns.
   monitorWatcher = pkgs.writeShellApplication {
     name = "monitor-watcher";
-    runtimeInputs = with pkgs; [ socat systemd hyprland hyprpaper jq procps coreutils bash gawk ];
+    # brightnessScript: run_setup calls `brightness sync` to repair the externals'
+    # DDC value after a dock change or a reload re-inits the link.
+    runtimeInputs = with pkgs; [ socat systemd hyprland hyprpaper jq procps coreutils bash gawk ]
+      ++ [ brightnessScript ];
     bashOptions = [ "nounset" ]; # match the script's original `set -u`; errexit would abort best-effort hyprctl/kill calls
     text = builtins.readFile ./scripts/monitor-watcher.sh;
   };
@@ -36,7 +39,7 @@ let
   # Also on home.packages so the bar can call it by name.
   setTheme = pkgs.writeShellApplication {
     name = "set-theme";
-    runtimeInputs = with pkgs; [ systemd coreutils gnugrep procps hyprland util-linux libnotify ];
+    runtimeInputs = with pkgs; [ systemd coreutils gnugrep procps hyprland util-linux libnotify jq ];
     bashOptions = [ "nounset" ]; # script uses `set -u`; errexit would abort the best-effort kitty/hyprctl pokes
     text = builtins.readFile ./scripts/set-theme.sh;
   };
@@ -65,6 +68,18 @@ let
   # returns TOGGLE_ACTION_TOGGLE when arg 1 is not a table. So `hl.dsp.dpms("on")` parses,
   # answers `ok`, and does the wrong thing; the state has to go in `{ action = ... }`.
   dpms = state: "hyprctl dispatch 'hl.dsp.dpms({ action = \"${state}\" })'";
+
+  # Re-assert the current brightness on the external DDC monitors. They drop back to
+  # their OSD default (100%) every time the link is re-initialised and nothing used
+  # to restore it, so the laptop panel and the externals drifted apart on every idle
+  # timeout. See the `sync` case in scripts/brightness.sh for the measurements.
+  ddcSync = "${brightnessScript}/bin/brightness sync";
+
+  # Everything that brings the outputs back: turn them on, then repair the
+  # brightness. Chained in one string rather than spread across hypridle entries
+  # because hypridle guarantees no order between listeners, and the sync has to
+  # happen after the panels are awake.
+  wakeUp = "${dpms "on"}; ${ddcSync}";
 
   # hyprpaper 0.8.4 ignores config-file `wallpaper=`/`preload=` (hyprtoolkit-rewrite
   # regression: logs "Monitor eDP-1 has no target" at every startup, sets nothing).
@@ -166,17 +181,34 @@ in
               gaps_in     = 3,
               gaps_out    = 6,
               border_size = 1,
-              -- Borders come from base16 so they follow the dark/light
-              -- specialisation (modules/home-manager/stylix.nix) instead of pinning
-              -- gruvbox-dark hexes that would survive a switch to light.
-              -- base01/base09 are byte-identical to the values these lines used to
-              -- hardcode; base0A replaces a dimmer d79921 and happens to be exactly
-              -- the bar's own accent (shell.qml darkTheme.accent), so the border and
-              -- the bar now agree. hl.config takes rgba(RRGGBBAA), hence the bare
-              -- hex plus "ff" rather than lib.stylix.colors.withHashtag.
+              -- gruvbox-dark-medium base0A / base09 / base01, written as literals
+              -- ON PURPOSE. These used to read config.lib.stylix.colors so they would
+              -- follow the light specialisation, and that is exactly what made a theme
+              -- switch expensive: it left hyprland.lua differing between the two
+              -- generations, so home-manager's onChange hook for that file fired
+              -- `hyprctl reload config-only` on every switch. Measured, reading the
+              -- monitors' DDC brightness before and after: that reload alone drops both
+              -- externals from 41% to 100% (they do not persist a DDC write and revert
+              -- to their OSD default when the link is re-initialised), and it is what
+              -- the switch's flicker came from. Nothing else in the switch touches
+              -- Hyprland.
+              --
+              -- So the palette is pushed at RUNTIME instead, by set-theme.sh, over
+              -- `hyprctl eval` -- no config reload, no event, no flicker, brightness
+              -- untouched. These literals are only the parse-time baseline (a fresh
+              -- session, or the moment right after a real rebuild's reload); set-theme
+              -- corrects them on every run, including its no-op path.
+              --
+              -- Two flake checks keep this honest: theme-invariants-<host> asserts the
+              -- generated hyprland.lua is byte-identical across the two specialisations
+              -- (re-introducing a stylix colour here breaks it), and that these three
+              -- hexes still match gruvbox-dark-medium, the scheme modules/theme/
+              -- tokens.nix resolves for the dark variant.
+              --
+              -- hl.config takes rgba(RRGGBBAA), hence the bare hex plus "ff".
               col = {
-                  active_border   = { colors = { "rgba(${config.lib.stylix.colors.base0A}ff)", "rgba(${config.lib.stylix.colors.base09}ff)" }, angle = 45 },
-                  inactive_border = "rgba(${config.lib.stylix.colors.base01}ff)",
+                  active_border   = { colors = { "rgba(fabd2fff)", "rgba(fe8019ff)" }, angle = 45 },
+                  inactive_border = "rgba(3c3836ff)",
               },
               resize_on_border = false,
               allow_tearing    = false,
@@ -204,6 +236,32 @@ in
               force_default_wallpaper = 1,
               disable_hyprland_logo   = true,
               vrr                     = 1, -- adaptive sync (free win on panels that support it)
+
+              -- Hyprland watches its config PATH and reloads when it changes. Under
+              -- nix that watcher can only ever produce false positives: this file is
+              -- an immutable store symlink, so it is never hand-edited, and the only
+              -- thing that ever "changes" it is home-manager relinking
+              -- ~/.config/hypr/hyprland.lua at a new home-manager-files path. That
+              -- happens on EVERY theme switch -- the directory hash moves because the
+              -- 13 palette files in it moved, even though hyprland.lua itself is
+              -- byte-identical across the two generations.
+              --
+              -- Measured, by relinking the symlink to an identical-content path with
+              -- nothing else running: setup-monitors.log went 20 -> 21 -> 22, i.e. two
+              -- spurious reloads for zero config change. With this set to true the
+              -- same two relinks produced 22 -> 22 -> 22.
+              --
+              -- Each of those reloads re-inits the outputs: the externals blank for
+              -- ~1.2s and come back at 100% brightness (they do not persist a DDC
+              -- write). That was the last remaining source of the theme-switch
+              -- flicker, after set-theme.sh stopped reloading and the colours were
+              -- made static so home-manager's own onChange hook stops firing.
+              --
+              -- Nothing is lost: that onChange hook still runs `hyprctl reload
+              -- config-only`, and it is content-aware (_cmp against the deployed
+              -- file), so a real rebuild that genuinely changes this config still
+              -- reloads exactly once.
+              disable_autoreload      = true,
           },
 
           -- bypass compositing on fullscreen surfaces (perf; lost in the cachy port)
@@ -353,12 +411,16 @@ in
       general = {
         lock_cmd = "pidof hyprlock || hyprlock";
         before_sleep_cmd = "loginctl lock-session";
-        after_sleep_cmd = dpms "on";
+        after_sleep_cmd = wakeUp;
+        # Fires when the session actually stops being locked, not when the Unlock
+        # signal arrives (that is `unlock_cmd`). hyprlock's exit is what re-inits the
+        # outputs, so this is the edge the externals need.
+        on_unlock_cmd = ddcSync;
       };
       listener = [
         { timeout = 240; on-timeout = "brightnessctl -s set 20%"; on-resume = "brightnessctl -r"; }
-        { timeout = 300; on-timeout = "loginctl lock-session"; on-resume = dpms "on"; }
-        { timeout = 360; on-timeout = dpms "off"; on-resume = dpms "on"; }
+        { timeout = 300; on-timeout = "loginctl lock-session"; on-resume = wakeUp; }
+        { timeout = 360; on-timeout = dpms "off"; on-resume = wakeUp; }
         { timeout = 900; on-timeout = "systemctl suspend"; }
       ];
     };
