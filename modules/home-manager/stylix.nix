@@ -52,8 +52,8 @@ in
   # stylix has no dual-scheme or runtime-switch support: base16Scheme is one value
   # per evaluation. So the light palette is a home-manager specialisation: a second
   # full evaluation of this config. Every stylix target regenerates for free —
-  # verified by diffing the two generations, 17 files: bat, btop, kitty, nvim,
-  # zathura, zed, hypr/hyprlock.conf, gtk-3.0 and gtk-4.0 (gtk.css AND settings.ini,
+  # verified by diffing the two generations, 18 files: bat, btop, kitty, nvim,
+  # opencode, zathura, zed, hypr/hyprlock.conf, gtk-3.0 and gtk-4.0 (gtk.css AND settings.ini,
   # the latter because the icon variant follows the palette), .gtkrc-2.0, stylix's
   # own palette.json/html, and zen's userChrome.css, userContent.css and user.js (the
   # last one because stylix's reader-mode prefs are palette-derived too). Notably
@@ -128,6 +128,8 @@ in
       bat.enable = true;
       zathura.enable = true;
       btop.enable = true;
+      # Needs the mkForce below to evaluate at all — see it for why.
+      opencode.enable = true;
       # hyprlock deliberately NOT enabled: stylix's hyprlock target also sets
       # `programs.hyprlock.settings.background` to a solid base00 colour, which
       # collides with the blurred-wallpaper background list in
@@ -170,4 +172,22 @@ in
       #               overridden by doom at init. Unify in doom config, not here.
     };
   };
+
+  # The ecomono flake pins `"theme": "gruvbox"` in its opencode/tui.json, and
+  # stylix's opencode target sets tui.theme = "stylix". Both are ordinary-priority
+  # definitions of the same option, so enabling that target without this line is a
+  # hard eval error, not a silent last-one-wins:
+  #
+  #   error: The option `...programs.opencode.tui.theme' has conflicting definition
+  #   values: - stylix modules/opencode/hm.nix: "stylix"  - ecomono flake.nix: "gruvbox"
+  #
+  # Resolved HERE rather than by deleting the key from ecomono, and that is the whole
+  # point: ecomono is a standalone flake other machines install without stylix, and
+  # dropping its theme would leave every one of them on opencode's default. The
+  # collision is local to this config, so the override belongs in this config.
+  #
+  # Only tui.theme collides. programs.opencode.tui takes pkgs.formats.json's type,
+  # which merges per key, so ecomono's `plugin` list survives untouched — verified,
+  # not assumed.
+  programs.opencode.tui.theme = lib.mkForce "stylix";
 }
