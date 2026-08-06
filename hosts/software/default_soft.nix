@@ -14,7 +14,8 @@
     toilet
 
     # File / disk utils
-    btop
+    # btop -> programs.btop (modules/home-manager/home.nix), so stylix.targets.btop
+    # can theme it. Listing it here too would be a second path to the same package.
     dust
     duf
     fd

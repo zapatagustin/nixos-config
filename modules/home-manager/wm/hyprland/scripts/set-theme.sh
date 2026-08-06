@@ -301,6 +301,9 @@ publish "$mode" || fail "switched to '$mode' but could not record it under $stat
 #   bat      needs nothing. Never long-running, and the batCache activation step
 #            recompiles the theme under the same name, so the next invocation is
 #            already correct.
+#   btop     no reload hook, and it does not need one: it reads its theme at
+#            startup and is a foreground TUI you close rather than leave running
+#            across a palette switch.
 #   zellij   needs nothing HERE, and that is a measured result, not an omission.
 #            zellij re-detects the terminal's background colour and re-picks between
 #            its theme_dark and theme_light, so the kitty SIGUSR1 above is already

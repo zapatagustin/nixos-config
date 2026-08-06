@@ -52,10 +52,10 @@ in
   # stylix has no dual-scheme or runtime-switch support: base16Scheme is one value
   # per evaluation. So the light palette is a home-manager specialisation: a second
   # full evaluation of this config. Every stylix target regenerates for free —
-  # verified by diffing the two generations, 16 files: bat, kitty, nvim, zathura,
-  # zed, hypr/hyprlock.conf, gtk-3.0 and gtk-4.0 (gtk.css AND settings.ini, the
-  # latter because the icon variant follows the palette), .gtkrc-2.0, stylix's own
-  # palette.json/html, and zen's userChrome.css, userContent.css and user.js (the
+  # verified by diffing the two generations, 17 files: bat, btop, kitty, nvim,
+  # zathura, zed, hypr/hyprlock.conf, gtk-3.0 and gtk-4.0 (gtk.css AND settings.ini,
+  # the latter because the icon variant follows the palette), .gtkrc-2.0, stylix's
+  # own palette.json/html, and zen's userChrome.css, userContent.css and user.js (the
   # last one because stylix's reader-mode prefs are palette-derived too). Notably
   # NOT zellij: shells/zellij/zellij.nix generates both palettes unconditionally, so
   # its themes are byte-identical here.
@@ -127,6 +127,7 @@ in
       kitty.enable = true;
       bat.enable = true;
       zathura.enable = true;
+      btop.enable = true;
       # hyprlock deliberately NOT enabled: stylix's hyprlock target also sets
       # `programs.hyprlock.settings.background` to a solid base00 colour, which
       # collides with the blurred-wallpaper background list in

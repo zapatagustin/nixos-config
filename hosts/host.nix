@@ -9,7 +9,6 @@
     git.enable = true;
     nano.enable = true;
     zsh.enable = true;
-    tmux.enable = true;
     ssh.askPassword = "";
     command-not-found.enable = false; # use nix-index instead
     appimage = {

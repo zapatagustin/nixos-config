@@ -27,9 +27,12 @@
 
   programs.home-manager.enable = true;
 
-  # Migrated from a bare package to programs.* so stylix can theme it
-  # (stylix.targets.zathura in ./stylix.nix).
+  # Migrated from bare packages to programs.* so stylix can theme them
+  # (stylix.targets.{zathura,btop} in ./stylix.nix). btop came from
+  # hosts/software/default_soft.nix; stylix's btop target is home-manager-only, so
+  # the system package could never have been themed.
   programs.zathura.enable = true;
+  programs.btop.enable = true;
 
   # stylix.cursor never applies because homeManagerIntegration.autoImport=false,
   # so set the pointer here directly: installs the theme to ~/.icons and sets
