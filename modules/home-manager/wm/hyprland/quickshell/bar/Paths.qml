@@ -41,6 +41,15 @@ QtObject {
         return s !== "" ? s : Quickshell.env("HOME") + "/.local/state"
     }
     readonly property string themeMode: stateHome + "/hypr/theme-mode"
+    // stylix's generated base16 palette, and the bar's ONLY source of colour. Same
+    // file scripts/set-theme.sh reads for the Hyprland border push, so the two cannot
+    // disagree. Like stateHome, XDG_CONFIG_HOME has a spec-defined default, so
+    // falling back is correct here rather than a silent downgrade.
+    readonly property string configHome: {
+        var c = Quickshell.env("XDG_CONFIG_HOME")
+        return c !== "" ? c : Quickshell.env("HOME") + "/.config"
+    }
+    readonly property string palette: configHome + "/stylix/palette.json"
     // Fixed path to the theme switcher. QML cannot interpolate a Nix store path,
     // so wm/hyprland/default.nix deploys a shim here that forwards to the wrapped
     // binary -- see the xdg.configFile comment there for why this is not just

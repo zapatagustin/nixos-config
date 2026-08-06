@@ -8,6 +8,8 @@ import QtQuick
 ShellRoot {
     id: root
 
+    // Only drives the toggle's 🌙/☀ glyph in RightSection. The PALETTE is read from
+    // stylix's file below, so this is no longer what colours anything.
     property bool isDark: true
 
     // Leer el tema actual al iniciar (Quickshell resetea isDark al reiniciar).
@@ -31,52 +33,81 @@ ShellRoot {
         onTriggered: (line) => {
             if (line === "dark")  root.isDark = true
             if (line === "light") root.isDark = false
+            // The colours do NOT come from isDark — this is what actually repaints
+            // the bar. isDark only survives because RightSection draws 🌙 or ☀ from
+            // it; deleting it as dead would take the toggle's icon with it.
+            paletteFile.reload()
         }
     }
 
-    property var darkTheme: ({
-        bg:          "#282828",
-        bg1:         "#3c3836",
-        bg2:         "#504945",
-        fg:          "#ebdbb2",
-        fgDim:       "#a89984",
-        yellow:      "#fabd2f",
-        blue:        "#83a598",
-        aqua:        "#8ec07c",
-        accent:      "#fabd2f",
-        accentFg:    "#282828",
-        wsActive:    "#fabd2f",
-        wsOccupied:  "#504945",
-        wsEmpty:     "transparent",
-        wsActiveText:"#282828",
-        wsOccText:   "#ebdbb2",
-        wsEmptyText: "#665c54",
-        sep:         "#504945",
-        border:      "#504945"
-    })
+    // Colours come from stylix's generated palette, never from a table kept here.
+    //
+    // This replaced two hand-written gruvbox tables, and they HAD already drifted:
+    // the light one opened with #f9f5d7, which is gruvbox-light-HARD, while stylix
+    // has always been on gruvbox-light-medium (#fbf1c7). Nobody noticed for as long
+    // as it took to go looking, which is the whole argument against keeping a second
+    // copy of a palette.
+    //
+    // Re-reading on the qs-theme signal is race-free by construction: set-theme
+    // publishes to that pipe only AFTER the home-manager activation returns, and
+    // linkGeneration has relinked palette.json by then, so the file already holds
+    // the palette being announced.
+    property var base16: ({})
 
-    property var lightTheme: ({
-        bg:          "#f9f5d7",
-        bg1:         "#ebdbb2",
-        bg2:         "#d5c4a1",
-        fg:          "#3c3836",
-        fgDim:       "#7c6f64",
-        yellow:      "#b57614",
-        blue:        "#076678",
-        aqua:        "#427b58",
-        accent:      "#b57614",
-        accentFg:    "#f9f5d7",
-        wsActive:    "#b57614",
-        wsOccupied:  "#d5c4a1",
-        wsEmpty:     "transparent",
-        wsActiveText:"#f9f5d7",
-        wsOccText:   "#3c3836",
-        wsEmptyText: "#bdae93",
-        sep:         "#d5c4a1",
-        border:      "#d5c4a1"
-    })
+    FileView {
+        id: paletteFile
+        path: Paths.palette
+        // preload must stay ON. See the long note in Brightness.qml: with it off,
+        // reload() will not start a FIRST read, and this would silently never load
+        // with nothing in the log to explain it.
+        onLoaded: {
+            try {
+                root.base16 = JSON.parse(paletteFile.text())
+            } catch (e) {
+                console.error("shell.qml: " + Paths.palette + " is not valid JSON (" + e
+                              + ") — the bar keeps its built-in fallback palette")
+            }
+        }
+        onLoadFailed: console.error("shell.qml: could not read " + Paths.palette
+                                    + " — the bar keeps its built-in fallback palette")
+    }
 
-    property var theme: isDark ? darkTheme : lightTheme
+    // stylix writes bare hex, without the leading '#' that a QML colour needs.
+    //
+    // The fallbacks are gruvbox-dark-medium, and they are deliberately NOT kept in
+    // sync with tokens.nix: they only ever render when the palette file is missing or
+    // unparseable, and the point then is a legible bar rather than one matching a
+    // system whose theming is already broken. A bar with undefined colours is not
+    // "degraded", it is invisible.
+    function c(slot, fallback) {
+        var v = root.base16[slot]
+        return v !== undefined ? "#" + v : fallback
+    }
+
+    // base16 slot per role. fgDim is the one judgement call: it used to be #a89984,
+    // gruvbox's own `gray`, which is not one of the 16 slots at all. base04 is the
+    // spec's "dark foreground, used for status bars", so it is the honest home for a
+    // dimmed foreground even though it shifts the colour slightly.
+    property var theme: ({
+        bg:           c("base00", "#282828"),
+        bg1:          c("base01", "#3c3836"),
+        bg2:          c("base02", "#504945"),
+        fg:           c("base06", "#ebdbb2"),
+        fgDim:        c("base04", "#bdae93"),
+        yellow:       c("base0A", "#fabd2f"),
+        blue:         c("base0D", "#83a598"),
+        aqua:         c("base0C", "#8ec07c"),
+        accent:       c("base0A", "#fabd2f"),
+        accentFg:     c("base00", "#282828"),
+        wsActive:     c("base0A", "#fabd2f"),
+        wsOccupied:   c("base02", "#504945"),
+        wsEmpty:      "transparent",
+        wsActiveText: c("base00", "#282828"),
+        wsOccText:    c("base06", "#ebdbb2"),
+        wsEmptyText:  c("base03", "#665c54"),
+        sep:          c("base02", "#504945"),
+        border:       c("base02", "#504945")
+    })
 
     Variants {
         model: Quickshell.screens
