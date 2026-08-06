@@ -1,4 +1,4 @@
-{ pkgs, hostname, lib, ... }: {
+{ pkgs, hostname, lib, config, ... }: {
   imports = [
     ./bluetooth/bluetooth.nix
     ./network/network.nix
@@ -80,7 +80,31 @@
 
     upower = {
       enable = true;
-      criticalPowerAction = "HybridSleep"; # suspend + hibernation image; needs swap (17G) + resumeDevice + hibernation enabled (protectKernelImage off)
+
+      # HybridSleep suspends AND writes a hibernation image, so a battery that dies
+      # mid-suspend resumes from disk instead of cold-booting. That fallback needs
+      # boot.resumeDevice, which is per-host (the swap UUID differs per machine) and
+      # is NOT set on every host -- thinkpad's is still a commented-out TODO.
+      #
+      # This file is shared by both hosts, so asking for HybridSleep unconditionally
+      # promised a safety net one of them could not deliver, and silently: the image
+      # gets written, nothing can read it back, and the machine cold-boots at exactly
+      # the moment the feature existed to prevent that. Derive the action from the
+      # precondition instead of asserting it, so each host gets the strongest option
+      # it can actually honour -- and so thinkpad upgrades itself the day its
+      # resumeDevice is filled in, with no TODO left to remember.
+      #
+      # PowerOff rather than Suspend for the host without it: at percentageAction the
+      # battery has minutes left, and a plain suspend would drain into an unclean
+      # shutdown anyway. Losing the session to a clean power-off is the honest
+      # outcome, not a worse one.
+      #
+      # Hibernation itself stays possible because security.protectKernelImage is left
+      # off (hosts/host.nix) -- turning it on would block hibernation and make this
+      # whole branch moot.
+      criticalPowerAction =
+        if config.boot.resumeDevice != "" then "HybridSleep" else "PowerOff";
+
       percentageLow = 20;
       percentageCritical = 10;
       percentageAction = 5;
@@ -100,7 +124,10 @@
 
   programs.fuse.userAllowOther = true;
 
-  # TPM2 (LUKS auto-unlock, sealed keys, attestation)
+  # TPM2: sealed keys and attestation. NOT doing LUKS auto-unlock, whatever an
+  # earlier version of this comment claimed -- neither host has an encrypted root
+  # (both are plain ext4, no boot.initrd.luks anywhere), so there is nothing to
+  # auto-unlock and this is inert on that front.
   security.tpm2 = {
     enable = true;
     pkcs11.enable = true;
