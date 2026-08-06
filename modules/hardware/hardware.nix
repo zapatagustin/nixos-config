@@ -12,6 +12,18 @@
   powerManagement.enable = true;
 
   services = {
+    # The power button suspends instead of powering off. It sits next to keys you
+    # actually use on this chassis, and logind's default of `poweroff` turns a
+    # mis-hit into lost work with no confirmation.
+    #
+    # HandlePowerKeyLongPress stays at its default of `ignore`, so there is no
+    # hold-to-force-off either -- a hard power cut is what the firmware's own
+    # multi-second hold is for, below the OS entirely.
+    #
+    # Set under services.logind.settings.Login, which is the current path; the flat
+    # services.logind.powerKey option it replaced no longer exists here.
+    logind.settings.Login.HandlePowerKey = "suspend";
+
     hardware.bolt.enable = true;
     timesyncd.enable = true;
     gpm.enable = true;

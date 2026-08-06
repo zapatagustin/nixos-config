@@ -11,6 +11,23 @@ Item {
 
     property int percent: 100
 
+    // Perceptual gamma, the inverse of what scripts/brightness.sh applies when it
+    // SETS the backlight. Showing the raw sysfs ratio instead would put a different
+    // number on screen than the one the keys are moving -- on this panel a control
+    // at 31% reads 7.5% raw, and the bar said 7% while a keypress moved it by five
+    // points of the other scale.
+    //
+    // It is a LITERAL because this directory is deployed as a single symlink
+    // (xdg.configFile."quickshell".source), so Nix cannot write a generated value
+    // into it. flake.nix's brightness-exponent check pins it to
+    // myDesktop.brightnessExponent so the two cannot drift -- the same treatment
+    // hyprland.lua's hardcoded palette hexes get.
+    readonly property real exponent: 1.1
+
+    function perceptual(raw, max) {
+        return Math.round(Math.pow(raw / max, 1 / brightness.exponent) * 100)
+    }
+
     // Instant refresh: scripts/brightness.sh appends to this pipe after running
     // brightnessctl. sysfs doesn't emit reliable inotify events, hence the
     // explicit push instead of aggressive polling. Guarded by `detected` so a
@@ -97,7 +114,7 @@ Item {
             brightness.currentOk = !isNaN(v)
             if (brightness.currentOk) brightness.rawCurrent = v
             brightness.refreshAvailability()
-            if (brightness.available) brightness.percent = Math.round(brightness.rawCurrent / brightness.rawMax * 100)
+            if (brightness.available) brightness.percent = brightness.perceptual(brightness.rawCurrent, brightness.rawMax)
         }
         onLoadFailed: {
             brightness.currentOk = false
@@ -113,7 +130,7 @@ Item {
             brightness.maxOk = !isNaN(v) && v > 0
             if (brightness.maxOk) brightness.rawMax = v
             brightness.refreshAvailability()
-            if (brightness.available) brightness.percent = Math.round(brightness.rawCurrent / brightness.rawMax * 100)
+            if (brightness.available) brightness.percent = brightness.perceptual(brightness.rawCurrent, brightness.rawMax)
         }
         onLoadFailed: {
             brightness.maxOk = false

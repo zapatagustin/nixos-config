@@ -2,6 +2,7 @@
 let
   mm = config.myDesktop.multiMonitor.enable;
   iscale = toString config.myDesktop.internalScale; # eDP-1 fractional scale (per host)
+  bexp = toString config.myDesktop.brightnessExponent; # perceptual brightness gamma (per host)
   # repo-root/wallpapers, copied whole into the store. Every image here is
   # referenced by exact filename (below, and setup-monitors.sh) -- nothing picks one
   # dynamically, so an unreferenced file is dead bytes in the closure. Four of them
@@ -29,7 +30,12 @@ let
     runtimeInputs = with pkgs; [ brightnessctl coreutils gnugrep util-linux ]
       ++ lib.optional mm ddcutil;
     bashOptions = [ "nounset" ]; # script uses `set -u`; errexit would abort best-effort ddcutil calls
-    text = builtins.readFile ./scripts/brightness.sh;
+    # EXPONENT is prepended rather than living in the script, so the perceptual
+    # gamma has ONE definition (myDesktop.brightnessExponent) instead of a copy per
+    # consumer. The script's own `#!/usr/bin/env bash` ends up below
+    # writeShellApplication's shebang and is inert there, same as every other
+    # script wrapped this way in this file.
+    text = "readonly EXPONENT=${bexp}\n" + builtins.readFile ./scripts/brightness.sh;
   };
 
   # System-wide gruvbox dark/light switch. Wrapped rather than deployed into

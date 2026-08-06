@@ -2,6 +2,33 @@
 # Brightness key handler. Adjusts the internal backlight instantly, then chases
 # any external DDC/CI monitors to the same percent.
 #
+# THE PERCENT IS PERCEPTUAL, and every `brightnessctl` call here passes -e$EXPONENT
+# so that reads and writes share one scale. That sounds pedantic and was the bug:
+# the script used to SET with an exponential curve and READ with the plain linear
+# one, so the number handed to DDC was a different quantity than the one the keys
+# were moving. Measured on the surface, the same raw value read on both scales --
+# taken when the gamma was still 4, which is what made the gap so wide:
+#
+#   brightnessctl -m       -> 5%    <- what the externals used to get
+#   brightnessctl -e4 -m   -> 47%   <- where the control actually was
+#
+# So the externals sat at DDC 5 while the control was near half travel, and the
+# panel itself was at 4.9% of maximum raw and barely readable. Both halves of that
+# are gone: one scale for both devices, and a MEASURED gamma.
+#
+# A monitor's DDC 0-100 already ships calibrated to look perceptually linear, so the
+# value to send it is just the control's percent. Only the panel needs a curve, and
+# how steep is a property of that panel -- on the surface, matching by eye against
+# the externals put it at 1.087, i.e. barely any correction at all. See
+# myDesktop.brightnessExponent for why the theoretical 2.2 was wrong here.
+#
+# Equalising real luminance is NOT what this does and cannot be done without a
+# photometer -- the panels have different maximum nits and different floors.
+#
+# EXPONENT is prepended by wm/hyprland/default.nix from myDesktop.brightnessExponent.
+# quickshell/bar/Brightness.qml carries the same number as a literal, pinned to this
+# one by flake.nix's brightness-exponent check.
+#
 # Everything DDC-related happens inside one flock'd background worker: bus
 # detection AND the writes. The bind is `bindle`, so holding the key fires this
 # script dozens of times — work left outside the lock would run concurrently and
@@ -12,8 +39,8 @@ set -u
 step=5
 mode=${1:-up}
 case "$mode" in
-  up)   brightnessctl -e4 -n2 set "${step}%+" >/dev/null ;;
-  down) brightnessctl -e4 -n2 set "${step}%-" >/dev/null ;;
+  up)   brightnessctl -e"$EXPONENT" -n2 set "${step}%+" >/dev/null ;;
+  down) brightnessctl -e"$EXPONENT" -n2 set "${step}%-" >/dev/null ;;
   # sync: change nothing, just re-assert the current percent on the externals.
   #
   # They need it because a DDC write is not durable on them: the monitors revert to
@@ -72,7 +99,7 @@ buses="$runtime_dir/ddc-buses"
 
   last=""
   while :; do
-    cur=$(brightnessctl -m | cut -d, -f4 | tr -d '%')
+    cur=$(brightnessctl -e"$EXPONENT" -m | cut -d, -f4 | tr -d '%')
     [ "$cur" = "$last" ] && break
     last=$cur
     # One ddcutil per bus, all at once: every external lands in the same DDC
@@ -102,7 +129,7 @@ buses="$runtime_dir/ddc-buses"
   [ "$mode" = sync ] || exit 0
   for _ in 1 2 3 4; do
     sleep 0.25
-    cur=$(brightnessctl -m | cut -d, -f4 | tr -d '%')
+    cur=$(brightnessctl -e"$EXPONENT" -m | cut -d, -f4 | tr -d '%')
     [ "$cur" = "$last" ] && continue
     last=$cur
     while read -r bus; do

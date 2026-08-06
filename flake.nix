@@ -439,6 +439,43 @@
             --rcfile=${./.shellcheckrc} \
             ${scripts}/*.sh 2>&1 | tee $out
         '';
+
+      # The brightness gamma exists twice and only one copy can come from Nix.
+      # scripts/brightness.sh gets it substituted at build time, but the bar's
+      # Brightness.qml has to carry a literal: quickshell/ is deployed as ONE
+      # symlink (xdg.configFile."quickshell".source), so nothing generated can be
+      # written inside it. Same shape as the hyprland.lua palette hexes above, and
+      # the same fix -- pin the literal to the option rather than trusting a comment.
+      #
+      # A drift here is silent and confusing rather than loud: the bar would keep
+      # displaying a percentage on a different curve than the keys actually move,
+      # which is precisely the bug this whole change removed.
+      brightnessExponent = hostname:
+        let
+          qml = ./modules/home-manager/wm/hyprland/quickshell/bar/Brightness.qml;
+          want = toString nixosConfigurations.${hostname}.config.home-manager.users.${hostname}.myDesktop.brightnessExponent;
+        in
+        pkgs.runCommand "brightness-exponent-${hostname}" { } ''
+          # Anchor on the property name and pull the number out of the middle, so a
+          # reformat or a trailing comment cannot make this pass by accident.
+          got=$(sed -n 's/^[[:space:]]*readonly property real exponent:[[:space:]]*\([0-9.]*\).*/\1/p' \
+                ${qml} | head -n1)
+          [ -n "$got" ] || {
+            echo "Brightness.qml no longer declares 'readonly property real exponent'." >&2
+            echo "The bar's percentage is derived from it; this check cannot verify a" >&2
+            echo "value that is not there." >&2
+            exit 1
+          }
+          # Numeric compare, not string: 2.2 and 2.20 are the same gamma, and Nix
+          # renders the float itself so its formatting is not ours to predict.
+          awk -v a="$got" -v b="${want}" 'BEGIN { exit !(a + 0 == b + 0) }' || {
+            echo "Brightness.qml says exponent $got but myDesktop.brightnessExponent" >&2
+            echo "for ${hostname} is ${want}. The bar would report a percentage on a" >&2
+            echo "different curve than the brightness keys move. Update the literal." >&2
+            exit 1
+          }
+          echo "ok: $got" | tee $out
+        '';
     in
     {
       inherit nixosConfigurations;
@@ -456,6 +493,8 @@
         statix = statixCheck;
         deadnix = deadnixCheck;
         hypr-scripts-shellcheck = hyprScriptsShellcheck;
+        brightness-exponent-surface = brightnessExponent "surface";
+        brightness-exponent-thinkpad = brightnessExponent "thinkpad";
         repo-lint = repoLint;
         theme-invariants-surface = themeSpecialisationInvariants "surface";
         theme-invariants-thinkpad = themeSpecialisationInvariants "thinkpad";
