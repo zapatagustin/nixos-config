@@ -572,13 +572,18 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
-  # Time-of-day palette. One service + one timer rather than a light/dark pair:
-  # `set-theme auto` derives the mode from the hour, so both OnCalendar entries can
-  # drive the same unit. It no-ops when already in the target mode, so firing it at
-  # login is free.
+  # Restores the palette that was last chosen. The ONLY thing that changes it
+  # automatically -- there is no time-of-day switching; a theme-sync.timer used to
+  # fire at 09:00/18:00 and was removed, so the palette now changes only on request.
+  #
+  # This unit still has to exist, because a `nixos-rebuild switch` re-runs the
+  # home-manager unit and lands on the parent generation, i.e. dark, whatever you
+  # had picked. It reads the recorded mode rather than the active one for exactly
+  # that reason, and no-ops when the two already agree, so firing it at login is
+  # free.
   systemd.user.services.theme-sync = {
     Unit = {
-      Description = "Apply the time-of-day gruvbox palette (light 09:00-18:00, dark otherwise)";
+      Description = "Restore the last chosen gruvbox palette";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
       # The timer is WantedBy=timers.target, so it fires from ANY login that
@@ -599,25 +604,11 @@ in
     };
     Service = {
       Type = "oneshot";
-      ExecStart = "${setTheme}/bin/set-theme auto";
+      ExecStart = "${setTheme}/bin/set-theme restore";
     };
-    # Also runs at login, which re-syncs after a nixos-rebuild switch (that reverts
-    # to the parent/dark generation).
+    # Runs at login, which is what re-applies the chosen palette after a
+    # nixos-rebuild switch reverted it to the parent/dark generation.
     Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  systemd.user.timers.theme-sync = {
-    Unit.Description = "Switch the gruvbox palette at 09:00 and 18:00";
-    Timer = {
-      # Mirrors LIGHT_FROM/LIGHT_UNTIL in scripts/set-theme.sh. Nothing ties the
-      # two together, so change both or the transition fires at the wrong time.
-      OnCalendar = [ "*-*-* 09:00:00" "*-*-* 18:00:00" ];
-      # Fires on resume for a boundary missed while the machine was off. (A
-      # realtime OnCalendar already re-evaluates across a plain suspend; this
-      # covers shutdown/hibernate, which suspend alone does not.)
-      Persistent = true;
-    };
-    Install.WantedBy = [ "timers.target" ];
   };
 
   # scripts deployed individually so they coexist with the generated hyprland.lua

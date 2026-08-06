@@ -52,11 +52,13 @@ in
   # stylix has no dual-scheme or runtime-switch support: base16Scheme is one value
   # per evaluation. So the light palette is a home-manager specialisation: a second
   # full evaluation of this config. Every stylix target regenerates for free —
-  # verified by diffing the two generations, 13 files: bat, kitty, nvim, zathura,
+  # verified by diffing the two generations, 16 files: bat, kitty, nvim, zathura,
   # zed, hypr/hyprlock.conf, gtk-3.0 and gtk-4.0 (gtk.css AND settings.ini, the
-  # latter because the icon variant follows the palette), .gtkrc-2.0, and stylix's
-  # own palette.json/html. Notably NOT zellij: shells/zellij/zellij.nix generates
-  # both palettes unconditionally, so its themes are byte-identical here.
+  # latter because the icon variant follows the palette), .gtkrc-2.0, stylix's own
+  # palette.json/html, and zen's userChrome.css, userContent.css and user.js (the
+  # last one because stylix's reader-mode prefs are palette-derived too). Notably
+  # NOT zellij: shells/zellij/zellij.nix generates both palettes unconditionally, so
+  # its themes are byte-identical here.
   #
   # `polarity` is switched alongside base16Scheme. It used to be pinned to "dark"
   # in both, on the reasoning that no ENABLED target reads it (still true of
@@ -137,6 +139,19 @@ in
       # else, native GTK4/libadwaita, and flatpak theming. Replaces the manual
       # gruvbox-gtk-theme (only the theme; iconTheme=papirus stays in home.nix).
       gtk.enable = true;
+
+      # Browser CHROME only -- tabs, toolbar, menus -- via userChrome.css and
+      # userContent.css, plus the three font.name.*.x-western prefs. Page content is
+      # out of reach by construction: a site only ever learns dark-vs-light through
+      # prefers-color-scheme, and no freedesktop mechanism carries a palette.
+      #
+      # profileNames indexes programs.zen-browser.profiles, whose `default` entry is
+      # pinned to the real on-disk directory in home.nix. Leaving this empty is not
+      # an error, just a warning and a no-op, so it has to match that attribute name.
+      zen-browser = {
+        enable = true;
+        profileNames = [ "default" ];
+      };
 
       # Deliberately OFF — stylix here is a no-op or a regression:
       #   zellij   -> shells/zellij/zellij.nix generates BOTH palettes instead, which

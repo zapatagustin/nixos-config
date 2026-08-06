@@ -14,6 +14,11 @@
     # Claude Code + opencode config, from the ecomono flake. Replaces the local
     # ./claude-code and ./opencode modules, which were a second copy of it.
     inputs.ecomono.homeModules.default
+    # Zen as a MODULE rather than a bare package in home.packages: stylix's
+    # zen-browser target is gated on `options.programs ? zen-browser`, so with the
+    # package alone it silently did nothing. homeModules.default is the beta channel,
+    # which matches the `zen-beta` binary that was already installed.
+    inputs.zen-browser.homeModules.default
   ];
 
   home.username = username;
@@ -87,11 +92,32 @@
     platformTheme.name = "gtk3";
   };
 
+  # `path` is what decides which directory on disk the profile is, and it must keep
+  # pointing at the one that already holds the history, extensions and logins --
+  # `qu5xpc4r.Default Profile`, read out of ~/.config/zen/profiles.ini. The attribute
+  # name is only a label, so it stays readable instead of carrying that random salt.
+  #
+  # This module is home-manager's own mkFirefoxModule underneath, which means it
+  # takes ownership of ~/.config/zen/profiles.ini and replaces it with a store
+  # symlink as soon as `profiles` is non-empty. That rewrites the `Name=` field
+  # (cosmetic; zen resolves the profile by Path) and makes the file read-only, which
+  # is the one thing to watch if zen ever wants to rewrite it itself.
+  #
+  # FIRST ACTIVATION AFTER THIS LANDS WILL FAIL unless the existing profiles.ini is
+  # moved aside: it is a real file, and home-manager's checkLinkTargets refuses to
+  # clobber anything it does not already own. The generated one is equivalent --
+  # same Path, same Default=1, same IsRelative=1, same Version=2 -- so
+  # `mv ~/.config/zen/profiles.ini{,.bak}` with zen closed is the whole migration.
+  programs.zen-browser = {
+    enable = true;
+    profiles.default.path = "qu5xpc4r.Default Profile";
+  };
+
   nixpkgs.config.allowUnfree = true;
 
   home.packages = with pkgs; [
     brave-origin # was a local pkgs/brave-origin.nix repack; nixpkgs carries it now
-    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
+    # zen -> programs.zen-browser below, so stylix.targets.zen-browser can theme it.
     nnn
     # Zed lives in ./editors/zed now (programs.zed-editor + stylix + sops wrapper).
     sone

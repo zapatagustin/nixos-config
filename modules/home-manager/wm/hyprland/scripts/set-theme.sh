@@ -20,16 +20,19 @@
 # is only ever rewritten by nixos-rebuild.
 #
 # Consequence: a `nixos-rebuild switch` re-runs that unit and puts you back on
-# dark, which is why the mode file alone cannot be trusted as current state — see
-# active_mode below. The theme-sync unit runs `auto` at login to re-sync.
+# dark behind your back. That is what `restore` is for: the theme-sync unit runs it
+# at login, and it re-applies whatever palette was last CHOSEN.
 #
-# The boundary hours below are mirrored by theme-sync.timer's OnCalendar entries
-# in ../default.nix — change both together or the transition fires at the wrong
-# wall-clock time.
+# Which makes the two state sources deliberately different, and neither redundant:
+#   the mode file  is INTENT   — the last palette explicitly asked for. Survives
+#                                reboots and rebuilds. What `restore` reads.
+#   current-home   is REALITY  — the generation actually activated. What `toggle`
+#                                reads, so it always flips away from what is on
+#                                screen even when a rebuild desynced the two.
+#
+# There is no time-of-day switching. It existed, keyed to 09:00/18:00 via a
+# theme-sync.timer, and was removed: the palette now changes only when asked.
 set -u
-
-LIGHT_FROM=9   # inclusive
-LIGHT_UNTIL=18 # exclusive
 
 state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
 state_dir="$state_home/hypr"
@@ -55,13 +58,13 @@ fail() {
 }
 
 usage() {
-  echo "usage: set-theme {dark|light|toggle|auto}" >&2
+  echo "usage: set-theme {dark|light|toggle|restore}" >&2
   exit 2
 }
 
 want=${1:-}
 case "$want" in
-  dark | light | toggle | auto) ;;
+  dark | light | toggle | restore) ;;
   *) usage ;;
 esac
 
@@ -115,21 +118,25 @@ active_mode() {
   fi
 }
 
-mode_for_now() {
-  local h
-  h=$(date +%-H)
-  if [ "$h" -ge "$LIGHT_FROM" ] && [ "$h" -lt "$LIGHT_UNTIL" ]; then
-    echo light
-  else
-    echo dark
-  fi
+# RECORDED intent, as opposed to active_mode's reality. Only these two words are
+# accepted: a truncated or hand-edited file must not decide the palette, and dark is
+# the parent generation, i.e. where a plain rebuild already leaves the system.
+saved_mode() {
+  local saved
+  saved=$(cat "$mode_file" 2>/dev/null || true)
+  case "$saved" in
+    light) echo light ;;
+    *) echo dark ;;
+  esac
 }
 
 active=$(active_mode)
 
 case "$want" in
   dark | light) mode="$want" ;;
-  auto) mode="$(mode_for_now)" ;;
+  # Deliberately the FILE and not active_mode: right after a rebuild those two
+  # disagree, and the file is the one holding what was actually asked for.
+  restore) mode="$(saved_mode)" ;;
   toggle)
     if [ "$active" = dark ]; then mode=light; else mode=dark; fi
     ;;

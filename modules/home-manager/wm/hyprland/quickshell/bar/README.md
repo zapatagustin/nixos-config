@@ -25,15 +25,18 @@ the palette (the others are the two Stylix instances and starship): Stylix expos
 only ONE palette per evaluation, and the bar needs both at once so it can flip
 without a rebuild.
 
-`isDark` is not computed from the clock. It is read at startup from
-`$XDG_STATE_HOME/hypr/theme-mode` and flipped live by an `IpcWatcher` on
-`$XDG_RUNTIME_DIR/qs-theme`, both written by `../../scripts/set-theme.sh`
-(`set-theme dark|light|toggle|auto`). The schedule lives in the `theme-sync` timer in
-`../../default.nix`, at 09:00 and 18:00 — not in this directory.
+`isDark` is not computed from the clock, and nothing switches it on a schedule. It
+is read at startup from `$XDG_STATE_HOME/hypr/theme-mode` and flipped live by an
+`IpcWatcher` on `$XDG_RUNTIME_DIR/qs-theme`, both written by
+`../../scripts/set-theme.sh` (`set-theme dark|light|toggle|restore`).
 
-So: to recolour the bar, edit the two palettes here. To change WHEN it flips, edit
-the timer. To change what the rest of the system does, see
-`modules/home-manager/stylix.nix`.
+The palette changes only when asked: the bar's toggle button, or the script by hand.
+The one automatic caller is the `theme-sync` service in `../../default.nix`, which
+runs `set-theme restore` at login — needed because a `nixos-rebuild switch` lands on
+the parent generation and would otherwise silently revert you to dark.
+
+So: to recolour the bar, edit the two palettes here. To change what the rest of the
+system does, see `modules/home-manager/stylix.nix`.
 
 ## Constraints worth knowing before editing
 
