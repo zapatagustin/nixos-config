@@ -115,7 +115,6 @@ in
     # kitty -> programs.kitty (terminals/kitty/kitty.nix), which installs it and lets
     # stylix.targets.kitty theme it. Listing it here as well was a second path to the
     # same package.
-    # yazi -> programs.yazi (home.nix), so stylix.targets.yazi themes it
     satty # screenshot annotation (screenshot.sh edit)
     # gruvbox-gtk-theme dropped: GTK now themed by stylix.targets.gtk
     papirus-icon-theme

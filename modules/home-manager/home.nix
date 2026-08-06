@@ -22,10 +22,9 @@
 
   programs.home-manager.enable = true;
 
-  # Migrated from bare packages to programs.* so stylix can theme them
-  # (stylix.targets.{zathura,yazi} in ./stylix.nix).
+  # Migrated from a bare package to programs.* so stylix can theme it
+  # (stylix.targets.zathura in ./stylix.nix).
   programs.zathura.enable = true;
-  programs.yazi.enable = true;
 
   # stylix.cursor never applies because homeManagerIntegration.autoImport=false,
   # so set the pointer here directly: installs the theme to ~/.icons and sets

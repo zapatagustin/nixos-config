@@ -52,8 +52,11 @@ in
   # stylix has no dual-scheme or runtime-switch support: base16Scheme is one value
   # per evaluation. So the light palette is a home-manager specialisation: a second
   # full evaluation of this config. Every stylix target regenerates for free —
-  # verified, 11 files differ between the two generations (kitty, neovim, bat, yazi,
-  # zellij, zathura, zed, gtk-3.0, gtk-4.0, and stylix's own palette.json/html).
+  # verified by diffing the two generations, 13 files: bat, kitty, nvim, zathura,
+  # zed, hypr/hyprlock.conf, gtk-3.0 and gtk-4.0 (gtk.css AND settings.ini, the
+  # latter because the icon variant follows the palette), .gtkrc-2.0, and stylix's
+  # own palette.json/html. Notably NOT zellij: shells/zellij/zellij.nix generates
+  # both palettes unconditionally, so its themes are byte-identical here.
   #
   # `polarity` is switched alongside base16Scheme. It used to be pinned to "dark"
   # in both, on the reasoning that no ENABLED target reads it (still true of
@@ -122,8 +125,6 @@ in
       kitty.enable = true;
       bat.enable = true;
       zathura.enable = true;
-      yazi.enable = true;
-      zellij.enable = true; # activated via `theme "stylix"` in zellij/config.kdl
       # hyprlock deliberately NOT enabled: stylix's hyprlock target also sets
       # `programs.hyprlock.settings.background` to a solid base00 colour, which
       # collides with the blurred-wallpaper background list in
@@ -138,6 +139,12 @@ in
       gtk.enable = true;
 
       # Deliberately OFF — stylix here is a no-op or a regression:
+      #   zellij   -> shells/zellij/zellij.nix generates BOTH palettes instead, which
+      #               this target structurally cannot: it evaluates one palette per
+      #               generation, and zellij's set-dark-theme/set-light-theme (the
+      #               only way to retheme a LIVE session) needs two themes to exist
+      #               at once. Enabling both would also collide on
+      #               programs.zellij.themes.
       #   starship -> shells/starship/starship.nix already uses the exact
       #               gruvbox-dark-medium hexes with lib.mkForce; stylix's base16
       #               palette uses different color names, so the target either
