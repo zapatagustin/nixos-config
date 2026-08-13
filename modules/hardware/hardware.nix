@@ -146,7 +146,26 @@
     # iwlwifi, intel-bluetooth) is in linux-firmware (redistributable). All-firmware
     # only added non-redistributable blobs this hardware never requests.
     enableRedistributableFirmware = true;
-    graphics.enable = true;
+
+    graphics = {
+      enable = true;
+
+      # VA-API. Mesa ships no Intel video driver, so a bare graphics.enable leaves
+      # these machines with zero hardware video decode: /run/opengl-driver/lib/dri
+      # holds the gallium drivers for other vendors and no iHD_drv_video.so at all,
+      # vainfo finds nothing, and every player falls back to software without
+      # saying so. Measured on surface (i7-1185G7, Tiger Lake / Gen12) -- with
+      # intel-media-driver present vainfo reports VAProfileAV1Profile0 and VP9
+      # profiles 0-3 under VAEntrypointVLD, which is the exact format ladder
+      # YouTube serves.
+      #
+      # iHD only. The legacy i965 driver predates Gen12 and would only ever be
+      # picked by mistake; leaving it out also removes the ambiguity that makes
+      # LIBVA_DRIVER_NAME necessary, since libva has a single candidate to probe.
+      # vpl-gpu-rt is likewise left out -- it is the oneVPL runtime for QSV
+      # transcoding, and nothing here transcodes.
+      extraPackages = [ pkgs.intel-media-driver ];
+    };
     trackpoint = {
       enable = lib.mkDefault true;
       speed = 200;
