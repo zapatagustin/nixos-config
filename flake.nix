@@ -2,20 +2,25 @@
   description = "multi-host NixOS flake (surface + thinkpad)";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # nixpkgs follows chaotic's pin rather than nixos-unstable directly. The
+    # chaotic overlay instantiates its packages (incl. linux_cachyos) against
+    # THIS nixpkgs, and nyx-cache only holds builds for the exact rev chaotic's
+    # CI locked — any other rev changes the drv hashes and the kernel plus its
+    # Rust toolchain (rustc, bindgen) compile from source locally. Tracking
+    # chaotic's pin guarantees the cache hit; the cost is nixpkgs trailing
+    # nixos-unstable by the few days between chaotic lock bumps. The lockfile
+    # still holds exactly one nixpkgs.
+    nixpkgs.follows = "chaotic/nixpkgs";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # chaotic (CachyOS packages, incl. the kernel). It tracks nixos-unstable itself,
-    # so before these follows its nixpkgs merely HAPPENED to match ours whenever both
-    # were updated in the same run — a partial `nix flake update` would have split
-    # them and pulled a second full nixpkgs into the closure. Its home-manager input
-    # only feeds chaotic's own homeManagerModules, which this repo does not use (it
-    # takes chaotic.nixosModules.default).
+    # chaotic (CachyOS packages, incl. the kernel). Its nixpkgs input is the
+    # root nixpkgs (see above), so it must NOT follow anything here. Its
+    # home-manager input only feeds chaotic's own homeManagerModules, which this
+    # repo does not use (it takes chaotic.nixosModules.default).
     chaotic = {
       url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
-      inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
     zen-browser = {
