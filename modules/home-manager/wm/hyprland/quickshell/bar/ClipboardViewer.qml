@@ -368,9 +368,12 @@ PanelWindow {
 
                         Keys.onPressed: (event) => {
                             var empty = text === ""
+                            // Letters via UsKeys (physical position, dvorak-proof);
+                            // named keys via event.key as usual.
+                            const l = UsKeys.letter(event)
 
                             // Shift+A siempre ancla, sin importar si hay texto
-                            if (event.key === Qt.Key_A && (event.modifiers & Qt.ShiftModifier)) {
+                            if (l === "a" && (event.modifiers & Qt.ShiftModifier)) {
                                 if (viewer.filteredItems.length > 0)
                                     viewer.togglePin(viewer.filteredItems[viewer.selectedIndex])
                                 event.accepted = true
@@ -379,7 +382,7 @@ PanelWindow {
 
                             // Vim keys solo cuando el input está vacío
                             if (empty) {
-                                if (event.key === Qt.Key_J || event.key === Qt.Key_Down) {
+                                if (l === "j" || event.key === Qt.Key_Down) {
                                     if (viewer.selectedIndex < viewer.filteredItems.length - 1) {
                                         viewer.selectedIndex++
                                         itemList.positionViewAtIndex(viewer.selectedIndex, ListView.Contain)
@@ -387,7 +390,7 @@ PanelWindow {
                                     event.accepted = true
                                     return
                                 }
-                                if (event.key === Qt.Key_K || event.key === Qt.Key_Up) {
+                                if (l === "k" || event.key === Qt.Key_Up) {
                                     if (viewer.selectedIndex > 0) {
                                         viewer.selectedIndex--
                                         itemList.positionViewAtIndex(viewer.selectedIndex, ListView.Contain)
@@ -395,18 +398,18 @@ PanelWindow {
                                     event.accepted = true
                                     return
                                 }
-                                if (event.key === Qt.Key_L) {
+                                if (l === "l") {
                                     if (viewer.filteredItems.length > 0)
                                         viewer.selectItem(viewer.filteredItems[viewer.selectedIndex])
                                     event.accepted = true
                                     return
                                 }
-                                if (event.key === Qt.Key_H) {
+                                if (l === "h") {
                                     viewer.doHide()
                                     event.accepted = true
                                     return
                                 }
-                                if (event.key === Qt.Key_D) {
+                                if (l === "d") {
                                     if (viewer.filteredItems.length > 0)
                                         viewer.deleteItem(viewer.filteredItems[viewer.selectedIndex])
                                     event.accepted = true

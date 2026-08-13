@@ -299,6 +299,14 @@ in
           ${lib.optionalString mm ''hl.exec_cmd("bash " .. hyprDir .. "/setup-monitors.sh")''}
       end)
 
+      -- Letter binds are keysym names on purpose: with resolve_binds_by_sym=0
+      -- (the default) Hyprland matches binds through a translation state pinned
+      -- to the FIRST layout in kb_layout (es = qwerty positions), so these stay
+      -- at US/qwerty physical positions even while the us(dvorak) group is
+      -- active. Do NOT switch them to code:NN -- the Lua parser in 0.56 stores
+      -- keycode binds only in sMkKeys, leaving key/keycode empty, which breaks
+      -- matching, conflict detection and hyprctl introspection (dead binds).
+
       -- apps
       hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd("uwsm app -- " .. terminal))
       hl.bind(mainMod .. " + C", hl.dsp.window.close())

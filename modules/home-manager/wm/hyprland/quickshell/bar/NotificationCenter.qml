@@ -149,17 +149,20 @@ PanelWindow {
                     focus: center.open
 
                     Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_J || event.key === Qt.Key_Down) {
+                        // Letters via UsKeys (physical position, dvorak-proof);
+                        // named keys via event.key as usual.
+                        const l = UsKeys.letter(event)
+                        if (l === "j" || event.key === Qt.Key_Down) {
                             center.navigate(1); event.accepted = true
-                        } else if (event.key === Qt.Key_K || event.key === Qt.Key_Up) {
+                        } else if (l === "k" || event.key === Qt.Key_Up) {
                             center.navigate(-1); event.accepted = true
-                        } else if (event.key === Qt.Key_D) {
+                        } else if (l === "d") {
                             center.dismissSelected(); event.accepted = true
-                        } else if (event.key === Qt.Key_L || event.key === Qt.Key_Return) {
+                        } else if (l === "l" || event.key === Qt.Key_Return) {
                             center.invokeSelected(); event.accepted = true
-                        } else if (event.key === Qt.Key_H || event.key === Qt.Key_Escape) {
+                        } else if (l === "h" || event.key === Qt.Key_Escape) {
                             center.doHide(); event.accepted = true
-                        } else if (event.key === Qt.Key_G) {
+                        } else if (l === "g") {
                             center.selectedIndex = 0
                             itemList.positionViewAtIndex(0, ListView.Beginning)
                             event.accepted = true

@@ -3,6 +3,7 @@
 # must be listed here or it fails with "X is not a type", which takes down the whole
 # shell, not one widget. Add a line here whenever you add a component to this dir.
 singleton Paths 1.0 Paths.qml
+singleton UsKeys 1.0 UsKeys.qml
 Bar 1.0 Bar.qml
 Battery 1.0 Battery.qml
 Brightness 1.0 Brightness.qml
