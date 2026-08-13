@@ -129,6 +129,7 @@
     slack
     teams-for-linux
     pavucontrol
+    feishin
     superfile
     # stremio removed from nixpkgs (qt5 webengine dep). Flatpak was the suggested
     # way out, but it is disabled now (see the reasoning in default.nix) -- turning
