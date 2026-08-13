@@ -35,4 +35,12 @@
 
   # hyprlock needs a PAM entry to authenticate — without it you can't unlock.
   security.pam.services.hyprlock = { };
+
+  # Secret Service (org.freedesktop.secrets) for apps that store runtime
+  # tokens (mono_player's Google master token lives here). D-Bus-activated on
+  # demand; the greetd PAM hook unlocks it with the login password, so no
+  # extra prompt. This does not replace Bitwarden — it only serves local
+  # app secrets over D-Bus.
+  services.gnome.gnome-keyring.enable = true;
+  security.pam.services.greetd.enableGnomeKeyring = true;
 }
