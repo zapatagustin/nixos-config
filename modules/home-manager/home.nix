@@ -131,9 +131,8 @@
     pavucontrol
     feishin
     superfile
-    # stremio removed from nixpkgs (qt5 webengine dep). Flatpak was the suggested
-    # way out, but it is disabled now (see the reasoning in default.nix) -- turning
-    # it back on is the first step if stremio is ever actually wanted.
-    # stremio
+    # `stremio` itself is gone from nixpkgs (vulnerable qt5 webengine); this is
+    # the upstream-suggested replacement -- same app, webkit/GTK shell.
+    stremio-linux-shell
   ];
 }
