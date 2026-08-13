@@ -20,6 +20,15 @@ PanelWindow {
     anchors.right: true
     implicitWidth: 360
     implicitHeight: current !== null ? box.implicitHeight + 12 : 0
+    // Without this the window is permanently visible and idles as a 1px layer
+    // surface created ONCE at startup. If that single creation fails -- and it
+    // did, silently, for a 22h session where the notification centre still
+    // listed every notification the popup had tracked -- there is no second
+    // attempt and the popup is dead until the bar restarts. Binding visibility
+    // to the content makes every notification a fresh map, so a failed one
+    // costs one popup instead of the whole session. NotificationCenter,
+    // Launcher and ClipboardViewer already work this way.
+    visible: current !== null
     exclusiveZone: 0
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Overlay
