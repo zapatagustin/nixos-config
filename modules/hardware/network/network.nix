@@ -15,5 +15,7 @@ _: {
   services.tailscale = {
     enable = true;
     openFirewall = true;
+    # MagicDNS: resolve *.ts.net peers (navidrome on desktop) via resolved
+    extraSetFlags = [ "--accept-dns=true" ];
   };
 }
