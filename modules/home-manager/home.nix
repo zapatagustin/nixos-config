@@ -113,7 +113,29 @@
   # `mv ~/.config/zen/profiles.ini{,.bak}` with zen closed is the whole migration.
   programs.zen-browser = {
     enable = true;
-    profiles.default.path = "qu5xpc4r.Default Profile";
+    profiles.default = {
+      path = "qu5xpc4r.Default Profile";
+      # SearXNG runs on the desktop (CachyOS, github:zapatagustin/cachy-config
+      # -- a rootless podman quadlet set up imperatively there, same as
+      # syncthing). It publishes on the tailnet address only, so this is
+      # reachable from any network but never from the LAN or the internet.
+      search = {
+        # search.json.mozlz4 already exists in the profile; without force,
+        # home-manager refuses to overwrite it and the default never applies.
+        force = true;
+        default = "searxng";
+        privateDefault = "searxng";
+        engines.searxng = {
+          name = "SearXNG";
+          urls = [{
+            template = "http://desktop.taild4c79d.ts.net:8888/search";
+            params = [{ name = "q"; value = "{searchTerms}"; }];
+          }];
+          iconMapObj."16" = "http://desktop.taild4c79d.ts.net:8888/favicon.ico";
+          definedAliases = [ "@sx" ];
+        };
+      };
+    };
   };
 
   nixpkgs.config.allowUnfree = true;
