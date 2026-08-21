@@ -158,5 +158,9 @@
     # `stremio` itself is gone from nixpkgs (vulnerable qt5 webengine); this is
     # the upstream-suggested replacement -- same app, webkit/GTK shell.
     stremio-linux-shell
+    moonlight-qt # game streaming client for the desktop's sunshine host
+    # YouTube client from its own flake; ships its .desktop entry, so it shows
+    # up in the launcher. Update: `nix flake update mono_player` + rebuild.
+    inputs.mono_player.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }

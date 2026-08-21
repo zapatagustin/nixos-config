@@ -58,6 +58,17 @@
       url = "github:marienz/nix-doom-emacs-unstraightened";
       inputs.nixpkgs.follows = "";
     };
+    # Native Wayland YouTube client (~/personal/mono_player). Consumed as a
+    # bare package in home.packages, not a module. Follows this nixpkgs so its
+    # Qt/PySide6 closure is the one already on disk rather than a second copy
+    # from nixos-unstable; its yt-dlp nightly override applies on top either way.
+    # git+ssh rather than github: -- the repo is private, so the github fetcher
+    # 404s without an access token in nix.conf; ssh reuses the key that already
+    # pushes to it. Rebuilds therefore need the ssh agent (interactive shell: fine).
+    mono_player = {
+      url = "git+ssh://git@github.com/zapatagustin/mono_player";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Prebuilt nix-index database. programs.nix-index has been enabled since
     # forever, but the database it needs is generated locally and never was, so
     # every unknown command printed an I/O error instead of naming the package,
