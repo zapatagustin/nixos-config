@@ -16,6 +16,7 @@ NotificationCenter 1.0 NotificationCenter.qml
 NotificationPopup 1.0 NotificationPopup.qml
 RightSection 1.0 RightSection.qml
 TrayIcon 1.0 TrayIcon.qml
+Network 1.0 Network.qml
 Volume 1.0 Volume.qml
 WindowTitle 1.0 WindowTitle.qml
 WorkspaceButton 1.0 WorkspaceButton.qml

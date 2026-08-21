@@ -57,6 +57,14 @@ Item {
 
         Sep {}
 
+        // ── Red (ethernet o wifi) ────────────────────────────────
+        Network {
+            theme: rightSection.theme
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        Sep {}
+
         // ── Batería ──────────────────────────────────────────────
         Battery {
             theme: rightSection.theme
