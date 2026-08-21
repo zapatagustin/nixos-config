@@ -4,6 +4,7 @@
     ./options.nix
     ./stylix.nix
     ./shells/shells.nix
+    ./syncthing.nix
     ./terminals/terminals.nix
     ./editors/neovim
     ./editors/emacs
@@ -151,6 +152,7 @@
     slack
     teams-for-linux
     pavucontrol
+    keepassxc # vault synced from the desktop's kdbx via syncthing
     feishin
     superfile
     # `stremio` itself is gone from nixpkgs (vulnerable qt5 webengine); this is

@@ -101,6 +101,14 @@
       User thinkpad
       IdentityFile ~/.ssh/id_ed25519_personal
       IdentitiesOnly yes
+
+    # Desktop (CachyOS, not part of this flake) over Tailscale. Same personal
+    # key; its public half is in the desktop's authorized_keys.
+    Host desktop
+      HostName desktop.taild4c79d.ts.net
+      User desktop
+      IdentityFile ~/.ssh/id_ed25519_personal
+      IdentitiesOnly yes
   '';
 
   programs.delta = {
