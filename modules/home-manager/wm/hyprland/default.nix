@@ -543,6 +543,11 @@ in
       Description = "Quickshell bar";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
+      # quickshell loads QML once at startup; without this, a switch deploys the
+      # new config but the running bar keeps the old one until a manual restart.
+      # Interpolating the source dir bakes its store hash into the unit file, so
+      # any change under quickshell/ makes sd-switch restart the service.
+      X-Restart-Triggers = [ "${./quickshell}" ];
     };
     Service = {
       ExecStart = "${pkgs.quickshell}/bin/quickshell -p %h/.config/quickshell/bar";
