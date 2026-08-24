@@ -67,6 +67,7 @@ QtObject {
     // logout unlike the runtime-dir paths above — Quickshell.stateDir is the
     // per-user persistent state location for exactly this.
     readonly property string clipboardPinned: Quickshell.stateDir + "/qs-clipboard-pinned"
+    readonly property string cheatsheet: runtimeDir + "/qs-cheatsheet"
     readonly property string notif: runtimeDir + "/qs-notif"
     readonly property string volume: runtimeDir + "/qs-volume"
     readonly property string brightness: runtimeDir + "/qs-brightness"

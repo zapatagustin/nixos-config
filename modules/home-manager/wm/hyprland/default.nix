@@ -307,25 +307,45 @@ in
       -- keycode binds only in sMkKeys, leaving key/keycode empty, which breaks
       -- matching, conflict detection and hyprctl introspection (dead binds).
 
+      -- `description` in the opts table is the ONLY human-readable thing a Lua bind
+      -- exposes: `hyprctl binds -j` reports every one of them as
+      -- dispatcher "__lua" plus an opaque numeric arg, so without it there is
+      -- nothing to introspect. The cheat-sheet panel (quickshell/bar/Cheatsheet.qml,
+      -- SUPER+? below) hides any bind with has_description=false, which is how the
+      -- plumbing binds stay out of it.
+      --
+      -- Unknown opts keys are silently ignored by the Lua parser (verified in
+      -- 0.56.2 src/config/lua/bindings/LuaBindingsToplevel.cpp), so a typo'd
+      -- `descrption` still passes --verify-config and just never shows up.
+
       -- apps
-      hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd("uwsm app -- " .. terminal))
-      hl.bind(mainMod .. " + C", hl.dsp.window.close())
-      hl.bind(mainMod .. " + Space", hl.dsp.window.float({ action = "toggle" }))
-      hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
-      hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-launcher"))
-      hl.bind("ALT + Tab", hl.dsp.window.cycle_next())
+      hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd("uwsm app -- " .. terminal), { description = "Open terminal" })
+      hl.bind(mainMod .. " + C", hl.dsp.window.close(), { description = "Close window" })
+      hl.bind(mainMod .. " + Space", hl.dsp.window.float({ action = "toggle" }), { description = "Toggle floating" })
+      hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen(), { description = "Toggle fullscreen" })
+      hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-launcher"), { description = "Open app launcher" })
+      hl.bind("ALT + Tab", hl.dsp.window.cycle_next(), { description = "Cycle windows" })
+      -- Deliberately undescribed: same keystroke as the line above, it only raises
+      -- what that one focused. One key, one cheat-sheet row.
       hl.bind("ALT + Tab", hl.dsp.window.bring_to_top())
-      hl.bind("SUPER + SHIFT + L", hl.dsp.exec_cmd("loginctl lock-session"))
-      hl.bind("SUPER + P", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-clipboard"))
-      hl.bind("SUPER + SHIFT + P", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-clipboard"))
-      hl.bind("SUPER + SHIFT + N", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-notif"))
+      -- CTRL, not SHIFT: SUPER+SHIFT+l is move-window-right (vim loop), and the
+      -- shifted keysym L collided with it. No SHIFT means the keysym must be
+      -- lowercase l -- capital L only exists as a shifted keysym.
+      hl.bind("SUPER + CTRL + l", hl.dsp.exec_cmd("loginctl lock-session"), { description = "Lock session" })
+      hl.bind("SUPER + P", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-clipboard"), { description = "Open clipboard history" })
+      hl.bind("SUPER + SHIFT + P", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-clipboard"), { description = "Open clipboard history" })
+      hl.bind("SUPER + SHIFT + N", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-notif"), { description = "Open notification center" })
+      -- F1, not a shifted symbol: bind keysyms resolve against level 0 of the
+      -- FIRST kb_layout (es), where slash/question only exist behind Shift --
+      -- a bind on either keysym can never fire. F1 is level 0 on every layout.
+      hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-cheatsheet"), { description = "Show keybindings" })
 
       -- screenshots (via bash -> no exec-bit needed)
-      hl.bind("Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh region"))
-      hl.bind("SHIFT + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh window"))
-      hl.bind("CTRL + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh output"))
-      hl.bind("SUPER + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh screen"))
-      hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh edit"))
+      hl.bind("Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh region"), { description = "Screenshot region" })
+      hl.bind("SHIFT + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh window"), { description = "Screenshot active window" })
+      hl.bind("CTRL + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh output"), { description = "Screenshot monitor under cursor" })
+      hl.bind("SUPER + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh screen"), { description = "Screenshot all monitors" })
+      hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh edit"), { description = "Screenshot region and annotate" })
 
       -- focus / move window (vim + arrows)
       for _, d in ipairs({
@@ -338,40 +358,43 @@ in
           { key = "up",    dir = "up"    },
           { key = "down",  dir = "down"  },
       }) do
-          hl.bind(mainMod .. " + " .. d.key, hl.dsp.focus({ direction = d.dir }))
-          hl.bind(mainMod .. " + SHIFT + " .. d.key, hl.dsp.window.move({ direction = d.dir }))
+          hl.bind(mainMod .. " + " .. d.key, hl.dsp.focus({ direction = d.dir }), { description = "Focus " .. d.dir })
+          hl.bind(mainMod .. " + SHIFT + " .. d.key, hl.dsp.window.move({ direction = d.dir }), { description = "Move window " .. d.dir })
       end
 
       -- scroll workspaces
-      hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
-      hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
+      hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }), { description = "Focus next workspace" })
+      hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }), { description = "Focus previous workspace" })
 
-      -- workspace/group binds call scripts via `bash` so no exec-bit is needed on store files
+      -- workspace/group binds call scripts via `bash` so no exec-bit is needed on store files.
+      -- `desc` is the cheat-sheet wording; the slot number is appended per iteration, so the
+      -- 36 rows read "Focus desktop 3 on this monitor" and friends.
       for _, s in ipairs({
-          { mods = mainMod,               script = "switch-monitor.sh"    },
-          { mods = "ALT",                 script = "switch-group.sh"      },
-          { mods = mainMod .. " + SHIFT", script = "move-to-group.sh"     },
-          { mods = "ALT + SHIFT",         script = "move-all-to-group.sh" },
+          { mods = mainMod,               script = "switch-monitor.sh",    desc = "Focus desktop %d on this monitor" },
+          { mods = "ALT",                 script = "switch-group.sh",      desc = "Focus desktop %d on all monitors" },
+          { mods = mainMod .. " + SHIFT", script = "move-to-group.sh",     desc = "Move window to desktop %d" },
+          { mods = "ALT + SHIFT",         script = "move-all-to-group.sh", desc = "Move all windows to desktop %d" },
       }) do
           for i = 1, 9 do
-              hl.bind(s.mods .. " + " .. i, hl.dsp.exec_cmd("bash " .. hyprDir .. "/" .. s.script .. " " .. i))
+              hl.bind(s.mods .. " + " .. i, hl.dsp.exec_cmd("bash " .. hyprDir .. "/" .. s.script .. " " .. i),
+                      { description = string.format(s.desc, i) })
           end
       end
 
-      hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
-      hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+      hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true, description = "Drag window" })
+      hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true, description = "Resize window" })
 
-      hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ && echo . >> $XDG_RUNTIME_DIR/qs-volume"), { locked = true, repeating = true })
-      hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && echo . >> $XDG_RUNTIME_DIR/qs-volume"), { locked = true, repeating = true })
-      hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && echo . >> $XDG_RUNTIME_DIR/qs-volume"), { locked = true, repeating = true })
-      hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, repeating = true })
-      hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("${brightnessScript}/bin/brightness up"), { locked = true, repeating = true })
-      hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("${brightnessScript}/bin/brightness down"), { locked = true, repeating = true })
+      hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ && echo . >> $XDG_RUNTIME_DIR/qs-volume"), { locked = true, repeating = true, description = "Volume up" })
+      hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && echo . >> $XDG_RUNTIME_DIR/qs-volume"), { locked = true, repeating = true, description = "Volume down" })
+      hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && echo . >> $XDG_RUNTIME_DIR/qs-volume"), { locked = true, repeating = true, description = "Mute output" })
+      hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true, repeating = true, description = "Mute microphone" })
+      hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("${brightnessScript}/bin/brightness up"), { locked = true, repeating = true, description = "Brightness up" })
+      hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("${brightnessScript}/bin/brightness down"), { locked = true, repeating = true, description = "Brightness down" })
 
-      hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })
-      hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-      hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-      hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
+      hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true, description = "Next track" })
+      hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, description = "Play/pause" })
+      hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, description = "Play/pause" })
+      hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true, description = "Previous track" })
 
       -- window rules
       hl.window_rule({

@@ -198,6 +198,15 @@ ShellRoot {
         screen: Quickshell.screens[0]
     }
 
+    // Its own window rather than a section of the bar: it is a fullscreen overlay,
+    // and it already carries its own backdrop (see Cheatsheet.qml), so unlike
+    // clipViewer/notifCenter it needs no companion PanelWindow below.
+    Cheatsheet {
+        id: cheatsheet
+        theme: root.theme
+        screen: Quickshell.screens[0]
+    }
+
     // Backdrop transparente para cerrar clipboard al clickear afuera
     Variants {
         model: Quickshell.screens
@@ -241,6 +250,19 @@ ShellRoot {
                 else {
                     clipViewer.screen = root.focusedScreen()
                     clipViewer.doShow()
+                }
+            }
+        }
+    }
+
+    IpcWatcher {
+        pipePath: Paths.cheatsheet
+        onTriggered: (line) => {
+            if (line === "toggle") {
+                if (cheatsheet.open) cheatsheet.doHide()
+                else {
+                    cheatsheet.screen = root.focusedScreen()
+                    cheatsheet.doShow()
                 }
             }
         }

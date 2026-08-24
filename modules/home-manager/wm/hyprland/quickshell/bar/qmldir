@@ -8,6 +8,7 @@ Bar 1.0 Bar.qml
 Battery 1.0 Battery.qml
 Brightness 1.0 Brightness.qml
 Caffeine 1.0 Caffeine.qml
+Cheatsheet 1.0 Cheatsheet.qml
 ClipboardViewer 1.0 ClipboardViewer.qml
 Clock 1.0 Clock.qml
 IpcWatcher 1.0 IpcWatcher.qml
