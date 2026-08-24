@@ -440,9 +440,14 @@
       # monitor-watcher, audio-device-watcher, set-theme) nothing ever ran
       # shellcheck over them. This closes that half of the split without changing
       # how they are deployed -- they must stay flat in ~/.config/hypr because they
-      # source each other via `dirname $0`.
+      # source each other via `dirname $0`. The quickshell bar's helper scripts
+      # (get-apps.sh, get-binds.sh) ride the same whole-dir deploy and were
+      # equally ungated, so they are checked here too.
       hyprScriptsShellcheck =
-        let scripts = ./modules/home-manager/wm/hyprland/scripts; in
+        let
+          scripts = ./modules/home-manager/wm/hyprland/scripts;
+          barScripts = ./modules/home-manager/wm/hyprland/quickshell/bar;
+        in
         pkgs.runCommand "hypr-scripts-shellcheck"
           { nativeBuildInputs = [ pkgs.shellcheck ]; } ''
           # Exclusions live in ../.shellcheckrc, with the reason for each. Passed
@@ -453,7 +458,7 @@
           set -o pipefail # tee must not mask shellcheck's exit code
           shellcheck --shell=bash --external-sources \
             --rcfile=${./.shellcheckrc} \
-            ${scripts}/*.sh 2>&1 | tee $out
+            ${scripts}/*.sh ${barScripts}/*.sh 2>&1 | tee $out
         '';
 
       # The brightness gamma exists twice and only one copy can come from Nix.
