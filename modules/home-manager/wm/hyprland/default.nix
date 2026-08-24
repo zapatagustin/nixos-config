@@ -111,6 +111,7 @@ in
     wl-clipboard
     grim
     slurp
+    hyprpicker # screenshot.sh region: -r -z congela la pantalla durante slurp
     brightnessctl
     playerctl
     setTheme # gruvbox dark/light switch; the bar's theme toggle calls it by name
