@@ -340,6 +340,13 @@ in
       -- a bind on either keysym can never fire. F1 is level 0 on every layout.
       hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-cheatsheet"), { description = "Show keybindings" })
 
+      -- launch-or-focus: focus the window if the app runs, launch it if not.
+      -- mono_player matches by title (-t): it runs under the generic class
+      -- "python3", so class matching cannot single it out.
+      hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("bash " .. hyprDir .. "/launch-or-focus.sh '^zen' zen-beta"), { description = "Focus or launch browser" })
+      hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("bash " .. hyprDir .. "/launch-or-focus.sh keepassxc keepassxc"), { description = "Focus or launch KeePassXC" })
+      hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("bash " .. hyprDir .. "/launch-or-focus.sh -t '^mono_player$' mono_player"), { description = "Focus or launch music player" })
+
       -- screenshots (via bash -> no exec-bit needed)
       hl.bind("Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh region"), { description = "Screenshot region" })
       hl.bind("SHIFT + Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh window"), { description = "Screenshot active window" })
@@ -662,6 +669,7 @@ in
     "hypr/move-to-group.sh".source = ./scripts/move-to-group.sh;
     "hypr/move-all-to-group.sh".source = ./scripts/move-all-to-group.sh;
     "hypr/screenshot.sh".source = ./scripts/screenshot.sh;
+    "hypr/launch-or-focus.sh".source = ./scripts/launch-or-focus.sh;
     # Thin shim so the bar can reach set-theme at a FIXED path. QML is a static
     # file and cannot interpolate a store path, and every other consumer here
     # invokes wrapped scripts by absolute `${pkg}/bin/name`. Calling `set-theme`
