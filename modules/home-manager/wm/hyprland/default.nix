@@ -112,6 +112,7 @@ in
     grim
     slurp
     hyprpicker # screenshot.sh region: -r -z congela la pantalla durante slurp
+    ffmpeg-headless # screenrecord.sh: post-proceso (GOP/trim/loudnorm) + thumbnail
     brightnessctl
     playerctl
     setTheme # gruvbox dark/light switch; the bar's theme toggle calls it by name
@@ -347,6 +348,8 @@ in
       hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("bash " .. hyprDir .. "/launch-or-focus.sh '^zen' zen-beta"), { description = "Focus or launch browser" })
       hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("bash " .. hyprDir .. "/launch-or-focus.sh keepassxc keepassxc"), { description = "Focus or launch KeePassXC" })
       hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("bash " .. hyprDir .. "/launch-or-focus.sh -t '^mono_player$' mono_player"), { description = "Focus or launch music player" })
+
+      hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenrecord.sh"), { description = "Start or stop screen recording" })
 
       -- screenshots (via bash -> no exec-bit needed)
       hl.bind("Print", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenshot.sh region"), { description = "Screenshot region" })
@@ -670,6 +673,8 @@ in
     "hypr/move-to-group.sh".source = ./scripts/move-to-group.sh;
     "hypr/move-all-to-group.sh".source = ./scripts/move-all-to-group.sh;
     "hypr/screenshot.sh".source = ./scripts/screenshot.sh;
+    "hypr/capture-rects.sh".source = ./scripts/capture-rects.sh;
+    "hypr/screenrecord.sh".source = ./scripts/screenrecord.sh;
     "hypr/launch-or-focus.sh".source = ./scripts/launch-or-focus.sh;
     # Thin shim so the bar can reach set-theme at a FIXED path. QML is a static
     # file and cannot interpolate a store path, and every other consumer here

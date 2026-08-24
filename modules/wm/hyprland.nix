@@ -36,6 +36,11 @@
   # hyprlock needs a PAM entry to authenticate — without it you can't unlock.
   security.pam.services.hyprlock = { };
 
+  # screenrecord.sh (HM hyprland module). System-level because the kms backend
+  # needs the gsr-kms-server capability wrapper this module sets up; a bare
+  # home.packages gpu-screen-recorder can't capture without it.
+  programs.gpu-screen-recorder.enable = true;
+
   # Secret Service (org.freedesktop.secrets) for apps that store runtime
   # tokens (mono_player's Google master token lives here). D-Bus-activated on
   # demand; the greetd PAM hook unlocks it with the login password, so no
