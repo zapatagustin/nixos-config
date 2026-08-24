@@ -461,6 +461,100 @@
             ${scripts}/*.sh ${barScripts}/*.sh 2>&1 | tee $out
         '';
 
+      # get-binds.sh's jq program had no gate that could fail. shellcheck only reads
+      # the shell around it (the whole transform is one single-quoted string, opaque
+      # to it) and qmllint stops at the QML, so a wrong modmask bit or a lost sort
+      # would only ever show up as a subtly wrong cheat-sheet at runtime -- the exact
+      # failure mode this repo's checks exist to catch.
+      #
+      # The script is run for real, with a stub `hyprctl` first on PATH that cats the
+      # fixture: no second copy of the pipeline to keep in sync, and the shebang,
+      # `set -euo pipefail` and the jq program are all exercised as deployed.
+      #
+      # The fixture hits every branch in one pass: modmask 0 (bare key), modmask 65
+      # (two bits, one of them SUPER), the four bits that were documented but not
+      # decoded (CAPS/NUM/MOD3/ALTGR), a has_description=false entry that must be
+      # dropped, and deliberately unsorted input that must come out sorted by
+      # (modmask, key). The extra dispatcher/arg/submap fields are there because the
+      # real payload has them and the transform must keep ignoring them.
+      getBindsTransform =
+        let
+          script = ./modules/home-manager/wm/hyprland/quickshell/bar/get-binds.sh;
+          bind = modmask: key: description: {
+            inherit modmask key description;
+            has_description = description != "";
+            dispatcher = "__lua";
+            arg = "12";
+            submap = "";
+            locked = false;
+            mouse = false;
+            release = false;
+            repeat = false;
+          };
+          fixture = pkgs.writeText "hyprctl-binds.json" (builtins.toJSON [
+            (bind 65 "Q" "cerrar ventana")
+            (bind 8 "Tab" "ciclar ventanas")
+            (bind 128 "E" "selector de emoji")
+            (bind 0 "XF86AudioMute" "silenciar")
+            (bind 64 "D" "") # has_description=false -> se descarta
+            (bind 32 "F1" "prueba mod3")
+            (bind 2 "A" "prueba caps")
+            (bind 16 "KP_1" "prueba num")
+            (bind 64 "Return" "abrir terminal")
+          ]);
+          # Tabs as \t escapes in a normal string, not literal tabs in an indented
+          # one: a literal tab here is invisible and one stray reformat away from
+          # turning a real regression into a green check.
+          expected = pkgs.writeText "get-binds-expected.tsv"
+            (pkgs.lib.concatMapStrings (l: l + "\n") [
+              "XF86AudioMute\tsilenciar"
+              "CAPS + A\tprueba caps"
+              "ALT + Tab\tciclar ventanas"
+              "NUM + KP_1\tprueba num"
+              "MOD3 + F1\tprueba mod3"
+              "SUPER + Return\tabrir terminal"
+              "SUPER + SHIFT + Q\tcerrar ventana"
+              "ALTGR + E\tselector de emoji"
+            ]);
+        in
+        pkgs.runCommand "get-binds-transform"
+          { nativeBuildInputs = [ pkgs.jq pkgs.bash ]; } ''
+          # Half one of the contract, and the reason `set -euo pipefail` is in the
+          # script: with hyprctl missing it used to exit 0 with empty stdout, which
+          # Cheatsheet.qml cannot tell apart from "no bind carries a description".
+          # It must exit nonzero so the panel can show an error state instead.
+          #
+          # Run FIRST, before the stub goes on PATH, and with the build's own PATH
+          # rather than an emptied one -- jq has to stay reachable. Blanking PATH
+          # made this assertion pass for the wrong reason: jq itself was then
+          # not-found, so the pipeline's last command failed with or without
+          # pipefail, and deleting `set -euo pipefail` from the script still left
+          # the gate green. With jq present and hyprctl absent, an unguarded
+          # pipeline exits 0 (jq on empty stdin is a success) and this catches it --
+          # verified by deleting the line and watching the check fail.
+          if bash ${script} > /dev/null 2>&1; then
+            echo "get-binds.sh exited 0 with no hyprctl on PATH; the empty output is" >&2
+            echo "then indistinguishable from a legitimately empty bind list." >&2
+            exit 1
+          fi
+
+          mkdir -p bin
+          # Ignores its arguments on purpose: the script calls `hyprctl binds -j`,
+          # and what is under test is what it does with the payload.
+          printf '#!/bin/sh\nexec cat %s\n' ${fixture} > bin/hyprctl
+          chmod +x bin/hyprctl
+          export PATH=$PWD/bin:$PATH
+
+          bash ${script} > got.tsv
+          diff -u ${expected} got.tsv || {
+            echo "get-binds.sh no longer produces the expected TSV. Either the" >&2
+            echo "modmask decode, the has_description filter or the sort changed." >&2
+            exit 1
+          }
+
+          echo "ok" > $out
+        '';
+
       # The brightness gamma exists twice and only one copy can come from Nix.
       # scripts/brightness.sh gets it substituted at build time, but the bar's
       # Brightness.qml has to carry a literal: quickshell/ is deployed as ONE
@@ -514,6 +608,7 @@
         statix = statixCheck;
         deadnix = deadnixCheck;
         hypr-scripts-shellcheck = hyprScriptsShellcheck;
+        get-binds-transform = getBindsTransform;
         brightness-exponent-surface = brightnessExponent "surface";
         brightness-exponent-thinkpad = brightnessExponent "thinkpad";
         repo-lint = repoLint;

@@ -5,27 +5,27 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 
-// Cheatsheet — searchable list of every described Hyprland bind (SUPER+? to toggle).
+// Cheatsheet — lista buscable de todos los binds con descripción (SUPER+? togglea).
 //
-// The data comes from `hyprctl binds -j` through get-binds.sh, re-read on EVERY
-// open rather than cached at startup: a `hyprctl reload` or a home-manager switch
-// can change the binds while the bar keeps running, and a cheat-sheet that lies is
-// worse than no cheat-sheet. Same shape as Launcher.qml's get-apps.sh — a TSV over
-// a SplitParser — so the formatting/sorting stays in the script and QML only draws.
+// Los datos salen de `hyprctl binds -j` vía get-binds.sh, releídos en CADA apertura
+// y no cacheados al arranque: un `hyprctl reload` o un switch de home-manager
+// cambian los binds con la barra viva, y un cheat-sheet que miente es peor que no
+// tenerlo. Misma forma que el get-apps.sh de Launcher.qml — TSV sobre un
+// SplitParser — así el formato y el orden quedan en el script y QML solo dibuja.
 //
-// Enter deliberately does NOT execute anything. Hyprland's Lua binds report
-// dispatcher "__lua" plus an opaque numeric arg, so there is nothing here that
-// could be dispatched even if we wanted to; it just closes the panel.
+// Enter deliberadamente NO ejecuta nada. Los binds Lua de Hyprland reportan
+// dispatcher "__lua" y un arg numérico opaco, así que no hay nada acá que se pueda
+// despachar aunque quisiéramos; solo cierra el panel.
 PanelWindow {
     id: sheet
 
     property var theme
     property bool open: false
 
-    // Fullscreen so the panel can be centred and so clicking anywhere outside it
-    // closes — same trick as the ClipboardViewer/NotificationCenter backdrops in
-    // shell.qml, except those need a second window because their panel is anchored
-    // to an edge.
+    // Fullscreen para poder centrar el panel y para que un click en cualquier lado
+    // afuera lo cierre — el mismo truco que los backdrops de ClipboardViewer y
+    // NotificationCenter en shell.qml, salvo que esos necesitan una segunda ventana
+    // porque su panel está anclado a un borde.
     anchors.top: true
     anchors.bottom: true
     anchors.left: true
@@ -34,8 +34,8 @@ PanelWindow {
     visible: open
     color: "transparent"
 
-    // Exclusive, like the launcher: the panel is a keyboard-driven search box, so
-    // every keystroke must land here and not in the window underneath.
+    // Exclusive, como el launcher: el panel es un buscador manejado por teclado, así
+    // que cada tecla tiene que caer acá y no en la ventana de abajo.
     WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     WlrLayershell.layer: WlrLayer.Overlay
 
@@ -48,9 +48,21 @@ PanelWindow {
     // Cache del último listado válido — evita panel vacío mientras refresca
     property var _allBindsCache: []
 
+    // Tres estados distintos, no dos: "loading" (script en vuelo), "error" (exit
+    // code != 0, o lo mató el watchdog) y "ok". Sin esto un hyprctl ausente o un
+    // JSON malformado se ven igual que una lista legítimamente vacía, que es un
+    // problema de config y se arregla en otro lado.
+    property string loadState: "loading"
+
     function reloadBinds() {
+        // Doble toggle: si el loader sigue corriendo no lo reiniciamos. Reasignar
+        // allBinds a mitad de parseo tira las líneas ya leídas y las que quedan en
+        // el buffer del SplitParser se mezclan con el listado nuevo.
+        if (bindLoader.running) return
         _allBindsCache = allBinds.slice() // preservar antes de limpiar
         allBinds = []
+        loadState = "loading"
+        bindWatchdog.restart()
         bindLoader.running = true
     }
 
@@ -69,8 +81,42 @@ PanelWindow {
                     sheet.allBinds.push({ combo: combo, desc: desc })
             }
         }
-        onRunningChanged: {
-            if (!running) sheet.filterBinds()
+        // exited(exitCode, exitStatus) es lo único que trae el código real;
+        // onRunningChanged solo dice que terminó. get-binds.sh corre con
+        // pipefail, así que un hyprctl ausente o un JSON malformado llegan acá
+        // como exit != 0 en vez de como stdout vacío.
+        //
+        // Medido con un quickshell aparte, porque el orden importa: primero
+        // llegan todas las líneas al SplitParser, después exited, y solo al final
+        // runningChanged(false). Por eso filterBinds() se llama acá y no en
+        // onRunningChanged — acá la lista ya está completa.
+        //
+        // qmllint tira un [signal-handler-parameters] sobre este handler
+        // ("QProcess::ExitStatus no encontrado"): es un límite del compilador AOT,
+        // que esta barra no usa. Verificado en runtime: el código llega bien.
+        onExited: (exitCode) => {
+            bindWatchdog.stop()
+            // Si el watchdog ya marcó error, no lo pisamos: bajar running manda
+            // SIGTERM y exited llega igual, con code 15 (medido) — que también
+            // sería error, pero el motivo real es el timeout, no el exit code.
+            if (sheet.loadState !== "error")
+                sheet.loadState = exitCode === 0 ? "ok" : "error"
+            sheet.filterBinds()
+        }
+    }
+
+    // Watchdog: hyprctl contra un socket muerto (compositor caído, $HYPRLAND_
+    // INSTANCE_SIGNATURE viejo) no sale nunca, y el panel se quedaría en "cargando"
+    // para siempre. Matarlo y mostrar error es más honesto que un spinner eterno.
+    Timer {
+        id: bindWatchdog
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            sheet.loadState = "error"
+            // Bajar running mata el proceso de verdad (SIGTERM, processId vuelve
+            // a null): no queda un hyprctl colgado por cada apertura del panel.
+            bindLoader.running = false
         }
     }
 
@@ -136,8 +182,8 @@ PanelWindow {
         border.color: sheet.theme.sep
         border.width: 1
 
-        // Swallow clicks on the panel itself so they don't reach the backdrop
-        // MouseArea above and close it.
+        // Se come los clicks sobre el panel para que no lleguen al MouseArea de
+        // backdrop de arriba y lo cierren.
         MouseArea { anchors.fill: parent }
 
         ColumnLayout {
@@ -175,9 +221,16 @@ PanelWindow {
 
                     Item { Layout.fillWidth: true }
 
+                    // El contador también reporta el estado de carga: si el script
+                    // falló pero el cache anterior todavía llena la lista, el conteo
+                    // solo diría "N binds" y el error quedaría invisible.
                     Text {
-                        text: sheet.filteredBinds.length + " binds"
-                        color: sheet.theme.fgDim
+                        text: sheet.loadState === "error" ? "error"
+                            : sheet.loadState === "loading" ? "…"
+                            : sheet.filteredBinds.length + " binds"
+                        // yellow y no un rojo: el theme de shell.qml no expone un slot
+                        // rojo, y agregarlo es tocar la paleta de toda la barra.
+                        color: sheet.loadState === "error" ? sheet.theme.yellow : sheet.theme.fgDim
                         font.pixelSize: 11
                         font.family: "Terminess Nerd Font Mono"
                         Layout.alignment: Qt.AlignVCenter
@@ -221,9 +274,9 @@ PanelWindow {
                             sheet.filterBinds()
                         }
 
-                        // No vim keys here, unlike ClipboardViewer: every letter has to
-                        // stay typeable because the letter IS the thing being searched
-                        // for ("j" finds "Focus down").
+                        // Acá no hay teclas vim, a diferencia de ClipboardViewer: cada
+                        // letra tiene que seguir siendo tipeable porque la letra ES lo
+                        // que se busca ("j" encuentra "Focus down").
                         Keys.onUpPressed: sheet.moveSelection(-1)
                         Keys.onDownPressed: sheet.moveSelection(1)
                         Keys.onReturnPressed: sheet.doHide()
@@ -260,9 +313,14 @@ PanelWindow {
 
                     Text {
                         anchors.centerIn: parent
-                        // Nothing at all means the binds carry no description yet, which
-                        // is a config problem, not an empty search.
-                        text: sheet.query !== "" ? "no matches" : "no described binds"
+                        // Cuatro mensajes distintos, en orden de precedencia: el script
+                        // todavía corre, el script falló, la búsqueda no matchea, o
+                        // ningún bind trae description — que es un problema de config,
+                        // no una búsqueda vacía.
+                        text: sheet.loadState === "loading" ? "cargando…"
+                            : sheet.loadState === "error" ? "no se pudieron leer los binds"
+                            : sheet.query !== "" ? "sin resultados"
+                            : "sin binds con descripción"
                         color: sheet.theme.fgDim
                         font.pixelSize: 12
                         font.family: "Terminess Nerd Font Mono"
@@ -288,8 +346,9 @@ PanelWindow {
                         anchors.rightMargin: 10
                         spacing: 10
 
-                        // Fixed-width key column so the descriptions line up into a
-                        // readable second column instead of ragging with the combos.
+                        // Columna de teclas de ancho fijo para que las descripciones
+                        // formen una segunda columna legible en vez de desalinearse
+                        // atrás de cada combo.
                         Text {
                             Layout.preferredWidth: 230
                             text: modelData.combo
@@ -328,9 +387,9 @@ PanelWindow {
 
                     Repeater {
                         model: [
-                            { key: "type", desc: "filter" },
-                            { key: "↑/↓", desc: "navigate" },
-                            { key: "↵/Esc", desc: "close" }
+                            { key: "escribir", desc: "filtrar" },
+                            { key: "↑/↓", desc: "navegar" },
+                            { key: "↵/Esc", desc: "cerrar" }
                         ]
                         delegate: Row {
                             required property var modelData

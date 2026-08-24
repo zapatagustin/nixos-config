@@ -7,16 +7,25 @@
 # default.nix pone en la tabla de opts es lo UNICO legible. Los binds sin
 # description (has_description=false) son plumbing y se descartan aca, no en QML.
 #
+# `set -euo pipefail`, y pipefail sobre todo: sin el, un hyprctl ausente o un
+# JSON malformado salian con codigo 0 y stdout vacio, indistinguible de una lista
+# legitimamente vacia. Cheatsheet.qml decide entre "error" y "vacio" leyendo el
+# exit code, asi que propagarlo es lo que hace posible ese estado.
+#
 # El modmask es la mascara de modificadores de xkb, no un enum de Hyprland:
-# SHIFT=1 CAPS=2 CTRL=4 ALT=8 NUM=16 MOD3=32 SUPER=64 ALTGR=128. jq 1.7 no tiene
-# operadores bitwise, de ahi el (m/bit|floor)%2 para probar cada bit.
+# SHIFT=1 CAPS=2 CTRL=4 ALT=8 NUM=16 MOD3=32 SUPER=64 ALTGR=128. Los 8 bits se
+# decodifican; dejar alguno afuera hace que dos binds distintos se rendericen
+# con el mismo combo. jq 1.7 no tiene operadores bitwise, de ahi el
+# (m/bit|floor)%2 para probar cada bit.
 #
 # Orden: modmask y despues key, hecho en jq para que QML solo renderice.
+
+set -euo pipefail
 
 hyprctl binds -j | jq -r '
   def mods($m):
     [ {b:64,n:"SUPER"}, {b:4,n:"CTRL"}, {b:8,n:"ALT"}, {b:1,n:"SHIFT"},
-      {b:2,n:"CAPS"}, {b:128,n:"ALTGR"} ]
+      {b:2,n:"CAPS"}, {b:16,n:"NUM"}, {b:32,n:"MOD3"}, {b:128,n:"ALTGR"} ]
     | map(select((($m / .b) | floor) % 2 == 1) | .n);
 
   map(select(.has_description))

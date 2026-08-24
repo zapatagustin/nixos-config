@@ -1,7 +1,13 @@
 import QtQuick
 import Quickshell.Io
 
-// IpcWatcher — tail -f sobre un named pipe, reconecta automáticamente si muere.
+// IpcWatcher — tail -F sobre un named pipe, reconecta automáticamente si muere.
+//
+// -F (seguir por nombre) y no -f (seguir por descriptor): el archivo de runtime
+// se borra y se recrea, y con -f tail se queda pegado al inode viejo — sin error,
+// sin salir, simplemente muda. Los cuatro paneles que dependen de esto pierden
+// sus hotkeys en silencio y el restartTimer de abajo nunca se entera, porque el
+// proceso sigue vivo. -F reabre por path.
 // Uso:
 //   IpcWatcher {
 //       pipePath: Paths.theme
@@ -18,7 +24,7 @@ Item {
     signal triggered(string line)
 
     Process {
-        command: ["sh", "-c", "touch " + rootWatcher.pipePath + " && tail -n 0 -f " + rootWatcher.pipePath]
+        command: ["sh", "-c", "touch " + rootWatcher.pipePath + " && tail -n 0 -F " + rootWatcher.pipePath]
         running: rootWatcher.running
         stdout: SplitParser {
             onRead: (line) => rootWatcher.triggered(line.trim())
