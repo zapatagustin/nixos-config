@@ -31,13 +31,17 @@
 
   services.openssh = {
     enable = true;
-    openFirewall = true;
+    # openFirewall would expose port 22 on every interface; these laptops join
+    # untrusted networks (see the cups-browsed note above), so sshd is reachable
+    # only over the tailnet. If tailscale is down, SSH requires physical access.
+    openFirewall = false;
     settings = {
       PasswordAuthentication = false;
       KbdInteractiveAuthentication = false;
       PermitRootLogin = "no";
     };
   };
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 22 ];
 
   fonts = {
     enableDefaultPackages = true;
