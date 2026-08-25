@@ -293,6 +293,11 @@ publish "$mode" || fail "switched to '$mode' but could not record it under $stat
 #
 #   kitty    reloads its whole config on SIGUSR1 (kitty's own conf docs), which is
 #            why no remote-control socket is configured.
+#   foot     no reload hook exists: foot reads foot.ini only at startup and has no
+#            SIGUSR1 equivalent. Open windows keep the old palette until reopened;
+#            new windows are correct immediately. Consequence for zellij below: the
+#            background re-pick only fires inside kitty windows, a live zellij in a
+#            foot window stays on the old palette until that window restarts.
 #   neovim   see reload_neovim.
 #   zathura  see reload_zathura.
 #   zed      needs nothing. ~/.config/zed/settings.json is a real file, merged in by

@@ -163,7 +163,7 @@ in
 
     extraConfig = ''
       local mainMod = "SUPER"
-      local terminal = "kitty"
+      local terminal = "foot"
       local hyprDir = "~/.config/hypr"
 
       hl.env("WALLPAPER_DIR", "${walls}")

@@ -39,7 +39,7 @@
   environment = {
     systemPackages = [ ];
     sessionVariables = {
-      TERMINAL = "kitty";
+      TERMINAL = "foot";
       NIXPKGS_ALLOW_UNFREE = "1";
       NH_FLAKE = flakePath; # nh os switch w/o passing path
     };

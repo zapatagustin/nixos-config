@@ -125,6 +125,7 @@ in
       neovim.enable = true;
       zed.enable = true;
       kitty.enable = true;
+      foot.enable = true;
       bat.enable = true;
       zathura.enable = true;
       btop.enable = true;
