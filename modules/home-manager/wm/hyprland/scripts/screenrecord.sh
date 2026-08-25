@@ -16,8 +16,8 @@ set -uo pipefail
 
 source "$(dirname "$0")/capture-rects.sh"
 
-state_file="$XDG_RUNTIME_DIR/screenrecord-file"
-log_file="/tmp/screenrecord.log"
+state_file="${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}/screenrecord-file"
+log_file="$XDG_RUNTIME_DIR/screenrecord.log"
 dir="$HOME/Videos"
 
 mic=false
