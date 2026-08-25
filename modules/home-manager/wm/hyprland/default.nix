@@ -234,10 +234,11 @@ in
 
           master = { new_status = "master" },
 
-          -- HW cursor plane renders at a fixed size and ignores per-monitor scale, so
-          -- the pointer looks a different size on the fractional-scaled eDP (1.57) vs
-          -- the scale-1 externals. Software cursors rescale correctly per output.
-          cursor = { no_hardware_cursors = true },
+          -- HW cursors used to render at the wrong size on the fractional-scaled
+          -- eDP (1.57) vs the scale-1 externals; verified fixed on 0.56.2
+          -- (2026-08-24), so back to the default. Flip to true if the mismatch
+          -- returns after a Hyprland bump.
+          cursor = { no_hardware_cursors = false },
 
           misc = {
               force_default_wallpaper = 1,
@@ -271,8 +272,11 @@ in
               disable_autoreload      = true,
           },
 
-          -- bypass compositing on fullscreen surfaces (perf; lost in the cachy port)
-          render = { direct_scanout = true },
+          -- disabled: scanout transitions glitch on i915 + dock even with HW
+          -- cursors — fullscreen flicker on externals, and the exit path
+          -- flickers the wallpaper under tiled windows (both confirmed live
+          -- 2026-08-24 on 0.56.2). Retry after a Hyprland/mesa bump.
+          render = { direct_scanout = false },
 
           input = {
               kb_layout    = "es,us",
