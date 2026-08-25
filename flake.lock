@@ -317,11 +317,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787342785,
-        "narHash": "sha256-sNCis/d+A88qUGHmcAkrplRFeqWhPUkJrv1h1T26BzE=",
+        "lastModified": 1787600696,
+        "narHash": "sha256-QqOvC10EGUaYlIG0C++MmHibrRgNbZDgKeWKvu+gSmY=",
         "ref": "refs/heads/main",
-        "rev": "00f2bd3545f70d6ed3cfd2597b4f8f27b48c2e8f",
-        "revCount": 50,
+        "rev": "97143380551d62eb844e87d1d1d7f771f9391149",
+        "revCount": 52,
         "type": "git",
         "url": "ssh://git@github.com/zapatagustin/mono_player"
       },
