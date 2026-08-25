@@ -160,6 +160,27 @@ if [ -n "$hits" ]; then
   done <<<"$hits"
 fi
 
+# ── 6. No hardcoded /tmp/ paths in the hypr scripts ──────────────────────────────
+#
+# /tmp is world-writable: any process running as the same user can pre-create
+# /tmp/<name> as a symlink and a truncating `>` redirect then overwrites the
+# symlink's target. screenrecord.sh shipped exactly that (log_file=
+# "/tmp/screenrecord.log") while every sibling script already used the
+# "${XDG_RUNTIME_DIR:?...}" convention — shellcheck has no rule for predictable
+# temp paths, so nothing caught the one script that drifted. Use
+# $XDG_RUNTIME_DIR (per-user, 0700) or mktemp instead.
+#
+# Comments are stripped first, same rationale and same false-positive direction
+# as rule 1: a `/tmp/` that hides behind a `#` on a code line reads as clean,
+# but that miss requires deliberately commenting a path into existence. The
+# :? guard message ("world-writable /tmp") has no trailing slash, so it does
+# not trip the rule.
+while read -r sh; do
+  if grep -qF '/tmp/' < <(sed 's/#.*//' "$sh"); then
+    note "hardcoded /tmp/ path in $sh — use \"\${XDG_RUNTIME_DIR:?}\" or mktemp; see rule 6 in $0"
+  fi
+done < <(find "$hypr/scripts" -name '*.sh' 2>/dev/null | sort)
+
 if [ "$fails" -gt 0 ]; then
   echo "repo-lint: $fails finding(s)" >&2
   exit 1
