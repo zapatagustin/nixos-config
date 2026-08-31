@@ -21,6 +21,7 @@
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAU78tzMsUICpmlbWOX9/ZZ/GL1otRjaLPFastXxWhPX agustin.zapata@atlas.red"
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKmL82v4Az5e/hFecVw5+hUp5rWeCMeb18KUqrVKsqGq zapatagustin4@gmail.com"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPtBQwh9CmPwKfjKBLOihZoeuu92sCqpe1iU9an3TUEX desktop@cachyos"
     ];
   };
 }
