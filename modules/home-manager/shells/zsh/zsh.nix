@@ -32,6 +32,8 @@
       nixos-garbage = "sudo nix-collect-garbage -d && nix-collect-garbage -d && sudo nix store optimise";
     };
 
+    defaultKeymap = "viins";
+
     history = {
       expireDuplicatesFirst = true;
       save = 10000;
@@ -44,7 +46,6 @@
       ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=180'
 
       setopt INC_APPEND_HISTORY
-      bindkey -e
 
       bindkey "^[[1;5C" forward-word
       bindkey "^[[1;5D" backward-word
