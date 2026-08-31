@@ -144,7 +144,6 @@
   home.packages = with pkgs; [
     brave-origin # was a local pkgs/brave-origin.nix repack; nixpkgs carries it now
     # zen -> programs.zen-browser below, so stylix.targets.zen-browser can theme it.
-    nnn
     # Zed lives in ./editors/zed now (programs.zed-editor + stylix + sops wrapper).
     sone
     claude-code
@@ -152,12 +151,11 @@
     slack
     teams-for-linux
     pavucontrol
+    discord
+    thunderbird-latest-bin
     keepassxc # vault synced from the desktop's kdbx via syncthing
     feishin
     superfile
-    # `stremio` itself is gone from nixpkgs (vulnerable qt5 webengine); this is
-    # the upstream-suggested replacement -- same app, webkit/GTK shell.
-    stremio-linux-shell
     moonlight-qt # game streaming client for the desktop's sunshine host
     # YouTube client from its own flake; ships its .desktop entry, so it shows
     # up in the launcher. Update: `nix flake update mono_player` + rebuild.
