@@ -175,7 +175,7 @@
       thunderbird = {
         enable = true;
         # Panel label; sender realName stays above.
-        settings = id: { "mail.server.server_${id}.name" = "Personal"; };
+        settings = id: { "mail.server.server_${id}.name" = "Backup"; };
       };
     };
     # Work uses the SAME address on two providers; the attr names keep the
