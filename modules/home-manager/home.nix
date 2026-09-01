@@ -156,6 +156,20 @@
       flavor = "gmail.com";
       thunderbird.enable = true;
     };
+    mono = {
+      address = "elmonorelojero4k@gmail.com";
+      userName = "elmonorelojero4k@gmail.com";
+      realName = "Agustin Zapata";
+      flavor = "gmail.com";
+      thunderbird.enable = true;
+    };
+    monobackup = {
+      address = "monobackup001@gmail.com";
+      userName = "monobackup001@gmail.com";
+      realName = "Agustin Zapata";
+      flavor = "gmail.com";
+      thunderbird.enable = true;
+    };
     # Work uses the SAME address on two providers; the attr names keep the
     # Thunderbird accounts distinguishable.
     atlas-google = {
