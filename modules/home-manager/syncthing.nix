@@ -13,9 +13,7 @@ let
       addresses = [ "tcp://desktop.taild4c79d.ts.net:22000" "dynamic" ];
     };
     surface.id = "NAFA6A4-P7AYF6X-VQUK5VR-QI2ZF4M-RSIAK7G-IDN4GOQ-LESJ3AL-G5PPSQY";
-    # thinkpad: powered off when this was set up, so its identity does not
-    # exist yet. First rebuild there generates one; read it with
-    # `syncthing --device-id` and add it here.
+    thinkpad.id = "3LTAYOR-335PKVS-OUNWH6M-TLBEIAX-VYL577K-YA6SNRB-ERXBOAV-ESDHZAD";
   };
 in
 {
