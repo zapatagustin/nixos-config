@@ -29,6 +29,13 @@
 
   boot.kernelPackages = pkgs.linuxPackages_cachyos;
 
+  # Pin GitHub's host key system-wide so nothing — including root during a
+  # flake-input fetch — ever hits the interactive trust-on-first-use prompt.
+  # Fingerprint SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU, matches
+  # https://docs.github.com/en/authentication/keychecking (verified 2026-09-01).
+  programs.ssh.knownHosts."github.com".publicKey =
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+
   services.openssh = {
     enable = true;
     # openFirewall would expose port 22 on every interface; these laptops join
