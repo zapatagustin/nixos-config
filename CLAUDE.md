@@ -55,7 +55,7 @@ flake.nix                      # mkHost builds nixosConfigurations.{surface,thin
   + home-manager module → modules/home-manager/home.nix
 ```
 
-- **System modules** live under `modules/` and are wired via `modules/modules.nix` (boot, containers, dev, hardware, gaming, performance, theme/stylix, wm/hyprland). `secrets/sops.nix` is active (declares SOPS-backed secrets — `secrets.yaml` exists in the repo).
+- **System modules** live under `modules/` and are wired via `modules/modules.nix` (boot, containers, dev, hardware, networking/wifi, gaming, performance, theme/stylix, wm/hyprland). `secrets/sops.nix` is active (declares SOPS-backed secrets — `secrets.yaml` exists in the repo).
 - **Home Manager** is wired via `flake.nix` (`mkHost`) per host. Its root is `modules/home-manager/home.nix`, which imports `shells/`, `terminals/`, `editors/neovim`, `editors/emacs`, `wm/hyprland`, `ai/`, plus `inputs.ecomono.homeModules.default`. `options.nix` declares `myDesktop.multiMonitor.enable`, read by the hyprland module.
 - **emacs** (`modules/home-manager/editors/emacs`) is Doom Emacs built by the `nix-doom-emacs-unstraightened` home-manager module: `programs.doom-emacs` with `doomDir = ./doom`. Nix resolves doom's whole package set, so there is no straight.el, no `~/.config/emacs/.local`, and **no `doom sync`** — editing `doom/*.el` needs a rebuild. Do not also enable `programs.emacs`; double-wrapping the already-wrapped doom emacs breaks `load-path` non-interactively.
 - **neovim** (`modules/home-manager/editors/neovim`) is Nix-managed: `programs.neovim` with nixpkgs plugins and LSP servers on PATH (no Mason). The per-plugin lua lives inline plus `lua/*.lua` files loaded via `initLua`/`fileContents`.
