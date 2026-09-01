@@ -5,6 +5,7 @@
     ./containers/containers.nix
     ./dev/dev_dependencies.nix
     ./hardware/hardware.nix
+    ./networking/wifi.nix
     ./gaming/gaming.nix
     ./performance/performance.nix
     ./theme/stylix.nix
