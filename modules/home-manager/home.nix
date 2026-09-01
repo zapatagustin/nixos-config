@@ -147,13 +147,31 @@
   # Thunderbird already ran imperatively, move the real file aside once —
   # `mv ~/.config/thunderbird/profiles.ini{,.bak}` with Thunderbird closed.
   # Mail is IMAP, so the fresh profile just re-syncs.
-  accounts.email.accounts.gmail = {
-    primary = true;
-    address = "zapatagustin4@gmail.com";
-    userName = "zapatagustin4@gmail.com";
-    realName = "Agustin Zapata";
-    flavor = "gmail.com";
-    thunderbird.enable = true;
+  accounts.email.accounts = {
+    gmail = {
+      primary = true;
+      address = "zapatagustin4@gmail.com";
+      userName = "zapatagustin4@gmail.com";
+      realName = "Agustin Zapata";
+      flavor = "gmail.com";
+      thunderbird.enable = true;
+    };
+    # Work uses the SAME address on two providers; the attr names keep the
+    # Thunderbird accounts distinguishable.
+    atlas-google = {
+      address = "agustin.zapata@atlas.red";
+      userName = "agustin.zapata@atlas.red";
+      realName = "Agustin Zapata";
+      flavor = "gmail.com";
+      thunderbird.enable = true;
+    };
+    atlas-microsoft = {
+      address = "agustin.zapata@atlas.red";
+      userName = "agustin.zapata@atlas.red";
+      realName = "Agustin Zapata";
+      flavor = "outlook.office365.com";
+      thunderbird.enable = true;
+    };
   };
   programs.thunderbird = {
     enable = true;
