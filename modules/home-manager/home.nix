@@ -139,6 +139,28 @@
     };
   };
 
+  # Declarative mail account: servers/identity come from `flavor`, so a new
+  # host opens Thunderbird with the account already present and only the
+  # OAuth login (device-bound, can't be declared) is left to do.
+  #
+  # Same migration caveat as zen's profiles.ini above: on a host where
+  # Thunderbird already ran imperatively, move the real file aside once —
+  # `mv ~/.config/thunderbird/profiles.ini{,.bak}` with Thunderbird closed.
+  # Mail is IMAP, so the fresh profile just re-syncs.
+  accounts.email.accounts.gmail = {
+    primary = true;
+    address = "zapatagustin4@gmail.com";
+    userName = "zapatagustin4@gmail.com";
+    realName = "Agustin Zapata";
+    flavor = "gmail.com";
+    thunderbird.enable = true;
+  };
+  programs.thunderbird = {
+    enable = true;
+    package = pkgs.thunderbird-latest-bin;
+    profiles.default.isDefault = true;
+  };
+
   nixpkgs.config.allowUnfree = true;
 
   home.packages = with pkgs; [
@@ -152,7 +174,7 @@
     teams-for-linux
     pavucontrol
     discord
-    thunderbird-latest-bin
+    # thunderbird -> programs.thunderbird above (declarative gmail account).
     keepassxc # vault synced from the desktop's kdbx via syncthing
     feishin
     superfile
