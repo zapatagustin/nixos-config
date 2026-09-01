@@ -159,16 +159,24 @@
     mono = {
       address = "elmonorelojero4k@gmail.com";
       userName = "elmonorelojero4k@gmail.com";
-      realName = "Personal";
+      realName = "Agustin Zapata";
       flavor = "gmail.com";
-      thunderbird.enable = true;
+      thunderbird = {
+        enable = true;
+        # Panel label; sender realName stays above.
+        settings = id: { "mail.server.server_${id}.name" = "Personal"; };
+      };
     };
     monobackup = {
       address = "monobackup001@gmail.com";
       userName = "monobackup001@gmail.com";
-      realName = "Personal";
+      realName = "Agustin Zapata";
       flavor = "gmail.com";
-      thunderbird.enable = true;
+      thunderbird = {
+        enable = true;
+        # Panel label; sender realName stays above.
+        settings = id: { "mail.server.server_${id}.name" = "Personal"; };
+      };
     };
     # Work uses the SAME address on two providers; the attr names keep the
     # Thunderbird accounts distinguishable.
