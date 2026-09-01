@@ -159,14 +159,14 @@
     mono = {
       address = "elmonorelojero4k@gmail.com";
       userName = "elmonorelojero4k@gmail.com";
-      realName = "Agustin Zapata";
+      realName = "Personal";
       flavor = "gmail.com";
       thunderbird.enable = true;
     };
     monobackup = {
       address = "monobackup001@gmail.com";
       userName = "monobackup001@gmail.com";
-      realName = "Agustin Zapata";
+      realName = "Personal";
       flavor = "gmail.com";
       thunderbird.enable = true;
     };
