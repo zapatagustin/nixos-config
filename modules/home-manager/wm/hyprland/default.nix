@@ -595,6 +595,20 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
+  systemd.user.services.keepassxc = {
+    Unit = {
+      Description = "KeePassXC password manager";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.keepassxc}/bin/keepassxc --minimized";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   systemd.user.services.monitor-watcher = lib.mkIf mm {
     Unit = {
       Description = "Hyprland monitor hotplug watcher";
