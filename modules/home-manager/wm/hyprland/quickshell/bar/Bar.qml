@@ -81,6 +81,10 @@ PanelWindow {
             WindowTitle {
                 theme: bar.theme
                 Layout.alignment: Qt.AlignVCenter
+                // Elastic: shrinks below implicitWidth when the row is tight
+                // (long titles on the scaled laptop panel), never grows past it.
+                Layout.fillWidth: true
+                Layout.maximumWidth: implicitWidth
             }
 
             // Empuja la sección derecha al borde

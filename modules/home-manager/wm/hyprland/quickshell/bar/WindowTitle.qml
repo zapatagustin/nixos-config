@@ -25,7 +25,9 @@ Item {
         id: titleText
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
-        width: Math.min(implicitWidth, 400)
+        // Elide against the item's actual width too — the layout may shrink
+        // root below implicitWidth when the bar row runs out of space.
+        width: Math.min(implicitWidth, 400, root.width - 8)
         elide: Text.ElideRight
 
         text: root.title
