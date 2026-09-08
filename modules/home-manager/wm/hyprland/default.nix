@@ -602,7 +602,18 @@ in
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${pkgs.keepassxc}/bin/keepassxc --minimized";
+      # KeePassXC checks QSystemTrayIcon::isSystemTrayAvailable() ONCE at
+      # startup and never creates the icon if the StatusNotifierWatcher (owned
+      # by quickshell) is not on the bus yet. Both units start the same second,
+      # so block until the watcher's name exists; on timeout the unit fails and
+      # Restart retries. After=quickshell.service would only order the exec,
+      # not the QML load that registers the name.
+      ExecStartPre = "${pkgs.glib.bin}/bin/gdbus wait --session --timeout 10 org.kde.StatusNotifierWatcher";
+      # No --minimized: that hides the unlock prompt in the tray and leaves the
+      # database locked (browser autofill dead) until the window is opened by
+      # hand. keepassxc.ini has MinimizeAfterUnlock=true, which gives the
+      # wanted flow: prompt at login, then straight to the tray.
+      ExecStart = "${pkgs.keepassxc}/bin/keepassxc";
       Restart = "on-failure";
       RestartSec = 2;
     };
@@ -684,6 +695,11 @@ in
 
   # scripts deployed individually so they coexist with the generated hyprland.lua
   xdg.configFile = {
+    # KeePassXC's "launch at startup" toggle writes this autostart entry, uwsm
+    # runs it, and the instance it spawns beats keepassxc.service to the
+    # single-instance lock ("Another instance ... already running"). Own the
+    # path with Hidden=true so the toggle cannot recreate a second launcher.
+    "autostart/org.keepassxc.KeePassXC.desktop".text = "[Desktop Entry]\nHidden=true\n";
     "hypr/monitors-detect.sh".source = ./scripts/monitors-detect.sh;
     "hypr/hyprctl-classify.sh".source = ./scripts/hyprctl-classify.sh;
     "hypr/switch-monitor.sh".source = ./scripts/switch-monitor.sh;
