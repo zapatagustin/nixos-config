@@ -92,7 +92,10 @@
       enable = true;
       nssmdns4 = true;
     };
-    journald.extraConfig = "SystemMaxUse=500M\nStorage=persistent";
+    journald.settings.Journal = {
+      SystemMaxUse = "500M";
+      Storage = "persistent";
+    };
     dbus.implementation = "broker";
   };
 
