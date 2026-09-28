@@ -9,21 +9,9 @@ _: {
     alsa.support32Bit = true;
     pulse.enable = true;
     wireplumber.enable = true;
-
-    # Auto-route audio to the Apple USB-C dongle whenever it's present (dock
-    # connected). Bump its session priority above the built-in card so
-    # wireplumber's default-node policy picks it on connect and falls back to
-    # built-in on unplug. Matched by node.name prefix (serial-independent).
-    wireplumber.extraConfig."51-apple-usbc-default" = {
-      "monitor.alsa.rules" = [
-        {
-          matches = [{ "node.name" = "~alsa_output.usb-Apple.*"; }];
-          actions.update-props = {
-            "priority.session" = 2000;
-            "priority.driver" = 2000;
-          };
-        }
-      ];
-    };
+    # No sink priority rules: stock wireplumber already ranks USB sinks
+    # (dock 3.5mm jack, USB-C dongle: 1109) above the built-in card (1009).
+    # A sink picked by hand with `wpctl set-default` is remembered in
+    # ~/.local/state/wireplumber/default-nodes and overrides that ranking.
   };
 }
