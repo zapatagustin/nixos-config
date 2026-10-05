@@ -7,7 +7,7 @@
     ./syncthing.nix
     ./terminals/terminals.nix
     ./editors/neovim
-    ./editors/emacs
+    ./editors/emacs # gated by myDesktop.emacs.enable (default false)
     ./editors/zed
     ./wm/hyprland
     ./ai
