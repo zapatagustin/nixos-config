@@ -28,8 +28,8 @@
   # one, so it belongs nowhere but the consumer.
   #
   # Merging works because programs.opencode.settings takes pkgs.formats.json's
-  # type, which merges per key: ecomono keeps supplying baseURL and models for each
-  # provider and only the apiKey leaf comes from here. Verified by evaluating the
+  # type, which merges per key: ecomono pins the models, and only the apiKey leaf
+  # comes from here. Verified by evaluating the
   # merged attrset, not assumed.
   #
   # Paths come from osConfig rather than as literals -- home-manager runs as a NixOS
@@ -43,10 +43,9 @@
       };
     in
     {
-      nvidia = fromSops "opencode/nvidia-api-key";
-      groq = fromSops "opencode/groq-api-key";
-      cerebras = fromSops "opencode/cerebras-api-key";
-      openrouter = fromSops "opencode/openrouter-api-key";
+      # OpenCode Go (built-in provider, no block upstream). The ecomono-compress
+      # skill's --api pass reads the same secret file directly.
+      "opencode-go" = fromSops "opencode/opencode-api-key";
       # Shared with the zed wrapper (../editors/zed), which reads the same file.
       anthropic = fromSops "zed/anthropic-api-key";
     };
