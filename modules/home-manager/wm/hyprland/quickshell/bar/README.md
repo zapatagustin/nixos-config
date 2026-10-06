@@ -13,9 +13,12 @@ rebuild, not on save.
 
 Fonts: every component takes its family and size from the `Theme.qml` singleton
 (`PxPlus IBM VGA8` at 16 px; Nerd Font icons and kanji come from fontconfig fallback).
-Crispness: every text sets `renderType: Theme.render` (NativeRendering), sizes are
-multiples of 16 only, and on hidpi panels `Bar.uiScale = 2 / monitorScale` makes the
-16 px font cell exactly 32 physical px. VGA8 has a single weight, so no `font.weight`/`font.bold`.
+Crispness: every text sets `renderType: Theme.render` (NativeRendering). The bar is
+laid out in logical px and stays 28 px tall on every output — the compositor's
+fractional scale already normalises logical size, so there is no per-monitor upsizing
+(an earlier `Bar.uiScale = 2 / monitorScale` double-counted it and made the surface
+bar render its 16 px font at ~32 physical px, visibly oversized). VGA8 has a single
+weight, so no `font.weight`/`font.bold`.
 
 Everything configurable — the unit, the fonts, the icon theme, which scripts the bar
 may call — is declared in that same `default.nix`. This file deliberately does not

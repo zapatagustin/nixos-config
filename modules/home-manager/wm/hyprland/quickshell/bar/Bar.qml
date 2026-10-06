@@ -15,7 +15,10 @@ PanelWindow {
         right: true
     }
 
-    // Base (logical) bar height; scaled up on hidpi laptop panels below.
+    // Bar height in logical px, identical on every output. The compositor's
+    // fractional scale already normalises logical size, so scaling again by
+    // monitorScale double-counted it and left the surface bar oversized
+    // (~20.4 logical px font vs 16 on the externals). Keep it flat.
     readonly property int baseHeight: 28
     color: "transparent"
 
@@ -28,27 +31,11 @@ PanelWindow {
         return null
     }
 
-    // The bar renders in compositor logical px, so it looks the same size on every
-    // monitor but is physically tiny on a hidpi laptop panel. The pixel font is only
-    // crisp at a multiple of 16 physical px, so on hidpi outputs scale the bar by
-    // 2 / monitorScale: Theme.size (16) * uiScale * monitorScale = 32 physical px
-    // (surface panel: 16 * 1.2766 * 1.566667 = 32). Scale <= 1.05 or unknown
-    // (monitor not resolved yet, scale 0/undefined) stays 1.0 = 16 physical px.
-    readonly property real uiScale: {
-        var s = bar.hyprMonitor ? Number(bar.hyprMonitor.scale) : 0
-        return (isFinite(s) && s > 1.05) ? 2 / s : 1.0
-    }
-
-    implicitHeight: Math.round(baseHeight * uiScale)
+    implicitHeight: baseHeight
     exclusiveZone: implicitHeight
 
     Rectangle {
-        // Sized in base logical px, then scaled from the top-left so fonts,
-        // spacing and separators all grow uniformly by uiScale.
-        width: bar.width / bar.uiScale
-        height: bar.baseHeight
-        transformOrigin: Item.TopLeft
-        scale: bar.uiScale
+        anchors.fill: parent
         color: bar.theme.bg
 
         Rectangle {
