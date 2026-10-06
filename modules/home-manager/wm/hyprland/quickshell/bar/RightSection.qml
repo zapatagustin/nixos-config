@@ -91,8 +91,9 @@ Item {
 
             Text {
                 id: bellIcon
+                renderType: Theme.render
                 text: notifItem.notifCount > 0 ? "󰂚" : "󰂜"
-                font.pixelSize: 13
+                font.pixelSize: Theme.size
                 font.family: "Symbols Nerd Font"
                 anchors.verticalCenter: parent.verticalCenter
                 color: bellHover.hovered
@@ -119,17 +120,18 @@ Item {
                 id: badge
                 visible: notifItem.notifCount > 0
                 width: badgeText.implicitWidth + 4
-                height: 13
-                radius: 6
+                height: 18
+                radius: 9
                 color: rightSection.theme.accent
                 anchors { left: bellIcon.right; top: bellIcon.top; leftMargin: 1 }
 
                 Text {
                     id: badgeText
+                    renderType: Theme.render
                     anchors.centerIn: parent
                     text: notifItem.notifCount > 9 ? "9+" : notifItem.notifCount
-                    font.pixelSize: 8
-                    font.weight: Font.Bold
+                    font.pixelSize: Theme.size
+                    font.family: Theme.mono
                     color: rightSection.theme.accentFg
                 }
             }
@@ -140,8 +142,9 @@ Item {
         // ── Clipboard ────────────────────────────────────────────
         Text {
             id: clipIcon
+            renderType: Theme.render
             text: "󰅍"
-            font.pixelSize: 13
+            font.pixelSize: Theme.size
             font.family: "Symbols Nerd Font"
             color: clipHover.hovered
                 ? rightSection.theme.accent

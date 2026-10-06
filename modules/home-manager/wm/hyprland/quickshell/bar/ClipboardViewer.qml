@@ -279,33 +279,36 @@ PanelWindow {
                     spacing: 8
 
                     Text {
+                        renderType: Theme.render
+                        // font.family omitted on purpose: lets the colour emoji font render.
                         text: "📋"
-                        font.pixelSize: 13
+                        font.pixelSize: Theme.size
                         Layout.alignment: Qt.AlignVCenter
                     }
 
                     Text {
+                        renderType: Theme.render
                         text: "Clipboard"
                         color: viewer.theme.fg
-                        font.pixelSize: 12
-                        font.family: "Terminess Nerd Font Mono"
-                        font.weight: Font.Bold
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                         Layout.alignment: Qt.AlignVCenter
                     }
 
                     Item { Layout.fillWidth: true }
 
                     Text {
+                        renderType: Theme.render
                         text: viewer.filteredItems.length + " items"
                         color: viewer.theme.fgDim
-                        font.pixelSize: 11
-                        font.family: "Terminess Nerd Font Mono"
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                         Layout.alignment: Qt.AlignVCenter
                     }
 
                     Rectangle {
                         width: clearLabel.implicitWidth + 12
-                        height: 18
+                        height: 20
                         radius: 3
                         color: clearHover.hovered
                             ? viewer.theme.accent
@@ -314,10 +317,11 @@ PanelWindow {
 
                         Text {
                             id: clearLabel
+                            renderType: Theme.render
                             anchors.centerIn: parent
                             text: "limpiar"
-                            font.pixelSize: 10
-                            font.family: "Terminess Nerd Font Mono"
+                            font.pixelSize: Theme.size
+                            font.family: Theme.mono
                             color: clearHover.hovered
                                 ? viewer.theme.accentFg
                                 : viewer.theme.fgDim
@@ -345,19 +349,21 @@ PanelWindow {
                     spacing: 6
 
                     Text {
+                        renderType: Theme.render
                         text: "/"
                         color: viewer.theme.fgDim
-                        font.pixelSize: 12
-                        font.family: "Terminess Nerd Font Mono"
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                         Layout.alignment: Qt.AlignVCenter
                     }
 
                     TextInput {
                         id: searchInput
+                        renderType: Theme.render
                         Layout.fillWidth: true
                         color: viewer.theme.fg
-                        font.pixelSize: 12
-                        font.family: "Terminess Nerd Font Mono"
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                         verticalAlignment: TextInput.AlignVCenter
                         height: parent.height
 
@@ -470,11 +476,12 @@ PanelWindow {
                     visible: viewer.filteredItems.length === 0
 
                     Text {
+                        renderType: Theme.render
                         anchors.centerIn: parent
                         text: viewer.query !== "" ? "sin resultados" : "historial vacío"
                         color: viewer.theme.fgDim
-                        font.pixelSize: 12
-                        font.family: "Terminess Nerd Font Mono"
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                     }
                 }
 
@@ -514,7 +521,7 @@ PanelWindow {
                             Rectangle {
                                 visible: modelData.pinned
                                 width: pinnedLabel.implicitWidth + 8
-                                height: 14
+                                height: 18
                                 radius: 3
                                 color: viewer.selectedIndex === index
                                     ? Qt.rgba(0,0,0,0.2)
@@ -522,10 +529,11 @@ PanelWindow {
 
                                 Text {
                                     id: pinnedLabel
+                                    renderType: Theme.render
                                     anchors.centerIn: parent
                                     text: "anclado"
-                                    font.pixelSize: 9
-                                    font.family: "Terminess Nerd Font Mono"
+                                    font.pixelSize: Theme.size
+                                    font.family: Theme.mono
                                     color: viewer.selectedIndex === index
                                         ? viewer.theme.fg
                                         : viewer.theme.accentFg
@@ -533,6 +541,7 @@ PanelWindow {
                             }
 
                             Text {
+                                renderType: Theme.render
                                 width: parent.width
                                 text: modelData.text.length > 200
                                     ? modelData.text.substring(0, 200) + "…"
@@ -540,8 +549,8 @@ PanelWindow {
                                 color: viewer.selectedIndex === index
                                     ? viewer.theme.accentFg
                                     : viewer.theme.fg
-                                font.pixelSize: 11
-                                font.family: "Terminess Nerd Font Mono"
+                                font.pixelSize: Theme.size
+                                font.family: Theme.mono
                                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                                 maximumLineCount: 3
                                 elide: Text.ElideRight
@@ -562,9 +571,11 @@ PanelWindow {
                                     : Qt.rgba(1,1,1,0.1)
 
                                 Text {
+                                    renderType: Theme.render
                                     anchors.centerIn: parent
                                     text: "★"
-                                    font.pixelSize: 12
+                                    font.pixelSize: Theme.size
+                                    font.family: Theme.mono
                                     color: modelData.pinned
                                         ? viewer.theme.accentFg
                                         : viewer.theme.fgDim
@@ -586,9 +597,11 @@ PanelWindow {
                                 color: Qt.rgba(1,1,1,0.1)
 
                                 Text {
+                                    renderType: Theme.render
                                     anchors.centerIn: parent
                                     text: "✕"
-                                    font.pixelSize: 11
+                                    font.pixelSize: Theme.size
+                                    font.family: Theme.mono
                                     color: viewer.theme.fgDim
                                 }
 
@@ -627,17 +640,19 @@ PanelWindow {
                             required property var modelData
                             spacing: 4
                             Text {
+                                renderType: Theme.render
                                 text: modelData.key
                                 color: viewer.theme.accent
-                                font.pixelSize: 10
-                                font.family: "Terminess Nerd Font Mono"
+                                font.pixelSize: Theme.size
+                                font.family: Theme.mono
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
+                                renderType: Theme.render
                                 text: modelData.desc
                                 color: viewer.theme.fgDim
-                                font.pixelSize: 10
-                                font.family: "Terminess Nerd Font Mono"
+                                font.pixelSize: Theme.size
+                                font.family: Theme.mono
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }

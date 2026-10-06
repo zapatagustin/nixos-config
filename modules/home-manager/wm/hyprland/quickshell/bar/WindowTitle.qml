@@ -23,6 +23,7 @@ Item {
 
     Text {
         id: titleText
+        renderType: Theme.render
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         // Elide against the item's actual width too — the layout may shrink
@@ -32,8 +33,8 @@ Item {
 
         text: root.title
         color: root.theme.fg
-        font.pixelSize: 12
-        font.family: "Terminess Nerd Font Mono"
+        font.pixelSize: Theme.size
+        font.family: Theme.mono
 
         Behavior on text {
             SequentialAnimation {

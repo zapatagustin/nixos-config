@@ -204,18 +204,20 @@ PanelWindow {
                     spacing: 8
 
                     Text {
+                        renderType: Theme.render
+                        // font.family omitted on purpose: lets the colour emoji font render.
                         text: "⌨"
-                        font.pixelSize: 13
+                        font.pixelSize: Theme.size
                         color: sheet.theme.fg
                         Layout.alignment: Qt.AlignVCenter
                     }
 
                     Text {
+                        renderType: Theme.render
                         text: "Keybindings"
                         color: sheet.theme.fg
-                        font.pixelSize: 12
-                        font.family: "Terminess Nerd Font Mono"
-                        font.weight: Font.Bold
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                         Layout.alignment: Qt.AlignVCenter
                     }
 
@@ -225,14 +227,15 @@ PanelWindow {
                     // falló pero el cache anterior todavía llena la lista, el conteo
                     // solo diría "N binds" y el error quedaría invisible.
                     Text {
+                        renderType: Theme.render
                         text: sheet.loadState === "error" ? "error"
                             : sheet.loadState === "loading" ? "…"
                             : sheet.filteredBinds.length + " binds"
                         // yellow y no un rojo: el theme de shell.qml no expone un slot
                         // rojo, y agregarlo es tocar la paleta de toda la barra.
                         color: sheet.loadState === "error" ? sheet.theme.yellow : sheet.theme.fgDim
-                        font.pixelSize: 11
-                        font.family: "Terminess Nerd Font Mono"
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                         Layout.alignment: Qt.AlignVCenter
                     }
                 }
@@ -251,20 +254,22 @@ PanelWindow {
                     spacing: 6
 
                     Text {
+                        renderType: Theme.render
                         text: "/"
                         color: sheet.theme.fgDim
-                        font.pixelSize: 12
-                        font.family: "Terminess Nerd Font Mono"
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                         Layout.alignment: Qt.AlignVCenter
                     }
 
                     TextInput {
                         id: searchInput
+                        renderType: Theme.render
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         color: sheet.theme.fg
-                        font.pixelSize: 12
-                        font.family: "Terminess Nerd Font Mono"
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                         verticalAlignment: TextInput.AlignVCenter
                         selectionColor: sheet.theme.accent
                         selectedTextColor: sheet.theme.accentFg
@@ -312,6 +317,7 @@ PanelWindow {
                     visible: sheet.filteredBinds.length === 0
 
                     Text {
+                        renderType: Theme.render
                         anchors.centerIn: parent
                         // Cuatro mensajes distintos, en orden de precedencia: el script
                         // todavía corre, el script falló, la búsqueda no matchea, o
@@ -322,8 +328,8 @@ PanelWindow {
                             : sheet.query !== "" ? "sin resultados"
                             : "sin binds con descripción"
                         color: sheet.theme.fgDim
-                        font.pixelSize: 12
-                        font.family: "Terminess Nerd Font Mono"
+                        font.pixelSize: Theme.size
+                        font.family: Theme.mono
                     }
                 }
 
@@ -350,25 +356,26 @@ PanelWindow {
                         // formen una segunda columna legible en vez de desalinearse
                         // atrás de cada combo.
                         Text {
-                            Layout.preferredWidth: 230
+                            renderType: Theme.render
+                            Layout.preferredWidth: 300
                             text: modelData.combo
                             color: sheet.selectedIndex === index
                                 ? sheet.theme.accentFg
                                 : sheet.theme.yellow
-                            font.pixelSize: 11
-                            font.family: "Terminess Nerd Font Mono"
-                            font.weight: Font.Bold
+                            font.pixelSize: Theme.size
+                            font.family: Theme.mono
                             elide: Text.ElideRight
                         }
 
                         Text {
+                            renderType: Theme.render
                             Layout.fillWidth: true
                             text: modelData.desc
                             color: sheet.selectedIndex === index
                                 ? sheet.theme.accentFg
                                 : sheet.theme.fg
-                            font.pixelSize: 11
-                            font.family: "Terminess Nerd Font Mono"
+                            font.pixelSize: Theme.size
+                            font.family: Theme.mono
                             elide: Text.ElideRight
                         }
                     }
@@ -395,17 +402,19 @@ PanelWindow {
                             required property var modelData
                             spacing: 4
                             Text {
+                                renderType: Theme.render
                                 text: modelData.key
                                 color: sheet.theme.accent
-                                font.pixelSize: 10
-                                font.family: "Terminess Nerd Font Mono"
+                                font.pixelSize: Theme.size
+                                font.family: Theme.mono
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
+                                renderType: Theme.render
                                 text: modelData.desc
                                 color: sheet.theme.fgDim
-                                font.pixelSize: 10
-                                font.family: "Terminess Nerd Font Mono"
+                                font.pixelSize: Theme.size
+                                font.family: Theme.mono
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }

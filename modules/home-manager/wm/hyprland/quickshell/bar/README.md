@@ -11,6 +11,12 @@ unit — there is no `cp` step, no `exec-once` line, and `~/.config/quickshell` 
 read-only symlink into the store. Editing a `.qml` here takes effect on the next
 rebuild, not on save.
 
+Fonts: every component takes its family and size from the `Theme.qml` singleton
+(`PxPlus IBM VGA8` at 16 px; Nerd Font icons and kanji come from fontconfig fallback).
+Crispness: every text sets `renderType: Theme.render` (NativeRendering), sizes are
+multiples of 16 only, and on hidpi panels `Bar.uiScale = 2 / monitorScale` makes the
+16 px font cell exactly 32 physical px. VGA8 has a single weight, so no `font.weight`/`font.bold`.
+
 Everything configurable — the unit, the fonts, the icon theme, which scripts the bar
 may call — is declared in that same `default.nix`. This file deliberately does not
 restate it: an earlier version of this README described an Arch install with

@@ -58,8 +58,7 @@ in
     enableDefaultPackages = true;
     # VGA is the new monospace face; symbols-only gives missing glyphs for apps
     # that do not bring their own Nerd Font (e.g. neovim plugin icons). Terminess
-    # stays because the quickshell bar pins "Terminess Nerd Font Mono" by name,
-    # unconditionally, throughout its QML files.
+    # stays only because Doom Emacs pins "Terminess Nerd Font Mono" by name.
     packages = with pkgs; [
       udev-gothic
       mono.package
