@@ -29,7 +29,7 @@ not kept in sync with anything.
 
 There is exactly one theme, `dither`, so the palette is read once at startup. No
 mode file, no signal and no toggle exist; a `nixos-rebuild switch` relinks
-`palette.json`; the generated file's store path is an `X-Restart-Triggers` entry
+`palette.json`. The generated file's store path is an `X-Restart-Triggers` entry
 of `quickshell.service`, so a scheme change restarts the bar to pick it up.
 
 So: to recolour the bar, edit the scheme in `modules/theme/dither.yaml` (stylix
