@@ -1,5 +1,44 @@
-{ pkgs, hostname, flakePath, ... }: {
-  home.packages = with pkgs; [ fastfetch ];
+{ lib, hostname, username, flakePath, ... }: {
+  # Character sheet: `sheet` prints it on demand, the zsh init below shows it once
+  # per terminal window. No logo; keys in gold (ANSI yellow, stylix maps it to base0A).
+  # Closed box, 40 columns (8x16 VGA font). Every value is padded AND truncated to
+  # a fixed width by fastfetch width specifiers: `{field<N}` left-aligns, `{field>N}`
+  # right-aligns (a longer value is cut to N). Rows are 11 columns of "│ Key  " prefix +
+  # 28 of value + the closing bar. The Name row has no combined placeholder, so it is
+  # built in Nix from username/hostname. Only CP437 box glyphs, VGA8 renders them.
+  programs.fastfetch = {
+    enable = true;
+    settings = {
+      logo.type = "none";
+      display = {
+        separator = "  ";
+        color.keys = "yellow";
+      };
+      modules =
+        let
+          row = type: key: format: { inherit type; format = "${format}│"; key = "│ ${key}"; };
+          name = "${username}@${hostname}";
+        in
+        [
+          { type = "custom"; format = "┌─ CHARACTER SHEET ────────────────────┐"; }
+          {
+            type = "custom";
+            key = "│ Name   ";
+            format = "${name}${lib.strings.replicate (28 - builtins.stringLength name) " "}│";
+          }
+          (row "os" "Class  " "{pretty-name<28}")
+          (row "kernel" "Level  " "{release<28}")
+          (row "uptime" "XP     " "{days>2}d {hours>2}h {minutes>2}m                 ")
+          (row "memory" "HP     " "{used>10} / {total<15}")
+          (row "disk" "MP     " "{size-used>10} / {size-total<15}")
+          (row "shell" "Gear   " "{pretty-name<28}")
+          (row "terminal" "       " "{pretty-name<28}")
+          (row "wm" "       " "{pretty-name<28}")
+          (row "packages" "Gold   " "{all<28}")
+          { type = "custom"; format = "└──────────────────────────────────────┘"; }
+        ];
+    };
+  };
 
   programs.zsh = {
     enable = true;
@@ -15,6 +54,7 @@
 
     shellAliases = {
       ll = "eza -l";
+      sheet = "fastfetch";
       # nixos-rebuild-ng runs nix as us and only elevates the activation step,
       # but ONLY if told how: --ask-sudo-password (= --elevate=sudo + prompt).
       # Without it, it never elevates → "Permission denied" on the profile
@@ -42,6 +82,15 @@
     };
 
     initContent = ''
+      # Show the character sheet once per terminal window. Terminals here start zsh
+      # directly (zellij is launched by hand, not autostarted), so the window's first
+      # shell has SHLVL<=1. Sub-shells, `nix develop`/`nix shell` shells and every
+      # zellij pane (SHLVL>=2, plus ZELLIJ set) are skipped, as are non-interactive
+      # shells and anything with stdout not on a tty.
+      if [[ -o interactive && -t 1 && -z "$ZELLIJ" && "''${SHLVL:-1}" -le 1 ]]; then
+        fastfetch
+      fi
+
       ZSH_AUTOSUGGEST_STRATEGY=(history match_prev_cmd completion)
       ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=180'
 
