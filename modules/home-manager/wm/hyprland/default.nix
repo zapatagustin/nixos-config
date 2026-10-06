@@ -7,8 +7,14 @@ let
   # repo-root/wallpapers, copied whole into the store. Every image here is
   # referenced by exact filename (below, and setup-monitors.sh) -- nothing picks one
   # dynamically, so an unreferenced file is dead bytes in the closure. Four of them
-  # were, ~1.7MB; the remaining four are ~12MB, mostly View_of_Vent (8.4MB).
+  # were, ~1.7MB; the remaining three are ~11MB, mostly View_of_Vent (8.4MB).
   walls = ../../../../wallpapers;
+  # Dithered Dore engraving at the panel's native size (see theme/dore-dither.nix).
+  lockBg = pkgs.callPackage ../../../theme/dore-dither.nix { } {
+    inherit (config.myDesktop.panelResolution) width height;
+    bg = "#${c.base00}";
+    fg = "#${c.base05}";
+  };
 
   # monitor-watcher is the only monitor script behind a systemd unit, so it's the only
   # one that needs its deps declared (the rest live in ~/.config/hypr and use the session
@@ -113,7 +119,6 @@ in
     satty # screenshot annotation (screenshot.sh edit)
     # gruvbox-gtk-theme dropped: GTK now themed by stylix.targets.gtk
     papirus-icon-theme
-    noto-fonts-cjk-sans # hyprlock clock font (Noto Sans JP)
   ];
 
   wayland.windowManager.hyprland = {
@@ -452,6 +457,9 @@ in
     };
   };
 
+  # Lock screen: dithered engraving + large VGA clock + password field. The
+  # stylix hyprlock target stays off; colours come from c.*. hyprlock 0.9.6 has no
+  # --verify-config, so no flake check covers this block: validate by locking live.
   programs.hyprlock = {
     enable = true;
     settings = {
@@ -461,55 +469,50 @@ in
         grace = 0;
         no_fade_in = false;
       };
-      background = [{
-        monitor = "";
-        path = "${walls}/3.png";
-        blur_passes = 2;
-        blur_size = 4;
-        brightness = 0.6;
-        contrast = 0.9;
-        vibrancy = 0.2;
-      }];
-      label = [
+      # no blur/brightness/contrast/vibrancy: the dither must stay crisp
+      # The dither is rendered 1:1 for the internal panel only; every other output
+      # gets solid base00 (resampling would blur it). hyprlock orders widgets by
+      # zindex with an unstable sort and every background defaults to -1, so config
+      # order alone is not reliable: the explicit values (-2 colour, -1 image) keep
+      # the eDP-1 image above the fallback. A panel not named eDP-1 (thinkpad is
+      # assumed to be eDP-1 too) falls back to base00.
+      background = [
         {
           monitor = "";
-          text = ''cmd[update:1000] echo "<b>$(date +"%H:%M")</b>"'';
-          color = "rgba(235, 219, 178, 0.95)";
-          font_size = 96;
-          font_family = "Noto Sans JP Bold";
-          position = "0, 120";
-          halign = "center";
-          valign = "center";
+          color = "rgb(${c.base00})";
+          zindex = -2;
         }
         {
-          monitor = "";
-          text = ''cmd[update:60000] echo "$(date +"%A, %d de %B de %Y" | sed 's/\b./\u&/g')"'';
-          color = "rgba(168, 153, 132, 0.90)";
-          font_size = 22;
-          font_family = "Noto Sans JP";
-          position = "0, 30";
-          halign = "center";
-          valign = "center";
-        }
-        {
-          monitor = "";
-          text = "Ingresá tu contraseña para desbloquear";
-          color = "rgba(168, 153, 132, 0.70)";
-          font_size = 13;
-          font_family = "Noto Sans JP";
-          position = "0, -155";
-          halign = "center";
-          valign = "center";
+          monitor = "eDP-1";
+          path = "${lockBg}";
+          zindex = -1;
         }
       ];
+      label = [{
+        monitor = "";
+        text = "cmd[update:1000] date +%H:%M";
+        # gold: absent from the dither, so the glyphs stay legible over bright dots
+        color = "rgb(${c.base0A})";
+        shadow_passes = 2;
+        shadow_size = 4;
+        shadow_color = "rgb(${c.base00})";
+        shadow_boost = 1.2;
+        # multiple of 16 (8x16 cell); hyprlock's unit/scale handling is unverified, tune live
+        font_size = 160;
+        font_family = config.stylix.fonts.monospace.name;
+        position = "0, 120";
+        halign = "center";
+        valign = "center";
+      }];
       # base16 input-field colors, written here rather than via
       # stylix.targets.hyprlock: that target also forces settings.background to a
-      # solid base00, which collides with the blurred-wallpaper background above.
+      # solid base00, which collides with the dithered background above.
       # These are the exact values it would have set (see stylix modules/hyprlock/
       # hm.nix), so the lock screen follows the dither scheme.
       "input-field" = [{
         monitor = "";
         size = "280, 42";
+        font_family = config.stylix.fonts.monospace.name;
         outer_color = "rgb(${c.base03})";
         inner_color = "rgb(${c.base00})";
         font_color = "rgb(${c.base05})";
