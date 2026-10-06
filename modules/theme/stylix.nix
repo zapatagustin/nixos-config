@@ -43,7 +43,7 @@ in
     # wallpaper list in modules/home-manager/wm/hyprland/default.nix ("defined
     # multiple times ... expected to be unique"). The input-field colours are
     # written there directly from config.lib.stylix.colors instead — the same
-    # base16 values the target would have set, so they still follow the light/dark
+    # base16 values the target would have set, so they still follow the dark/sepia
     # specialisation. See the matching note in modules/home-manager/stylix.nix.
   };
 }

@@ -38,14 +38,14 @@ let
     text = "readonly EXPONENT=${bexp}\n" + builtins.readFile ./scripts/brightness.sh;
   };
 
-  # System-wide gruvbox dark/light switch. Wrapped rather than deployed into
+  # System-wide gruvbox dark/sepia switch. Wrapped rather than deployed into
   # ~/.config/hypr because the systemd timers below invoke it and a user unit does
   # not inherit the session PATH — it needs systemd/procps/coreutils declared. It
   # sources nothing, so it has no reason to sit flat next to the other scripts.
   # Also on home.packages so the bar can call it by name.
   setTheme = pkgs.writeShellApplication {
     name = "set-theme";
-    runtimeInputs = with pkgs; [ systemd coreutils gnugrep procps hyprland util-linux libnotify jq ];
+    runtimeInputs = with pkgs; [ systemd coreutils gnugrep procps hyprland util-linux libnotify jq zellij ];
     bashOptions = [ "nounset" ]; # script uses `set -u`; errexit would abort the best-effort kitty/hyprctl pokes
     text = builtins.readFile ./scripts/set-theme.sh;
   };
@@ -115,7 +115,7 @@ in
     ffmpeg-headless # screenrecord.sh: post-proceso (GOP/trim/loudnorm) + thumbnail
     brightnessctl
     playerctl
-    setTheme # gruvbox dark/light switch; the bar's theme toggle calls it by name
+    setTheme # gruvbox dark/sepia switch; the bar's theme toggle calls it by name
     caffeine # idle/suspend inhibitor toggle; the bar's coffee icon calls it too
     jq
     socat
@@ -190,7 +190,7 @@ in
               border_size = 1,
               -- gruvbox-dark-medium base0A / base09 / base01, written as literals
               -- ON PURPOSE. These used to read config.lib.stylix.colors so they would
-              -- follow the light specialisation, and that is exactly what made a theme
+              -- follow the sepia specialisation, and that is exactly what made a theme
               -- switch expensive: it left hyprland.lua differing between the two
               -- generations, so home-manager's onChange hook for that file fired
               -- `hyprctl reload config-only` on every switch. Measured, reading the
@@ -551,7 +551,7 @@ in
       # stylix.targets.hyprlock: that target also forces settings.background to a
       # solid base00, which collides with the blurred-wallpaper background above.
       # These are the exact values it would have set (see stylix modules/hyprlock/
-      # hm.nix), so the lock screen follows the light/dark specialisation either way.
+      # hm.nix), so the lock screen follows the dark/sepia specialisation either way.
       "input-field" = [{
         monitor = "";
         size = "280, 42";
@@ -665,7 +665,7 @@ in
   # free.
   systemd.user.services.theme-sync = {
     Unit = {
-      Description = "Restore the last chosen gruvbox palette";
+      Description = "Restore the last chosen palette (gruvbox dark or sepia)";
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
       # The timer is WantedBy=timers.target, so it fires from ANY login that

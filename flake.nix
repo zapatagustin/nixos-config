@@ -139,14 +139,14 @@
       # different build than the one running is the failure this avoids.
       #
       # `variant` selects which home-manager generation's Lua to verify. The
-      # borders now come from base16, so the light specialisation emits DIFFERENT
+      # borders now come from base16, so the sepia specialisation emits DIFFERENT
       # colour literals -- checking only the parent would leave the palette you get
-      # from `set-theme light` unverified.
+      # from `set-theme sepia` unverified.
       hyprlandConfigCheck = hostname: variant:
         let
           hostCfg = nixosConfigurations.${hostname}.config;
           hmCfg = hostCfg.home-manager.users.${hostname};
-          cfgFor = if variant == "light" then hmCfg.specialisation.light.configuration else hmCfg;
+          cfgFor = if variant == "sepia" then hmCfg.specialisation.sepia.configuration else hmCfg;
           luaConfig = cfgFor.xdg.configFile."hypr/hyprland.lua".source;
         in
         pkgs.runCommand "hyprland-config-${hostname}-${variant}"
@@ -305,7 +305,7 @@
           -- . 2>&1 | tee $out
       '';
 
-      # Enforces the two invariants that make it safe for the light specialisation
+      # Enforces the two invariants that make it safe for the sepia specialisation
       # to skip reloadSystemd and ecomonoAgents (modules/home-manager/stylix.nix).
       # Without this the skips are a comment nobody rechecks: the day someone makes
       # a user unit depend on the palette, a theme switch would stop restarting it
@@ -318,7 +318,7 @@
           # is pinned to the actual scheme rather than to a second copy of the path.
           inherit ((import ./modules/theme/tokens.nix pkgs)) scheme;
           dark = hm.home.activationPackage;
-          light = hm.specialisation.light.configuration.home.activationPackage;
+          sepia = hm.specialisation.sepia.configuration.home.activationPackage;
           darkSpec = hm.specialisation.dark.configuration.home.activationPackage;
         in
         pkgs.runCommand "theme-specialisation-invariants-${hostname}" { } ''
@@ -326,11 +326,11 @@
           {
             echo "== systemd user units must be identical =="
             d=${dark}/home-files/.config/systemd/user
-            l=${light}/home-files/.config/systemd/user
-            if [ -e "$d" ] || [ -e "$l" ]; then
-              diff -rq "$d" "$l" || {
-                echo "A user unit differs between the dark and light generations." >&2
-                echo "reloadSystemd is skipped in the light specialisation precisely" >&2
+            s=${sepia}/home-files/.config/systemd/user
+            if [ -e "$d" ] || [ -e "$s" ]; then
+              diff -rq "$d" "$s" || {
+                echo "A user unit differs between the dark and sepia generations." >&2
+                echo "reloadSystemd is skipped in the sepia specialisation precisely" >&2
                 echo "because nothing there could change. Stop skipping it, or keep" >&2
                 echo "the unit palette-independent." >&2
                 exit 1
@@ -339,8 +339,8 @@
             echo "ok"
 
             echo "== home-path must be identical (no package differs by palette) =="
-            [ "${dark}/home-path" = "${light}/home-path" ] || \
-              [ "$(readlink -f ${dark}/home-path)" = "$(readlink -f ${light}/home-path)" ] || {
+            [ "${dark}/home-path" = "${sepia}/home-path" ] || \
+              [ "$(readlink -f ${dark}/home-path)" = "$(readlink -f ${sepia}/home-path)" ] || {
                 echo "The two generations install different packages, so a theme" >&2
                 echo "switch is no longer just a relink and the timing reasoning" >&2
                 echo "in stylix.nix no longer holds." >&2
@@ -361,8 +361,8 @@
             # `hyprctl eval`. Put a config.lib.stylix.colors reference back into that
             # file and the switch silently starts reloading again.
             diff -q ${dark}/home-files/.config/hypr/hyprland.lua \
-                    ${light}/home-files/.config/hypr/hyprland.lua || {
-              echo "hyprland.lua differs between the dark and light generations, so" >&2
+                    ${sepia}/home-files/.config/hypr/hyprland.lua || {
+              echo "hyprland.lua differs between the dark and sepia generations, so" >&2
               echo "home-manager's onChange hook will reload Hyprland on every theme" >&2
               echo "switch. Keep the colours in that file static and let set-theme.sh" >&2
               echo "push the palette at runtime." >&2
@@ -600,8 +600,8 @@
       checks.x86_64-linux = {
         hyprland-lua-surface = hyprlandConfigCheck "surface" "dark";
         hyprland-lua-thinkpad = hyprlandConfigCheck "thinkpad" "dark";
-        hyprland-lua-surface-light = hyprlandConfigCheck "surface" "light";
-        hyprland-lua-thinkpad-light = hyprlandConfigCheck "thinkpad" "light";
+        hyprland-lua-surface-sepia = hyprlandConfigCheck "surface" "sepia";
+        hyprland-lua-thinkpad-sepia = hyprlandConfigCheck "thinkpad" "sepia";
         quickshell-bar-qmllint = quickshellBarQmllint;
         quickshell-bar-qmldir = quickshellBarQmldir;
         nixpkgs-fmt = nixpkgsFmtCheck;

@@ -52,8 +52,30 @@
 
   fonts = {
     enableDefaultPackages = true;
-    packages = with pkgs; [ udev-gothic nerd-fonts.terminess-ttf ibm-plex ]; # stylix.fonts refs these but autoEnable=false doesn't install them
+    # VGA is the new monospace face; symbols-only gives missing glyphs for apps
+    # that do not bring their own Nerd Font (e.g. neovim plugin icons). Terminess
+    # stays because the quickshell bar pins "Terminess Nerd Font Mono" by name,
+    # unconditionally, throughout its QML files.
+    packages = with pkgs; [
+      udev-gothic
+      (pkgs.callPackage ./modules/theme/pxplus-ibm-vga8.nix { })
+      nerd-fonts.symbols-only
+      nerd-fonts.terminess-ttf
+      ibm-plex
+    ]; # stylix.fonts refs these but autoEnable=false doesn't install them
     fontconfig.enable = true;
     # defaultFonts managed by stylix (modules/theme/stylix.nix)
+    # <accept> APPENDS Symbols Nerd Font after VGA8, making it a real fallback
+    # for glyphs VGA8 lacks. <prefer> would PREPEND it, promoting the symbols
+    # font ahead of the primary face — inverted from what is wanted here.
+    # Verify: fc-match -s "PxPlus IBM VGA8" must list VGA8 first.
+    fontconfig.localConf = ''
+      <alias>
+        <family>PxPlus IBM VGA8</family>
+        <accept>
+          <family>Symbols Nerd Font</family>
+        </accept>
+      </alias>
+    '';
   };
 }

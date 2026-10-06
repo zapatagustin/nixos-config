@@ -12,29 +12,24 @@
 # A plain function of `pkgs`, not a NixOS/HM module: it is `import`ed from two
 # different module systems, and each passes its own pkgs instance.
 pkgs: {
-  # gruvbox medium, per polarity. `variant` is "dark" or "light" -- the light one
-  # is the home-manager specialisation that set-theme.sh activates.
-  scheme = variant: "${pkgs.base16-schemes}/share/themes/gruvbox-${variant}-medium.yaml";
+  # gruvbox medium for dark; Athanor sepia for the `sepia` specialisation.
+  scheme = variant:
+    if variant == "dark" then "${pkgs.base16-schemes}/share/themes/gruvbox-dark-medium.yaml"
+    else if variant == "sepia" then ./athanor-sepia.yaml
+    else throw "unknown theme variant: ${variant}";
 
-  # Terminess = Terminus patched by Nerd Fonts: same look + glyphs (bar/prompt
-  # icons). Monospace only.
+  # PxPlus IBM VGA8 is the terminal/monospace face: a faithful recreation of the
+  # IBM VGA 8x16 glyph set. It intentionally has no Nerd Font glyphs, so targets
+  # that ask stylix for monospace (kitty, neovim, etc.) get the retro look, while
+  # the quickshell bar pins Terminess Nerd Font Mono directly and is untouched by
+  # this slice.
   #
-  # sansSerif/serif used to be Terminess too, so that stylix targets picking
-  # sansSerif for UI (gtk.font, zed ui_font, qt general font) stayed in one family.
-  # That is the wrong tradeoff: Terminess is drawn for a fixed pixel grid and a
-  # terminal's cell metrics, and it renders badly as proportional UI text --
-  # especially on a light background, where the thin stems lose the contrast that
-  # made them legible on dark. The visible symptom was "the font looks wrong in
-  # light mode"; the font was equally wrong in dark, just less obvious.
-  #
-  # IBM Plex Sans/Serif for the UI roles. The quickshell bar is unaffected: every
-  # bar element pins "Terminess Nerd Font Mono" (or "Symbols Nerd Font") by name in
-  # its QML, so the Nerd Font glyphs never went through sansSerif.
-  #
-  # Sizes stay at stylix's defaults (desktop 10, applications 12, terminal ->
-  # applications, popups -> desktop): they were never part of this bug.
+  # sansSerif/serif stay IBM Plex Sans/Serif for UI text: VGA is drawn for a fixed
+  # pixel grid and terminal cell metrics, and it renders badly as proportional UI
+  # text. Sizes stay at stylix's defaults (desktop 10, applications 12, terminal ->
+  # applications, popups -> desktop): they were never part of this change.
   fonts = {
-    monospace = { package = pkgs.nerd-fonts.terminess-ttf; name = "Terminess Nerd Font Mono"; };
+    monospace = { package = pkgs.callPackage ./pxplus-ibm-vga8.nix { }; name = "PxPlus IBM VGA8"; };
     sansSerif = { package = pkgs.ibm-plex; name = "IBM Plex Sans"; };
     serif = { package = pkgs.ibm-plex; name = "IBM Plex Serif"; };
   };

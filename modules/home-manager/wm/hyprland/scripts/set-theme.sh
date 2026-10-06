@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Switch the whole system between the gruvbox dark and light palettes.
+# Switch the whole system between the gruvbox dark and Athanor sepia palettes.
 #
 # HOW THIS WORKS. stylix picks one palette at build time: `base16Scheme` is a
 # single value per evaluation and stylix has no dual-scheme or runtime-switch
-# support. polarity is switched alongside it: no stylix TARGET reads polarity here,
-# but home.nix does, deriving the XDG portal's color-scheme and the icon variant
-# from it — that is what makes apps following "the system theme" follow this switch.
-# So the light palette is a home-manager SPECIALISATION: a second full evaluation
+# support. `polarity` stays "dark" in both palettes now; only `base16Scheme`
+# changes. home.nix used to derive the XDG portal's color-scheme and the icon
+# variant from polarity, but both palettes are dark so both now pin prefer-dark
+# and Papirus-Dark.
+# So the sepia palette is a home-manager SPECIALISATION: a second full evaluation
 # of the HM config, declared in modules/home-manager/stylix.nix. Activating it
 # relinks every stylix-generated file at once — kitty, neovim, bat, zellij,
 # zathura, zed, gtk-3.0/gtk-4.0 — so there are no per-target rules to maintain.
@@ -14,7 +15,7 @@
 # WHY THE PARENT GENERATION COMES FROM SYSTEMD. Activating a specialisation
 # repoints home-manager's own gcroots/current-home at the specialisation, and a
 # specialisation deliberately holds no nested specialisation (HM sets
-# `specialisation = lib.mkOverride 0 {}` to prevent recursion). So once light is
+# `specialisation = lib.mkOverride 0 {}` to prevent recursion). So once sepia is
 # active, current-home leads nowhere that can get back to dark. The system unit's
 # ExecStart is the stable anchor: it always names the PARENT (dark) generation and
 # is only ever rewritten by nixos-rebuild.
@@ -58,18 +59,18 @@ fail() {
 }
 
 usage() {
-  echo "usage: set-theme {dark|light|toggle|restore}" >&2
+  echo "usage: set-theme {dark|sepia|toggle|restore}" >&2
   exit 2
 }
 
 want=${1:-}
 case "$want" in
-  dark | light | toggle | restore) ;;
+  dark | sepia | toggle | restore) ;;
   *) usage ;;
 esac
 
 # Serialise against a concurrent run: two home-manager activations interleaving
-# over the same target files can leave a half-applied palette (gtk light, kitty
+# over the same target files can leave a half-applied palette (gtk sepia, kitty
 # still dark) with neither process seeing an error. Same hazard brightness.sh
 # solves with flock.
 #
@@ -101,31 +102,32 @@ parent=$(systemctl show -p ExecStart --value "$unit" 2>/dev/null |
 [ -n "$parent" ] ||
   fail "could not read the home-manager generation from $unit — is home-manager wired as a NixOS module here?"
 
-light_gen="$parent/specialisation/light"
+sepia_gen="$parent/specialisation/sepia"
 
 # ACTUAL state, not the recorded one. current-home points at whichever generation
-# was activated last, so comparing it against the light specialisation is the only
+# was activated last, so comparing it against the sepia specialisation is the only
 # honest answer — the mode file goes stale whenever a nixos-rebuild reverts to the
 # parent behind our back.
 active_mode() {
-  local cur light
+  local cur sepia
   cur=$(readlink -f "$state_home/home-manager/gcroots/current-home" 2>/dev/null || true)
-  light=$(readlink -f "$light_gen" 2>/dev/null || true)
-  if [ -n "$cur" ] && [ -n "$light" ] && [ "$cur" = "$light" ]; then
-    echo light
+  sepia=$(readlink -f "$sepia_gen" 2>/dev/null || true)
+  if [ -n "$cur" ] && [ -n "$sepia" ] && [ "$cur" = "$sepia" ]; then
+    echo sepia
   else
     echo dark
   fi
 }
 
-# RECORDED intent, as opposed to active_mode's reality. Only these two words are
-# accepted: a truncated or hand-edited file must not decide the palette, and dark is
-# the parent generation, i.e. where a plain rebuild already leaves the system.
+# RECORDED intent, as opposed to active_mode's reality. Legacy `light` is accepted
+# only here (the saved mode file) and from the pipe, and is mapped to sepia, so an
+# old mode file from before the rename keeps working; the CLI takes `dark` or
+# `sepia`. Anything else falls back to dark, the parent generation.
 saved_mode() {
   local saved
   saved=$(cat "$mode_file" 2>/dev/null || true)
   case "$saved" in
-    light) echo light ;;
+    light | sepia) echo sepia ;;
     *) echo dark ;;
   esac
 }
@@ -133,12 +135,12 @@ saved_mode() {
 active=$(active_mode)
 
 case "$want" in
-  dark | light) mode="$want" ;;
+  dark | sepia) mode="$want" ;;
   # Deliberately the FILE and not active_mode: right after a rebuild those two
   # disagree, and the file is the one holding what was actually asked for.
   restore) mode="$(saved_mode)" ;;
   toggle)
-    if [ "$active" = dark ]; then mode=light; else mode=dark; fi
+    if [ "$active" = dark ]; then mode=sepia; else mode=dark; fi
     ;;
 esac
 
@@ -251,18 +253,43 @@ reload_zathura() {
     done
 }
 
+# Re-theme live zellij sessions. New sessions are handled by config.kdl itself:
+# shells/zellij/zellij.nix generates its `theme`/`explicit_theme_hue` per
+# generation, so a session created after this switch starts on the active
+# palette in any terminal. Sessions that are ALREADY running keep their previous
+# theme until told to switch via the set-dark-theme / set-light-theme actions
+# (theme_dark stays stylix-dark, theme_light points at stylix-sepia).
+# `--session` is a top-level zellij flag, so it precedes `action`. EXITED
+# (resurrectable) sessions are skipped: they have no server to answer, and each
+# would otherwise burn a full `timeout` on every switch and login.
+reload_zellij() {
+  local session action
+  command -v zellij >/dev/null || return 0
+  if [ "$mode" = dark ]; then
+    action=set-dark-theme
+  else
+    action=set-light-theme
+  fi
+  zellij list-sessions --no-formatting 2>/dev/null |
+    awk '!/EXITED/ && NF { print $1 }' |
+    while read -r session; do
+      timeout 2 zellij --session "$session" action "$action" >/dev/null 2>&1 || true
+    done
+}
+
 # Already in the target state: skip the activation. It takes seconds and this path
-# runs at every login and on every timer fire, so the guard is what keeps `auto`
-# from being a recurring stall.
+# runs at every login, so the guard is what keeps `restore` from being a recurring
+# stall.
 if [ "$mode" = "$active" ]; then
   publish "$mode" || fail "could not record the theme mode under $state_dir"
   # Not redundant on this path. hyprland.lua carries the DARK hexes as its
   # parse-time baseline (they have to be static -- see the long comment on
-  # general.col in ../default.nix), so a session that starts while light is the
+  # general.col in ../default.nix), so a session that starts while sepia is the
   # active generation draws dark borders until something corrects them. This is
-  # that something: theme-sync runs `auto` at every login, lands here, and pushes
+  # that something: theme-sync runs `restore` at every login, lands here, and pushes
   # the live palette. Same reasoning as publish() above -- the no-op path still
   # owes the system a correction.
+  reload_zellij
   push_hyprland_palette
   exit 0
 fi
@@ -270,7 +297,7 @@ fi
 # ALWAYS a specialisation, never the parent — including for dark. The parent runs
 # the full untrimmed activation (reloadSystemd + ecomonoAgents, ~11.5s of the
 # 12.5s), so activating it to "go back to dark" made that direction 12x slower
-# than going to light. specialisation/dark carries the same palette as the parent
+# than going to sepia. specialisation/dark carries the same palette as the parent
 # but the trimmed activation. See modules/home-manager/stylix.nix.
 activate="$parent/specialisation/$mode/activate"
 
@@ -295,9 +322,9 @@ publish "$mode" || fail "switched to '$mode' but could not record it under $stat
 #            why no remote-control socket is configured.
 #   foot     no reload hook exists: foot reads foot.ini only at startup and has no
 #            SIGUSR1 equivalent. Open windows keep the old palette until reopened;
-#            new windows are correct immediately. Consequence for zellij below: the
-#            background re-pick only fires inside kitty windows, a live zellij in a
-#            foot window stays on the old palette until that window restarts.
+#            new windows are correct immediately. zellij inside a foot window is
+#            NOT stuck on foot's account: it takes its palette from its own
+#            config/themes, not from foot's (see zellij below).
 #   neovim   see reload_neovim.
 #   zathura  see reload_zathura.
 #   zed      needs nothing. ~/.config/zed/settings.json is a real file, merged in by
@@ -309,20 +336,16 @@ publish "$mode" || fail "switched to '$mode' but could not record it under $stat
 #   btop     no reload hook, and it does not need one: it reads its theme at
 #            startup and is a foreground TUI you close rather than leave running
 #            across a palette switch.
-#   zellij   needs nothing HERE, and that is a measured result, not an omission.
-#            zellij re-detects the terminal's background colour and re-picks between
-#            its theme_dark and theme_light, so the kitty SIGUSR1 above is already
-#            the trigger: measured at 1s after the switch, with no zellij call in
-#            this script at all, a live session went base0E d3869b -> 8f3f71 and its
-#            background to fbf1c7.
-#            What that DEPENDS on is shells/zellij/{config.kdl,zellij.nix} declaring
-#            theme_dark/theme_light and generating both palettes -- with a single
-#            `theme` there is nothing to re-pick and the session stays stale. So the
-#            fix for zellij is entirely in those two files.
-#            A `zellij action set-{dark,light}-theme` loop was written here and then
-#            removed as dead weight. It would only ever matter for a session attached
-#            from a terminal that is not kitty, which does not happen on this setup.
+#   zellij   config.kdl's `theme`/`explicit_theme_hue` are generated per
+#            generation (shells/zellij/zellij.nix), so a new session starts on the
+#            active palette: hue pins before the first render and overrides the
+#            terminal's ambient report. Live sessions still need an explicit
+#            `zellij action set-{dark,light}-theme` to switch: theme_dark stays
+#            stylix-dark, theme_light maps to stylix-sepia. This loop targets every
+#            listed session so sessions in non-kitty terminals also retheme
+#            immediately.
 pkill -USR1 -x kitty 2>/dev/null || true
+reload_zellij
 reload_neovim
 reload_zathura
 

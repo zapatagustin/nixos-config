@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, username, ... }:
+{ pkgs, inputs, username, ... }:
 {
   imports = [
     ./options.nix
@@ -47,13 +47,14 @@
   };
 
   # GTK theme (adw-gtk3 + base16 css) and font come from stylix.targets.gtk
-  # (modules/home-manager/stylix.nix). Icons stay manual — stylix's gtk target
-  # doesn't set an icon theme — so the variant has to follow the palette by hand.
+  # (modules/home-manager/stylix.nix). Icons stay manual -- stylix's gtk target
+  # doesn't set an icon theme -- and both palettes are dark now (gruvbox dark and
+  # Athanor sepia), so Papirus-Dark is the end-state for both.
   gtk = {
     enable = true;
     iconTheme = {
       package = pkgs.papirus-icon-theme;
-      name = if config.stylix.polarity == "dark" then "Papirus-Dark" else "Papirus-Light";
+      name = "Papirus-Dark";
     };
   };
 
@@ -65,21 +66,22 @@
   #   dconf write  ->  xdg-desktop-portal-gtk watches this GSettings key
   #                ->  emits org.freedesktop.portal.Settings.SettingChanged
   #                ->  subscribed apps repaint, no restart
+  #
   # That signal is exactly what makes a KDE theme switch look instant; we already
   # had every piece of it running (xdg-desktop-portal-gtk.service is the only
   # backend that implements impl.portal.Settings — the hyprland backend declares
   # only Screenshot/ScreenCast/GlobalShortcuts/InputCapture, and cannot implement
   # Settings because Hyprland has no appearance state to publish). The key was
-  # simply hardcoded to prefer-dark, so `set-theme light` left every portal-aware
+  # simply hardcoded to prefer-dark, so `set-theme sepia` left every portal-aware
   # app dark and the desktop disagreed with itself.
   #
-  # "prefer-light", NOT stylix's own targets.gnome value of "default": default
+  # "prefer-dark" is now the end-state for both palettes (gruvbox dark and
+  # Athanor sepia). NOT stylix's own targets.gnome value of "default": default
   # means "no preference" and lets each app fall back to its own, which is dark
   # for a good number of them. (That target is also unusable here for a second
-  # reason — it writes org/gnome/desktop/background from stylix.image, which is a
+  # reason -- it writes org/gnome/desktop/background from stylix.image, which is a
   # 1x1 pixel in this config, and would fight hyprpaper.)
-  dconf.settings."org/gnome/desktop/interface".color-scheme =
-    if config.stylix.polarity == "dark" then "prefer-dark" else "prefer-light";
+  dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
   # Qt apps (zapzap is PyQt6) via Qt's own GTK3 platform theme: they read the GTK
   # colours, font and icon theme we already generate, so they follow the palette

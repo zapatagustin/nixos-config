@@ -1,6 +1,20 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, config, ... }:
 let
   inherit ((import ../../../theme/tokens.nix pkgs)) scheme;
+
+  # Which palette THIS generation carries. The sepia specialisation
+  # (modules/home-manager/stylix.nix) mkForces stylix.base16Scheme to the sepia
+  # yaml; the parent and the dark specialisation carry the gruvbox one. Compared
+  # against the scheme value itself rather than a second flag that could drift --
+  # same pinning as flake.nix's theme-invariants check. toString normalises
+  # path-vs-string before comparing.
+  mode =
+    if toString config.stylix.base16Scheme == toString (scheme "sepia")
+    then "sepia"
+    else "dark";
+  # zellij's hue vocabulary is dark/light; sepia occupies the "light" slot of the
+  # dark/sepia pair (the same mapping theme_light uses in config.kdl).
+  hue = if mode == "sepia" then "light" else "dark";
 
   # BOTH palettes have to exist at once, which is the whole reason this file
   # generates the themes instead of stylix.targets.zellij (now disabled in
@@ -10,10 +24,10 @@ let
   # between the two themes named in theme_dark/theme_light. One theme means there
   # is nothing to switch to.
   #
-  # That the actions really do retheme a running session was verified by
-  # screenshot, not by reading docs: the status bar accent went d3869b -> 8f3f71,
-  # i.e. base0E of gruvbox-dark-medium to base0E of gruvbox-light-medium, with no
-  # restart and no new session.
+  # The actions retheme a running session with no restart and no new session:
+  # set-theme.sh sends set-dark-theme / set-light-theme to every live (non-EXITED)
+  # session via `zellij --session <name> action ...`. theme_light is the sepia
+  # palette.
   #
   # Side benefit: these two files are identical in both generations, so
   # zellij/themes drops out of the set of files a palette switch has to relink.
@@ -166,10 +180,20 @@ in
   # avoids the trap in stylix's own target, whose themes/stylix.kdl declares a theme
   # called `default` while config.kdl asked for `theme "stylix"` -- it worked, but
   # only because zellij also resolves a theme by its file name.
+  #
+  # theme_light points at stylix-sepia: Athanor sepia is the "light" slot in the
+  # dark/sepia pair, even though it is still a dark palette by luminance.
   programs.zellij.themes = {
     stylix-dark.themes.stylix-dark = mkTheme (readScheme (scheme "dark"));
-    stylix-light.themes.stylix-light = mkTheme (readScheme (scheme "light"));
+    stylix-sepia.themes.stylix-sepia = mkTheme (readScheme (scheme "sepia"));
   };
 
-  xdg.configFile."zellij/config.kdl".source = ./config.kdl;
+  # config.kdl's `theme`/`explicit_theme_hue` are per-generation (@theme@/@hue@
+  # placeholders), so the file is substituted rather than deployed verbatim.
+  # A static `theme` line cannot be mode-aware; see the comment block above the
+  # theme_dark/theme_light pair in config.kdl for why hue is the knob that works.
+  xdg.configFile."zellij/config.kdl".source = pkgs.replaceVars ./config.kdl {
+    theme = "stylix-${mode}";
+    inherit hue;
+  };
 }
