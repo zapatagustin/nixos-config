@@ -16,15 +16,16 @@ let
     bg = "#${c.base00}";
     fg = "#${c.base05}";
   };
-  # eDP-only wallpaper: same dither, a different plate (Inferno Plate 10, public domain)
-  # so it differs from the lock screen. Externals keep their photos.
+  # eDP-only wallpaper: same dither, a different plate (Paradise Lost, Book VI, public
+  # domain) so it differs from the lock screen. Externals keep their photos.
   edpWall = pkgs.callPackage ../../../theme/dore-dither.nix { } {
     name = "dore-wallpaper";
     plate = pkgs.fetchurl {
       # explicit name: the URL's percent-decoded basename holds non-ASCII bytes
-      name = "dore-inferno-plate-10.jpg";
-      url = "https://upload.wikimedia.org/wikipedia/commons/7/7e/Gustave_Dor%C3%A9_-_Dante_Alighieri_-_Inferno_-_Plate_10_%28Canto_III_-_Charon_herds_the_sinners_onto_his_boat%29.jpg";
-      hash = "sha256-0lfXCia53rQlHTSr7ut8ztu93MqSUOxhMXMrFNy6NwQ=";
+      name = "dore-paradise-lost-6-406.jpg";
+      # Paradise Lost, Book VI line 406, "Now night her course began" (1866)
+      url = "https://upload.wikimedia.org/wikipedia/commons/1/1e/6-406_Now_night_her_course_began.jpg";
+      hash = "sha256-Jlq3kWZWheMd94Qk1tFygA6ZFnQxtjnowegvYSSls/E=";
     };
     inherit (config.myDesktop.panelResolution) width height;
     bg = "#${c.base00}";
