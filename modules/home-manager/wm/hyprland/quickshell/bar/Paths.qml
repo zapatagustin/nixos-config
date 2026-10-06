@@ -33,9 +33,9 @@ QtObject {
         return c !== "" ? c : Quickshell.env("HOME") + "/.config"
     }
     readonly property string palette: configHome + "/stylix/palette.json"
-    // Caffeine (idle/suspend inhibitor). Only the ephemeral push channel here: the
-    // inhibitor must never survive a logout, and its real state is the
-    // caffeine.service unit, which `caffeine status` reads back at bar startup.
+    // Caffeine (idle/suspend inhibitor). Ephemeral push channel; the inhibitor must
+    // never survive logout, and its real state is caffeine.service (read via
+    // `caffeine status` at startup).
     readonly property string caffeine: runtimeDir + "/qs-caffeine"
     readonly property string caffeineCmd: Quickshell.env("HOME") + "/.config/hypr/caffeine.sh"
     readonly property string launcher: runtimeDir + "/qs-launcher"

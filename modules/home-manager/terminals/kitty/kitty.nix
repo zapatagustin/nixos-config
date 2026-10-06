@@ -14,7 +14,9 @@ _: {
       # no real variants to offer either way.
 
       # VGA8 has no Nerd Font glyphs; map the private-use ranges to Symbols Nerd
-      # Font so plugin icons and powerline separators still render. The CJK
+      # Font so plugin icons and powerline separators still render. Ranges:
+      # U+23FB-U+23FE power symbols, U+E000-U+F8FF BMP private use area,
+      # U+F0000-U+FFFFD supplementary PUA-A, U+100000-U+10FFFD supplementary PUA-B. The CJK
       # Radicals Supplement (U+2E80-U+2EF3) is deliberately NOT mapped: Symbols
       # Nerd Font has no CJK, and symbol_map bypasses normal fallback for mapped
       # ranges — mapping it rendered those codepoints as tofu instead of letting

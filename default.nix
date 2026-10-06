@@ -1,4 +1,8 @@
 { pkgs, ... }:
+let
+  # Same tokens the stylix instances read: one font package, one family name.
+  mono = (import ./modules/theme/tokens.nix pkgs).fonts.monospace;
+in
 {
   imports = [
     ./modules/modules.nix
@@ -58,7 +62,7 @@
     # unconditionally, throughout its QML files.
     packages = with pkgs; [
       udev-gothic
-      (pkgs.callPackage ./modules/theme/pxplus-ibm-vga8.nix { })
+      mono.package
       nerd-fonts.symbols-only
       nerd-fonts.terminess-ttf
       ibm-plex
@@ -67,14 +71,16 @@
     # The stylix fontconfig target is not enabled (autoEnable = false), so
     # defaultFonts is set here: generic `monospace` requests (browsers, GTK apps)
     # resolve to VGA8 with the symbols font as the next entry.
-    fontconfig.defaultFonts.monospace = [ "PxPlus IBM VGA8" "Symbols Nerd Font" ];
+    fontconfig.defaultFonts.monospace = [ mono.name "Symbols Nerd Font" ];
+    # defaultFonts covers the generic `monospace` alias; localConf covers apps that
+    # request VGA8 by name.
     # <accept> APPENDS Symbols Nerd Font after VGA8, making it a real fallback
     # for glyphs VGA8 lacks. <prefer> would PREPEND it, promoting the symbols
     # font ahead of the primary face — inverted from what is wanted here.
     # Verify: fc-match -s "PxPlus IBM VGA8" must list VGA8 first.
     fontconfig.localConf = ''
       <alias>
-        <family>PxPlus IBM VGA8</family>
+        <family>${mono.name}</family>
         <accept>
           <family>Symbols Nerd Font</family>
         </accept>

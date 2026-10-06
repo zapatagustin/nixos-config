@@ -1,5 +1,6 @@
 { pkgs, lib, config, ... }:
 let
+  c = config.lib.stylix.colors;
   mm = config.myDesktop.multiMonitor.enable;
   iscale = toString config.myDesktop.internalScale; # eDP-1 fractional scale (per host)
   bexp = toString config.myDesktop.brightnessExponent; # perceptual brightness gamma (per host)
@@ -38,11 +39,9 @@ let
     text = "readonly EXPONENT=${bexp}\n" + builtins.readFile ./scripts/brightness.sh;
   };
 
-  # Idle/sleep inhibitor toggle. Wrapped rather than left to the session PATH for
-  # the bar calls it through a fixed-path shim and execDetached fails silently
-  # when a bare name does not resolve; a user unit also does not inherit the
-  # session PATH. Also on
-  # home.packages so `caffeine` works from a terminal.
+  # Idle/sleep inhibitor toggle. Wrapped because a user unit does not inherit the
+  # session PATH, and the bar's execDetached fails silently on an unresolved bare
+  # name. Also on home.packages so `caffeine` works from a terminal.
   caffeine = pkgs.writeShellApplication {
     name = "caffeine";
     runtimeInputs = with pkgs; [ systemd coreutils libnotify ];
@@ -180,8 +179,8 @@ in
               --
               -- hl.config takes rgba(RRGGBBAA), hence the bare hex plus "ff".
               col = {
-                  active_border   = { colors = { "rgba(${config.lib.stylix.colors.base0A}ff)", "rgba(${config.lib.stylix.colors.base09}ff)" }, angle = 45 },
-                  inactive_border = "rgba(${config.lib.stylix.colors.base01}ff)",
+                  active_border   = { colors = { "rgba(${c.base0A}ff)", "rgba(${c.base09}ff)" }, angle = 45 },
+                  inactive_border = "rgba(${c.base01}ff)",
               },
               resize_on_border = false,
               allow_tearing    = false,
@@ -511,13 +510,13 @@ in
       "input-field" = [{
         monitor = "";
         size = "280, 42";
-        outer_color = "rgb(${config.lib.stylix.colors.base03})";
-        inner_color = "rgb(${config.lib.stylix.colors.base00})";
-        font_color = "rgb(${config.lib.stylix.colors.base05})";
-        fail_color = "rgb(${config.lib.stylix.colors.base08})";
-        check_color = "rgb(${config.lib.stylix.colors.base0A})";
+        outer_color = "rgb(${c.base03})";
+        inner_color = "rgb(${c.base00})";
+        font_color = "rgb(${c.base05})";
+        fail_color = "rgb(${c.base08})";
+        check_color = "rgb(${c.base0A})";
         # doubled ## is hyprlock's escape for a literal # inside pango markup
-        placeholder_text = ''<span foreground="##${config.lib.stylix.colors.base04}">contraseña...</span>'';
+        placeholder_text = ''<span foreground="##${c.base04}">contraseña...</span>'';
         hide_input = false;
         dots_size = 0.30;
         dots_spacing = 0.20;

@@ -36,7 +36,7 @@ in
         color_blue = "#${c.base0D}";
         color_aqua = "#${c.base0C}";
         color_green = "#${c.base0B}";
-        color_orange = "#${c.base0F}";
+        color_orange = "#${c.base09}";
         color_purple = "#${c.base0E}";
         color_red = "#${c.base08}";
         color_yellow = "#${c.base0A}";

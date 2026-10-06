@@ -8,16 +8,8 @@ import QtQuick
 ShellRoot {
     id: root
 
-    // Colours come from stylix's generated palette, never from a table kept here.
-    //
-    // This replaced two hand-written gruvbox tables, and they HAD already drifted:
-    // the second table opened with a hex from a different gruvbox variant than the
-    // one stylix actually used. Nobody noticed for as long as it took to go looking,
-    // which is the whole argument against keeping a second copy of a palette.
-    //
-    //
-    // The palette is static (one theme, dither), so it is read once at startup;
-    // there is no signal to re-read on.
+    // Colours come from stylix's palette.json, read once at startup (the palette
+    // is static). The gruvbox hexes below are the fallback if the file is missing.
     property var base16: ({})
 
     FileView {
@@ -49,10 +41,8 @@ ShellRoot {
         return v !== undefined ? "#" + v : fallback
     }
 
-    // base16 slot per role. fgDim is the one judgement call: it used to be #a89984,
-    // gruvbox's own `gray`, which is not one of the 16 slots at all. base04 is the
-    // spec's "dark foreground, used for status bars", so it is the honest home for a
-    // dimmed foreground even though it shifts the colour slightly.
+    // base16 slot per role. fgDim maps to base04, the base16 spec's "dark
+    // foreground, used for status bars".
     property var theme: ({
         bg:           c("base00", "#282828"),
         bg1:          c("base01", "#3c3836"),
