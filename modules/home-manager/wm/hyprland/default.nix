@@ -7,10 +7,25 @@ let
   # repo-root/wallpapers, copied whole into the store. Every image here is
   # referenced by exact filename (below, and setup-monitors.sh) -- nothing picks one
   # dynamically, so an unreferenced file is dead bytes in the closure. Four of them
-  # were, ~1.7MB; the remaining three are ~11MB, mostly View_of_Vent (8.4MB).
+  # were, ~1.7MB; the remaining two are ~11MB, mostly View_of_Vent (8.4MB). The eDP
+  # wallpaper is generated (edpWall below), not a file here.
   walls = ../../../../wallpapers;
   # Dithered Dore engraving at the panel's native size (see theme/dore-dither.nix).
   lockBg = pkgs.callPackage ../../../theme/dore-dither.nix { } {
+    inherit (config.myDesktop.panelResolution) width height;
+    bg = "#${c.base00}";
+    fg = "#${c.base05}";
+  };
+  # eDP-only wallpaper: same dither, a different plate (Inferno Plate 10, public domain)
+  # so it differs from the lock screen. Externals keep their photos.
+  edpWall = pkgs.callPackage ../../../theme/dore-dither.nix { } {
+    name = "dore-wallpaper";
+    plate = pkgs.fetchurl {
+      # explicit name: the URL's percent-decoded basename holds non-ASCII bytes
+      name = "dore-inferno-plate-10.jpg";
+      url = "https://upload.wikimedia.org/wikipedia/commons/7/7e/Gustave_Dor%C3%A9_-_Dante_Alighieri_-_Inferno_-_Plate_10_%28Canto_III_-_Charon_herds_the_sinners_onto_his_boat%29.jpg";
+      hash = "sha256-0lfXCia53rQlHTSr7ut8ztu93MqSUOxhMXMrFNy6NwQ=";
+    };
     inherit (config.myDesktop.panelResolution) width height;
     bg = "#${c.base00}";
     fg = "#${c.base05}";
@@ -91,7 +106,7 @@ let
       ${pkgs.hyprland}/bin/hyprctl hyprpaper listactive >/dev/null 2>&1 && break
       sleep 0.3
     done
-    ${pkgs.hyprland}/bin/hyprctl hyprpaper wallpaper "eDP-1,${walls}/keyboard.jpg"
+    ${pkgs.hyprland}/bin/hyprctl hyprpaper wallpaper "eDP-1,${edpWall}"
   '';
 
 in
@@ -159,6 +174,7 @@ in
       local hyprDir = "~/.config/hypr"
 
       hl.env("WALLPAPER_DIR", "${walls}")
+      hl.env("EDP_WALLPAPER", "${edpWall}")
       hl.env("EDP_SCALE", "${iscale}") -- setup-monitors.sh reuses the per-host eDP scale on dock
 
       -- scale per host (myDesktop.internalScale); externals via setup-monitors.sh
@@ -409,7 +425,7 @@ in
     settings = {
       splash = false;
       ipc = "on";
-      wallpaper = [ "eDP-1,${walls}/keyboard.jpg" ];
+      wallpaper = [ "eDP-1,${edpWall}" ];
     };
   };
   systemd.user.services.hyprpaper.Service.ExecStartPost = "${setEdpWallpaper}";
@@ -592,11 +608,12 @@ in
     };
     Service = {
       ExecStart = "${monitorWatcher}/bin/monitor-watcher";
-      # WALLPAPER_DIR is consumed by setup-monitors.sh, which the watcher spawns on
+      # WALLPAPER_DIR and EDP_WALLPAPER are consumed by setup-monitors.sh, which the watcher spawns on
       # hotplug. A systemd user service does not inherit Hyprland's `env` (uwsm finalize
-      # only exports HYPRLAND_INSTANCE_SIGNATURE), so set it here. PATH is no longer set
+      # only exports HYPRLAND_INSTANCE_SIGNATURE), so set it here. The startup run of the same
+      # script comes from hl.exec_cmd and gets these via hl.env instead. PATH is no longer set
       # manually — runtimeInputs handles it.
-      Environment = [ "WALLPAPER_DIR=${walls}" "EDP_SCALE=${iscale}" ];
+      Environment = [ "WALLPAPER_DIR=${walls}" "EDP_WALLPAPER=${edpWall}" "EDP_SCALE=${iscale}" ];
       Restart = "on-failure";
       RestartSec = 2;
     };
