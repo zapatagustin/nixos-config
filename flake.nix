@@ -137,19 +137,13 @@
       # (withUWSM = true in modules/wm/hyprland.nix), and stays correct if chaotic
       # ever repins Hyprland away from nixpkgs. Verifying with a schema from a
       # different build than the one running is the failure this avoids.
-      #
-      # `variant` selects which home-manager generation's Lua to verify. The
-      # borders now come from base16, so the light specialisation emits DIFFERENT
-      # colour literals -- checking only the parent would leave the palette you get
-      # from `set-theme light` unverified.
-      hyprlandConfigCheck = hostname: variant:
+      hyprlandConfigCheck = hostname:
         let
           hostCfg = nixosConfigurations.${hostname}.config;
           hmCfg = hostCfg.home-manager.users.${hostname};
-          cfgFor = if variant == "light" then hmCfg.specialisation.light.configuration else hmCfg;
-          luaConfig = cfgFor.xdg.configFile."hypr/hyprland.lua".source;
+          luaConfig = hmCfg.xdg.configFile."hypr/hyprland.lua".source;
         in
-        pkgs.runCommand "hyprland-config-${hostname}-${variant}"
+        pkgs.runCommand "hyprland-config-${hostname}"
           { nativeBuildInputs = [ hostCfg.programs.hyprland.package ]; } ''
           export XDG_RUNTIME_DIR=$TMPDIR/xdgrt
           mkdir -p -m700 "$XDG_RUNTIME_DIR"
@@ -305,126 +299,6 @@
           -- . 2>&1 | tee $out
       '';
 
-      # Enforces the two invariants that make it safe for the light specialisation
-      # to skip reloadSystemd and ecomonoAgents (modules/home-manager/stylix.nix).
-      # Without this the skips are a comment nobody rechecks: the day someone makes
-      # a user unit depend on the palette, a theme switch would stop restarting it
-      # and the reason would be invisible. That is the exact comment-rot this repo
-      # has been bitten by three times.
-      themeSpecialisationInvariants = hostname:
-        let
-          hm = nixosConfigurations.${hostname}.config.home-manager.users.${hostname};
-          # Same single source the two stylix instances read, so the hex check below
-          # is pinned to the actual scheme rather than to a second copy of the path.
-          inherit ((import ./modules/theme/tokens.nix pkgs)) scheme;
-          dark = hm.home.activationPackage;
-          light = hm.specialisation.light.configuration.home.activationPackage;
-          darkSpec = hm.specialisation.dark.configuration.home.activationPackage;
-        in
-        pkgs.runCommand "theme-specialisation-invariants-${hostname}" { } ''
-          set -o pipefail
-          {
-            echo "== systemd user units must be identical =="
-            d=${dark}/home-files/.config/systemd/user
-            l=${light}/home-files/.config/systemd/user
-            if [ -e "$d" ] || [ -e "$l" ]; then
-              diff -rq "$d" "$l" || {
-                echo "A user unit differs between the dark and light generations." >&2
-                echo "reloadSystemd is skipped in the light specialisation precisely" >&2
-                echo "because nothing there could change. Stop skipping it, or keep" >&2
-                echo "the unit palette-independent." >&2
-                exit 1
-              }
-            fi
-            echo "ok"
-
-            echo "== home-path must be identical (no package differs by palette) =="
-            [ "${dark}/home-path" = "${light}/home-path" ] || \
-              [ "$(readlink -f ${dark}/home-path)" = "$(readlink -f ${light}/home-path)" ] || {
-                echo "The two generations install different packages, so a theme" >&2
-                echo "switch is no longer just a relink and the timing reasoning" >&2
-                echo "in stylix.nix no longer holds." >&2
-                exit 1
-              }
-            echo "ok"
-
-            echo "== hyprland.lua must NOT differ between the two palettes =="
-            # This one is not about the activation skips: it is what keeps a theme
-            # switch from reloading Hyprland at all. home-manager attaches an
-            # onChange hook to .config/hypr/hyprland.lua that runs `hyprctl reload
-            # config-only`, and that reload resets the external monitors' DDC
-            # brightness to 100% -- measured on the hardware, 41 -> 100 on both,
-            # with setup-monitors.sh stopped so nothing else could be blamed. The
-            # externals do not persist a DDC write and revert to their OSD default
-            # when the link is re-initialised. So the border colours are literals in
-            # wm/hyprland/default.nix and set-theme.sh pushes the live palette over
-            # `hyprctl eval`. Put a config.lib.stylix.colors reference back into that
-            # file and the switch silently starts reloading again.
-            diff -q ${dark}/home-files/.config/hypr/hyprland.lua \
-                    ${light}/home-files/.config/hypr/hyprland.lua || {
-              echo "hyprland.lua differs between the dark and light generations, so" >&2
-              echo "home-manager's onChange hook will reload Hyprland on every theme" >&2
-              echo "switch. Keep the colours in that file static and let set-theme.sh" >&2
-              echo "push the palette at runtime." >&2
-              exit 1
-            }
-            echo "ok"
-
-            echo "== hyprland's own config watcher must stay off =="
-            # The sibling of the check above. Keeping hyprland.lua identical stops
-            # home-manager's onChange hook from firing, but Hyprland ALSO watches the
-            # config path itself, and linkGeneration moves that path on every switch
-            # (the home-manager-files hash changes because the other palette files in
-            # it did). Measured: two relinks to byte-identical content produced two
-            # reloads. Under nix the watcher can only ever be a false positive -- the
-            # file is an immutable store symlink, so no hand-edit can reach it.
-            grep -q 'disable_autoreload *= *true' \
-              ${dark}/home-files/.config/hypr/hyprland.lua || {
-              echo "misc.disable_autoreload is no longer set in hyprland.lua, so" >&2
-              echo "Hyprland will reload itself every time home-manager relinks the" >&2
-              echo "config -- i.e. on every theme switch, blanking the externals and" >&2
-              echo "resetting their DDC brightness." >&2
-              exit 1
-            }
-            echo "ok"
-
-            echo "== those static hexes must still be the dark palette =="
-            # The literals only stay correct as long as nobody changes the scheme in
-            # modules/theme/tokens.nix. Pin them to the yaml stylix itself reads
-            # rather than to a comment.
-            for pair in base0A:fabd2f base09:fe8019 base01:3c3836; do
-              key=''${pair%%:*}; want=''${pair##*:}
-              # Entries look like `  base0A: "#fabd2f" # yellow` -- indented, quoted,
-              # hash-prefixed and trailing-commented, so anchor on the key and pull
-              # the six hex digits out of the middle rather than matching a shape.
-              got=$(sed -n "s/^[[:space:]]*$key:[^0-9a-fA-F]*\([0-9a-fA-F]\{6\}\).*/\1/p" \
-                    ${scheme "dark"} | head -n1)
-              [ "$got" = "$want" ] || {
-                echo "$key is $got in the dark scheme but wm/hyprland/default.nix" >&2
-                echo "hardcodes $want. Update the literal, or the parse-time border" >&2
-                echo "colour stops matching the palette everything else uses." >&2
-                exit 1
-              }
-              grep -qF "rgba($want" ${dark}/home-files/.config/hypr/hyprland.lua || {
-                echo "$key ($want) is no longer present in the generated hyprland.lua." >&2
-                exit 1
-              }
-            done
-            echo "ok"
-
-            echo "== the dark specialisation must be a faithful stand-in for the parent =="
-            # set-theme activates specialisation/dark rather than the parent, to get
-            # the trimmed activation. That is only correct if it deploys exactly the
-            # same files the parent would.
-            diff -rq ${dark}/home-files ${darkSpec}/home-files || {
-              echo "specialisation.dark deploys different files than the parent, so" >&2
-              echo "switching to dark would no longer restore the rebuilt state." >&2
-              exit 1
-            }
-            echo "ok"
-          } | tee $out
-        '';
-
       # Structural checks no off-the-shelf linter covers: orphaned .nix files,
       # dangling ~/.config/hypr script references, host-name literals in shared HM
       # modules. Same script the pre-commit hook runs, so the two cannot disagree.
@@ -437,7 +311,7 @@
 
       # The hypr scripts deployed via xdg.configFile never pass through
       # writeShellApplication, so unlike the wrapped ones (brightness,
-      # monitor-watcher, audio-device-watcher, set-theme) nothing ever ran
+      # monitor-watcher, audio-device-watcher) nothing ever ran
       # shellcheck over them. This closes that half of the split without changing
       # how they are deployed -- they must stay flat in ~/.config/hypr because they
       # source each other via `dirname $0`. The quickshell bar's helper scripts
@@ -598,10 +472,8 @@
       formatter.x86_64-linux = pkgs.nixpkgs-fmt;
 
       checks.x86_64-linux = {
-        hyprland-lua-surface = hyprlandConfigCheck "surface" "dark";
-        hyprland-lua-thinkpad = hyprlandConfigCheck "thinkpad" "dark";
-        hyprland-lua-surface-light = hyprlandConfigCheck "surface" "light";
-        hyprland-lua-thinkpad-light = hyprlandConfigCheck "thinkpad" "light";
+        hyprland-lua-surface = hyprlandConfigCheck "surface";
+        hyprland-lua-thinkpad = hyprlandConfigCheck "thinkpad";
         quickshell-bar-qmllint = quickshellBarQmllint;
         quickshell-bar-qmldir = quickshellBarQmldir;
         nixpkgs-fmt = nixpkgsFmtCheck;
@@ -612,8 +484,6 @@
         brightness-exponent-surface = brightnessExponent "surface";
         brightness-exponent-thinkpad = brightnessExponent "thinkpad";
         repo-lint = repoLint;
-        theme-invariants-surface = themeSpecialisationInvariants "surface";
-        theme-invariants-thinkpad = themeSpecialisationInvariants "thinkpad";
       };
     };
 }

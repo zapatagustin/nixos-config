@@ -12,7 +12,7 @@ in
     enable = true;
     autoEnable = false;
     polarity = "dark";
-    base16Scheme = tokens.scheme "dark";
+    base16Scheme = tokens.scheme;
 
     # No DE/compositor: wallpaper is just a solid bg pixel.
     image = config.lib.stylix.pixel "base00";
@@ -33,7 +33,7 @@ in
     targets.gnome.enable = false;
 
     # Stylix's starship target imposes its own palette and breaks the custom
-    # prompt (uses named colors). Manual palette is already gruvbox — keep it.
+    # prompt (uses named colors). The palette is derived from the dither scheme there.
     #targets.starship.enable = false;
     # bat's stylix theme is a home-manager target, disabled in shells/shells.nix
 
@@ -43,7 +43,7 @@ in
     # wallpaper list in modules/home-manager/wm/hyprland/default.nix ("defined
     # multiple times ... expected to be unique"). The input-field colours are
     # written there directly from config.lib.stylix.colors instead — the same
-    # base16 values the target would have set, so they still follow the light/dark
-    # specialisation. See the matching note in modules/home-manager/stylix.nix.
+    # base16 values the target would have set, so they follow the dither scheme.
+    # See the matching note in modules/home-manager/stylix.nix.
   };
 }

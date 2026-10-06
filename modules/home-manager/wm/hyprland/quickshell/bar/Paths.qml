@@ -25,40 +25,17 @@ QtObject {
                           + "toggles will not work. Expected it from the systemd user session.")
     }
 
-    // Theme has TWO paths on purpose. `theme` is the ephemeral push channel that
-    // set-theme appends to so the bar flips instantly. `themeMode` is the persisted
-    // choice, which must survive logout — otherwise every login starts on dark
-    // regardless of the hour.
-    //
-    // themeMode deliberately does NOT use Quickshell.stateDir like clipboardPinned
-    // does: stateDir is scoped per shell-id (~/.local/state/quickshell/by-shell/<id>),
-    // which a plain shell script cannot resolve. XDG_STATE_HOME is computable
-    // identically from both sides. Unlike XDG_RUNTIME_DIR it also has a spec-defined
-    // default, so falling back here is correct rather than a silent downgrade.
-    readonly property string theme: runtimeDir + "/qs-theme"
-    readonly property string stateHome: {
-        var s = Quickshell.env("XDG_STATE_HOME")
-        return s !== "" ? s : Quickshell.env("HOME") + "/.local/state"
-    }
-    readonly property string themeMode: stateHome + "/hypr/theme-mode"
-    // stylix's generated base16 palette, and the bar's ONLY source of colour. Same
-    // file scripts/set-theme.sh reads for the Hyprland border push, so the two cannot
-    // disagree. Like stateHome, XDG_CONFIG_HOME has a spec-defined default, so
-    // falling back is correct here rather than a silent downgrade.
+    // stylix's generated base16 palette, and the bar's ONLY source of colour.
+    // XDG_CONFIG_HOME has a spec-defined default, so falling back is correct here
+    // rather than a silent downgrade.
     readonly property string configHome: {
         var c = Quickshell.env("XDG_CONFIG_HOME")
         return c !== "" ? c : Quickshell.env("HOME") + "/.config"
     }
     readonly property string palette: configHome + "/stylix/palette.json"
-    // Fixed path to the theme switcher. QML cannot interpolate a Nix store path,
-    // so wm/hyprland/default.nix deploys a shim here that forwards to the wrapped
-    // binary -- see the xdg.configFile comment there for why this is not just
-    // `set-theme` on PATH.
-    readonly property string setTheme: Quickshell.env("HOME") + "/.config/hypr/set-theme.sh"
     // Caffeine (idle/suspend inhibitor). Only the ephemeral push channel here: the
-    // persisted counterpart themeMode has no equivalent on purpose — the inhibitor
-    // must never survive a logout, and its real state is the caffeine.service unit,
-    // which `caffeine status` reads back at bar startup.
+    // inhibitor must never survive a logout, and its real state is the
+    // caffeine.service unit, which `caffeine status` reads back at bar startup.
     readonly property string caffeine: runtimeDir + "/qs-caffeine"
     readonly property string caffeineCmd: Quickshell.env("HOME") + "/.config/hypr/caffeine.sh"
     readonly property string launcher: runtimeDir + "/qs-launcher"

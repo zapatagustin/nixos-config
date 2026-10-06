@@ -8,58 +8,23 @@ import QtQuick
 ShellRoot {
     id: root
 
-    // Only drives the toggle's 🌙/☀ glyph in RightSection. The PALETTE is read from
-    // stylix's file below, so this is no longer what colours anything.
-    property bool isDark: true
-
-    // Leer el tema actual al iniciar (Quickshell resetea isDark al reiniciar).
-    // Lee el modo PERSISTIDO, no el pipe: el pipe vive en XDG_RUNTIME_DIR y se
-    // borra al cerrar sesión, así que al arrancar no dice nada.
-    Process {
-        id: themeInit
-        command: ["sh", "-c", "cat " + Paths.themeMode + " 2>/dev/null"]
-        running: true
-        stdout: SplitParser {
-            onRead: (line) => {
-                var msg = line.trim()
-                if (msg === "light") root.isDark = false
-                if (msg === "dark")  root.isDark = true
-            }
-        }
-    }
-
-    IpcWatcher {
-        pipePath: Paths.theme
-        onTriggered: (line) => {
-            if (line === "dark")  root.isDark = true
-            if (line === "light") root.isDark = false
-            // The colours do NOT come from isDark — this is what actually repaints
-            // the bar. isDark only survives because RightSection draws 🌙 or ☀ from
-            // it; deleting it as dead would take the toggle's icon with it.
-            paletteFile.reload()
-        }
-    }
-
     // Colours come from stylix's generated palette, never from a table kept here.
     //
     // This replaced two hand-written gruvbox tables, and they HAD already drifted:
-    // the light one opened with #f9f5d7, which is gruvbox-light-HARD, while stylix
-    // has always been on gruvbox-light-medium (#fbf1c7). Nobody noticed for as long
-    // as it took to go looking, which is the whole argument against keeping a second
-    // copy of a palette.
+    // the second table opened with a hex from a different gruvbox variant than the
+    // one stylix actually used. Nobody noticed for as long as it took to go looking,
+    // which is the whole argument against keeping a second copy of a palette.
     //
-    // Re-reading on the qs-theme signal is race-free by construction: set-theme
-    // publishes to that pipe only AFTER the home-manager activation returns, and
-    // linkGeneration has relinked palette.json by then, so the file already holds
-    // the palette being announced.
+    //
+    // The palette is static (one theme, dither), so it is read once at startup;
+    // there is no signal to re-read on.
     property var base16: ({})
 
     FileView {
         id: paletteFile
         path: Paths.palette
-        // preload must stay ON. See the long note in Brightness.qml: with it off,
-        // reload() will not start a FIRST read, and this would silently never load
-        // with nothing in the log to explain it.
+        // preload must stay ON so the file is read at startup. See the note in
+        // Brightness.qml.
         onLoaded: {
             try {
                 root.base16 = JSON.parse(paletteFile.text())
@@ -115,7 +80,6 @@ ShellRoot {
             required property var modelData
             screen: modelData
             theme: root.theme
-            isDark: root.isDark
             notifServer: notifSrv
         }
     }

@@ -9,7 +9,6 @@ Item {
     id: rightSection
 
     required property var theme
-    required property bool isDark
     required property var notifServer
 
     implicitWidth: row.implicitWidth
@@ -69,38 +68,6 @@ Item {
         Battery {
             theme: rightSection.theme
             Layout.alignment: Qt.AlignVCenter
-        }
-
-        Sep {}
-
-        // ── Toggle tema ──────────────────────────────────────────
-        Text {
-            id: themeIcon
-            text: rightSection.isDark ? "🌙" : "☀"
-            font.pixelSize: 11
-            color: themeHover.hovered
-                ? rightSection.theme.accent
-                : rightSection.isDark
-                    ? rightSection.theme.blue
-                    : rightSection.theme.yellow
-            Layout.alignment: Qt.AlignVCenter
-
-            HoverHandler { id: themeHover }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                // execDetached, NOT a reused Process: set-theme blocks for seconds
-                // while home-manager activates the other generation, and a Process
-                // that is still running silently ignores every later start — the
-                // same trap that broke Launcher.qml and Workspaces.qml.
-                //
-                // `toggle` derives the current mode from the active generation
-                // rather than from isDark, so the script stays the single source of
-                // truth and the bar cannot desync it. The bar's own palette flips
-                // when set-theme pushes to the qs-theme pipe (see shell.qml).
-                onClicked: Quickshell.execDetached(["bash", Paths.setTheme, "toggle"])
-            }
         }
 
         Sep {}

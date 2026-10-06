@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, username, ... }:
+{ pkgs, inputs, username, ... }:
 {
   imports = [
     ./options.nix
@@ -47,49 +47,36 @@
   };
 
   # GTK theme (adw-gtk3 + base16 css) and font come from stylix.targets.gtk
-  # (modules/home-manager/stylix.nix). Icons stay manual — stylix's gtk target
-  # doesn't set an icon theme — so the variant has to follow the palette by hand.
+  # (modules/home-manager/stylix.nix). Icons stay manual -- stylix's gtk target
+  # doesn't set an icon theme -- and dither is a dark palette, so Papirus-Dark.
   gtk = {
     enable = true;
     iconTheme = {
       package = pkgs.papirus-icon-theme;
-      name = if config.stylix.polarity == "dark" then "Papirus-Dark" else "Papirus-Light";
+      name = "Papirus-Dark";
     };
   };
 
-  # THE cross-toolkit theme signal. Everything that "follows the system theme"
-  # — browsers, libadwaita/GTK4, Qt6, Electron — asks the XDG desktop portal for
-  # org.freedesktop.appearance/color-scheme rather than reading our gtk.css.
+  # Static cross-toolkit colour-scheme hint. Browsers, libadwaita/GTK4, Qt6 and
+  # Electron ask the XDG desktop portal for org.freedesktop.appearance/color-scheme
+  # rather than reading our gtk.css; xdg-desktop-portal-gtk serves it from this
+  # GSettings key (the hyprland portal backend implements no Settings interface).
   #
-  # The chain, verified live on this host:
-  #   dconf write  ->  xdg-desktop-portal-gtk watches this GSettings key
-  #                ->  emits org.freedesktop.portal.Settings.SettingChanged
-  #                ->  subscribed apps repaint, no restart
-  # That signal is exactly what makes a KDE theme switch look instant; we already
-  # had every piece of it running (xdg-desktop-portal-gtk.service is the only
-  # backend that implements impl.portal.Settings — the hyprland backend declares
-  # only Screenshot/ScreenCast/GlobalShortcuts/InputCapture, and cannot implement
-  # Settings because Hyprland has no appearance state to publish). The key was
-  # simply hardcoded to prefer-dark, so `set-theme light` left every portal-aware
-  # app dark and the desktop disagreed with itself.
-  #
-  # "prefer-light", NOT stylix's own targets.gnome value of "default": default
-  # means "no preference" and lets each app fall back to its own, which is dark
-  # for a good number of them. (That target is also unusable here for a second
-  # reason — it writes org/gnome/desktop/background from stylix.image, which is a
-  # 1x1 pixel in this config, and would fight hyprpaper.)
-  dconf.settings."org/gnome/desktop/interface".color-scheme =
-    if config.stylix.polarity == "dark" then "prefer-dark" else "prefer-light";
+  # "prefer-dark" because dither is a dark palette. NOT stylix's own
+  # targets.gnome value of "default": default means "no preference" and lets each
+  # app fall back to its own, which is dark for a good number of them. (That target
+  # is also unusable here for a second reason -- it writes
+  # org/gnome/desktop/background from stylix.image, which is a 1x1 pixel in this
+  # config, and would fight hyprpaper.)
+  dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
   # Qt apps (zapzap is PyQt6) via Qt's own GTK3 platform theme: they read the GTK
   # colours, font and icon theme we already generate, so they follow the palette
   # with zero extra state to keep in sync.
   #
   # Deliberately NOT stylix.targets.qt: it drives qt6ct + a Kvantum theme BUILT
-  # from the base16 palette, i.e. a store path that differs per palette. That
-  # breaks flake.nix's theme-invariants check ("home-path must be identical, no
-  # package differs by palette"), and with it the reasoning that a theme switch is
-  # only a relink. platformTheme "gtk3" adds no package at all — the plugin
+  # from the base16 palette, an extra package for no gain over the GTK path.
+  # platformTheme "gtk3" adds no package at all — the plugin
   # (libqgtk3.so) already ships inside qtbase; this only sets QT_QPA_PLATFORMTHEME.
   qt = {
     enable = true;

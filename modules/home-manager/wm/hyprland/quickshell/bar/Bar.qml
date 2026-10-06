@@ -7,7 +7,6 @@ PanelWindow {
     id: bar
 
     required property var theme
-    required property bool isDark
     required property var notifServer
 
     anchors {
@@ -103,7 +102,6 @@ PanelWindow {
             // ── DERECHA: Vol + Bri + Bat + reloj ──────────────────
             RightSection {
                 theme: bar.theme
-                isDark: bar.isDark
                 notifServer: bar.notifServer
                 Layout.alignment: Qt.AlignVCenter
             }
