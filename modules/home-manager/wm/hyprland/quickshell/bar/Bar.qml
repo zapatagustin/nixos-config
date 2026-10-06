@@ -7,11 +7,10 @@ PanelWindow {
     id: bar
 
     required property var theme
-    required property bool isDark
     required property var notifServer
 
     anchors {
-        top: true
+        bottom: true
         left: true
         right: true
     }
@@ -29,11 +28,16 @@ PanelWindow {
         return null
     }
 
-    // The bar renders in the compositor's logical space, so 28px looks the same
-    // on every monitor — but on a small hidpi laptop panel (fractional scale >1)
-    // that's physically tiny. Bump the whole bar there; externals (scale 1) stay
-    // as before. Tune the 1.25 if the laptop bar feels off.
-    readonly property real uiScale: (bar.hyprMonitor && bar.hyprMonitor.scale > 1.05) ? 1.25 : 1.0
+    // The bar renders in compositor logical px, so it looks the same size on every
+    // monitor but is physically tiny on a hidpi laptop panel. The pixel font is only
+    // crisp at a multiple of 16 physical px, so on hidpi outputs scale the bar by
+    // 2 / monitorScale: Theme.size (16) * uiScale * monitorScale = 32 physical px
+    // (surface panel: 16 * 1.2766 * 1.566667 = 32). Scale <= 1.05 or unknown
+    // (monitor not resolved yet, scale 0/undefined) stays 1.0 = 16 physical px.
+    readonly property real uiScale: {
+        var s = bar.hyprMonitor ? Number(bar.hyprMonitor.scale) : 0
+        return (isFinite(s) && s > 1.05) ? 2 / s : 1.0
+    }
 
     implicitHeight: Math.round(baseHeight * uiScale)
     exclusiveZone: implicitHeight
@@ -48,7 +52,7 @@ PanelWindow {
         color: bar.theme.bg
 
         Rectangle {
-            anchors.bottom: parent.bottom
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             height: 1
@@ -72,7 +76,7 @@ PanelWindow {
             Rectangle {
                 width: 1
                 height: 14
-                color: bar.theme.sep
+                color: "transparent" // gap kept, line not
                 Layout.alignment: Qt.AlignVCenter
                 Layout.leftMargin: 6
                 Layout.rightMargin: 6
@@ -94,7 +98,7 @@ PanelWindow {
             Rectangle {
                 width: 1
                 height: 14
-                color: bar.theme.sep
+                color: "transparent" // gap kept, line not
                 Layout.alignment: Qt.AlignVCenter
                 Layout.leftMargin: 4
                 Layout.rightMargin: 4
@@ -103,7 +107,6 @@ PanelWindow {
             // ── DERECHA: Vol + Bri + Bat + reloj ──────────────────
             RightSection {
                 theme: bar.theme
-                isDark: bar.isDark
                 notifServer: bar.notifServer
                 Layout.alignment: Qt.AlignVCenter
             }

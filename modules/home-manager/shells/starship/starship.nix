@@ -1,4 +1,7 @@
-{ lib, ... }:
+{ config, lib, ... }:
+let
+  c = config.lib.stylix.colors;
+in
 {
   programs.starship = {
     enable = true;
@@ -25,18 +28,18 @@
         "$character"
       ];
 
-      palette = lib.mkForce "gruvbox_dark";
-      palettes.gruvbox_dark = {
-        color_fg0 = "#fbf1c7";
-        color_bg1 = "#3c3836";
-        color_bg3 = "#665c54";
-        color_blue = "#458588";
-        color_aqua = "#689d6a";
-        color_green = "#98971a";
-        color_orange = "#d65d0e";
-        color_purple = "#b16286";
-        color_red = "#cc241d";
-        color_yellow = "#d79921";
+      palette = "stylix";
+      palettes.stylix = {
+        color_fg0 = "#${c.base07}";
+        color_bg1 = "#${c.base01}";
+        color_bg3 = "#${c.base03}";
+        color_blue = "#${c.base0D}";
+        color_aqua = "#${c.base0C}";
+        color_green = "#${c.base0B}";
+        color_orange = "#${c.base09}";
+        color_purple = "#${c.base0E}";
+        color_red = "#${c.base08}";
+        color_yellow = "#${c.base0A}";
       };
 
       os = {

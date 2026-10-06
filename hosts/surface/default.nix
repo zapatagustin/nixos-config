@@ -8,6 +8,7 @@
   home-manager.users.${username}.myDesktop = {
     multiMonitor.enable = true;
     internalScale = 1.566667;
+    panelResolution = { width = 2256; height = 1504; };
   };
 
   # Surface is a work laptop — no LAN services, no gaming.

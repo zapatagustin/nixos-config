@@ -1,13 +1,36 @@
 { pkgs, lib, config, ... }:
 let
+  c = config.lib.stylix.colors;
   mm = config.myDesktop.multiMonitor.enable;
   iscale = toString config.myDesktop.internalScale; # eDP-1 fractional scale (per host)
   bexp = toString config.myDesktop.brightnessExponent; # perceptual brightness gamma (per host)
   # repo-root/wallpapers, copied whole into the store. Every image here is
   # referenced by exact filename (below, and setup-monitors.sh) -- nothing picks one
   # dynamically, so an unreferenced file is dead bytes in the closure. Four of them
-  # were, ~1.7MB; the remaining four are ~12MB, mostly View_of_Vent (8.4MB).
+  # were, ~1.7MB; the remaining two are ~11MB, mostly View_of_Vent (8.4MB). The eDP
+  # wallpaper is generated (edpWall below), not a file here.
   walls = ../../../../wallpapers;
+  # Dithered Dore engraving at the panel's native size (see theme/dore-dither.nix).
+  lockBg = pkgs.callPackage ../../../theme/dore-dither.nix { } {
+    inherit (config.myDesktop.panelResolution) width height;
+    bg = "#${c.base00}";
+    fg = "#${c.base05}";
+  };
+  # eDP-only wallpaper: same dither, a different plate (Paradise Lost, Book VI, public
+  # domain) so it differs from the lock screen. Externals keep their photos.
+  edpWall = pkgs.callPackage ../../../theme/dore-dither.nix { } {
+    name = "dore-wallpaper";
+    plate = pkgs.fetchurl {
+      # explicit name: the URL's percent-decoded basename holds non-ASCII bytes
+      name = "dore-paradise-lost-6-406.jpg";
+      # Paradise Lost, Book VI line 406, "Now night her course began" (1866)
+      url = "https://upload.wikimedia.org/wikipedia/commons/1/1e/6-406_Now_night_her_course_began.jpg";
+      hash = "sha256-Jlq3kWZWheMd94Qk1tFygA6ZFnQxtjnowegvYSSls/E=";
+    };
+    inherit (config.myDesktop.panelResolution) width height;
+    bg = "#${c.base00}";
+    fg = "#${c.base05}";
+  };
 
   # monitor-watcher is the only monitor script behind a systemd unit, so it's the only
   # one that needs its deps declared (the rest live in ~/.config/hypr and use the session
@@ -38,22 +61,9 @@ let
     text = "readonly EXPONENT=${bexp}\n" + builtins.readFile ./scripts/brightness.sh;
   };
 
-  # System-wide gruvbox dark/light switch. Wrapped rather than deployed into
-  # ~/.config/hypr because the systemd timers below invoke it and a user unit does
-  # not inherit the session PATH — it needs systemd/procps/coreutils declared. It
-  # sources nothing, so it has no reason to sit flat next to the other scripts.
-  # Also on home.packages so the bar can call it by name.
-  setTheme = pkgs.writeShellApplication {
-    name = "set-theme";
-    runtimeInputs = with pkgs; [ systemd coreutils gnugrep procps hyprland util-linux libnotify jq ];
-    bashOptions = [ "nounset" ]; # script uses `set -u`; errexit would abort the best-effort kitty/hyprctl pokes
-    text = builtins.readFile ./scripts/set-theme.sh;
-  };
-
-  # Idle/sleep inhibitor toggle. Wrapped rather than left to the session PATH for
-  # the same reason as set-theme: the bar calls it through a fixed-path shim and
-  # execDetached fails silently when a bare name does not resolve. Also on
-  # home.packages so `caffeine` works from a terminal.
+  # Idle/sleep inhibitor toggle. Wrapped because a user unit does not inherit the
+  # session PATH, and the bar's execDetached fails silently on an unresolved bare
+  # name. Also on home.packages so `caffeine` works from a terminal.
   caffeine = pkgs.writeShellApplication {
     name = "caffeine";
     runtimeInputs = with pkgs; [ systemd coreutils libnotify ];
@@ -97,7 +107,7 @@ let
       ${pkgs.hyprland}/bin/hyprctl hyprpaper listactive >/dev/null 2>&1 && break
       sleep 0.3
     done
-    ${pkgs.hyprland}/bin/hyprctl hyprpaper wallpaper "eDP-1,${walls}/keyboard.jpg"
+    ${pkgs.hyprland}/bin/hyprctl hyprpaper wallpaper "eDP-1,${edpWall}"
   '';
 
 in
@@ -115,7 +125,6 @@ in
     ffmpeg-headless # screenrecord.sh: post-proceso (GOP/trim/loudnorm) + thumbnail
     brightnessctl
     playerctl
-    setTheme # gruvbox dark/light switch; the bar's theme toggle calls it by name
     caffeine # idle/suspend inhibitor toggle; the bar's coffee icon calls it too
     jq
     socat
@@ -126,7 +135,6 @@ in
     satty # screenshot annotation (screenshot.sh edit)
     # gruvbox-gtk-theme dropped: GTK now themed by stylix.targets.gtk
     papirus-icon-theme
-    noto-fonts-cjk-sans # hyprlock clock font (Noto Sans JP)
   ];
 
   wayland.windowManager.hyprland = {
@@ -167,6 +175,7 @@ in
       local hyprDir = "~/.config/hypr"
 
       hl.env("WALLPAPER_DIR", "${walls}")
+      hl.env("EDP_WALLPAPER", "${edpWall}")
       hl.env("EDP_SCALE", "${iscale}") -- setup-monitors.sh reuses the per-host eDP scale on dock
 
       -- scale per host (myDesktop.internalScale); externals via setup-monitors.sh
@@ -188,34 +197,12 @@ in
               gaps_in     = 3,
               gaps_out    = 6,
               border_size = 1,
-              -- gruvbox-dark-medium base0A / base09 / base01, written as literals
-              -- ON PURPOSE. These used to read config.lib.stylix.colors so they would
-              -- follow the light specialisation, and that is exactly what made a theme
-              -- switch expensive: it left hyprland.lua differing between the two
-              -- generations, so home-manager's onChange hook for that file fired
-              -- `hyprctl reload config-only` on every switch. Measured, reading the
-              -- monitors' DDC brightness before and after: that reload alone drops both
-              -- externals from 41% to 100% (they do not persist a DDC write and revert
-              -- to their OSD default when the link is re-initialised), and it is what
-              -- the switch's flicker came from. Nothing else in the switch touches
-              -- Hyprland.
-              --
-              -- So the palette is pushed at RUNTIME instead, by set-theme.sh, over
-              -- `hyprctl eval` -- no config reload, no event, no flicker, brightness
-              -- untouched. These literals are only the parse-time baseline (a fresh
-              -- session, or the moment right after a real rebuild's reload); set-theme
-              -- corrects them on every run, including its no-op path.
-              --
-              -- Two flake checks keep this honest: theme-invariants-<host> asserts the
-              -- generated hyprland.lua is byte-identical across the two specialisations
-              -- (re-introducing a stylix colour here breaks it), and that these three
-              -- hexes still match gruvbox-dark-medium, the scheme modules/theme/
-              -- tokens.nix resolves for the dark variant.
+              -- base0A / base09 / base01 of the dither scheme.
               --
               -- hl.config takes rgba(RRGGBBAA), hence the bare hex plus "ff".
               col = {
-                  active_border   = { colors = { "rgba(fabd2fff)", "rgba(fe8019ff)" }, angle = 45 },
-                  inactive_border = "rgba(3c3836ff)",
+                  active_border   = { colors = { "rgba(${c.base0A}ff)", "rgba(${c.base09}ff)" }, angle = 45 },
+                  inactive_border = "rgba(${c.base01}ff)",
               },
               resize_on_border = false,
               allow_tearing    = false,
@@ -249,26 +236,17 @@ in
               -- nix that watcher can only ever produce false positives: this file is
               -- an immutable store symlink, so it is never hand-edited, and the only
               -- thing that ever "changes" it is home-manager relinking
-              -- ~/.config/hypr/hyprland.lua at a new home-manager-files path. That
-              -- happens on EVERY theme switch -- the directory hash moves because the
-              -- 13 palette files in it moved, even though hyprland.lua itself is
-              -- byte-identical across the two generations.
+              -- ~/.config/hypr/hyprland.lua at a new home-manager-files path, even
+              -- when hyprland.lua itself is byte-identical.
               --
-              -- Measured, by relinking the symlink to an identical-content path with
-              -- nothing else running: setup-monitors.log went 20 -> 21 -> 22, i.e. two
-              -- spurious reloads for zero config change. With this set to true the
-              -- same two relinks produced 22 -> 22 -> 22.
-              --
-              -- Each of those reloads re-inits the outputs: the externals blank for
+              -- Each spurious reload re-inits the outputs: the externals blank for
               -- ~1.2s and come back at 100% brightness (they do not persist a DDC
-              -- write). That was the last remaining source of the theme-switch
-              -- flicker, after set-theme.sh stopped reloading and the colours were
-              -- made static so home-manager's own onChange hook stops firing.
+              -- write).
               --
-              -- Nothing is lost: that onChange hook still runs `hyprctl reload
-              -- config-only`, and it is content-aware (_cmp against the deployed
-              -- file), so a real rebuild that genuinely changes this config still
-              -- reloads exactly once.
+              -- Nothing is lost: home-manager's onChange hook still runs
+              -- `hyprctl reload config-only`, and it is content-aware (_cmp against
+              -- the deployed file), so a real rebuild that genuinely changes this
+              -- config still reloads exactly once.
               disable_autoreload      = true,
           },
 
@@ -301,7 +279,6 @@ in
           hl.exec_cmd("systemctl --user start hyprpolkitagent")
           hl.exec_cmd("wl-paste --type text --watch cliphist store")
           hl.exec_cmd("wl-paste --type image --watch cliphist store")
-          hl.exec_cmd("echo dark > $XDG_RUNTIME_DIR/qs-theme") -- Stylix is fixed-dark; tell quickshell
           ${lib.optionalString mm ''hl.exec_cmd("bash " .. hyprDir .. "/setup-monitors.sh")''}
       end)
 
@@ -449,7 +426,7 @@ in
     settings = {
       splash = false;
       ipc = "on";
-      wallpaper = [ "eDP-1,${walls}/keyboard.jpg" ];
+      wallpaper = [ "eDP-1,${edpWall}" ];
     };
   };
   systemd.user.services.hyprpaper.Service.ExecStartPost = "${setEdpWallpaper}";
@@ -497,6 +474,9 @@ in
     };
   };
 
+  # Lock screen: dithered engraving + large VGA clock + password field. The
+  # stylix hyprlock target stays off; colours come from c.*. hyprlock 0.9.6 has no
+  # --verify-config, so no flake check covers this block: validate by locking live.
   programs.hyprlock = {
     enable = true;
     settings = {
@@ -506,62 +486,57 @@ in
         grace = 0;
         no_fade_in = false;
       };
-      background = [{
-        monitor = "";
-        path = "${walls}/3.png";
-        blur_passes = 2;
-        blur_size = 4;
-        brightness = 0.6;
-        contrast = 0.9;
-        vibrancy = 0.2;
-      }];
-      label = [
+      # no blur/brightness/contrast/vibrancy: the dither must stay crisp
+      # The dither is rendered 1:1 for the internal panel only; every other output
+      # gets solid base00 (resampling would blur it). hyprlock orders widgets by
+      # zindex with an unstable sort and every background defaults to -1, so config
+      # order alone is not reliable: the explicit values (-2 colour, -1 image) keep
+      # the eDP-1 image above the fallback. A panel not named eDP-1 (thinkpad is
+      # assumed to be eDP-1 too) falls back to base00.
+      background = [
         {
           monitor = "";
-          text = ''cmd[update:1000] echo "<b>$(date +"%H:%M")</b>"'';
-          color = "rgba(235, 219, 178, 0.95)";
-          font_size = 96;
-          font_family = "Noto Sans JP Bold";
-          position = "0, 120";
-          halign = "center";
-          valign = "center";
+          color = "rgb(${c.base00})";
+          zindex = -2;
         }
         {
-          monitor = "";
-          text = ''cmd[update:60000] echo "$(date +"%A, %d de %B de %Y" | sed 's/\b./\u&/g')"'';
-          color = "rgba(168, 153, 132, 0.90)";
-          font_size = 22;
-          font_family = "Noto Sans JP";
-          position = "0, 30";
-          halign = "center";
-          valign = "center";
-        }
-        {
-          monitor = "";
-          text = "Ingresá tu contraseña para desbloquear";
-          color = "rgba(168, 153, 132, 0.70)";
-          font_size = 13;
-          font_family = "Noto Sans JP";
-          position = "0, -155";
-          halign = "center";
-          valign = "center";
+          monitor = "eDP-1";
+          path = "${lockBg}";
+          zindex = -1;
         }
       ];
+      label = [{
+        monitor = "";
+        text = "cmd[update:1000] date +%H:%M";
+        # gold: absent from the dither, so the glyphs stay legible over bright dots
+        color = "rgb(${c.base0A})";
+        shadow_passes = 2;
+        shadow_size = 4;
+        shadow_color = "rgb(${c.base00})";
+        shadow_boost = 1.2;
+        # multiple of 16 (8x16 cell); hyprlock's unit/scale handling is unverified, tune live
+        font_size = 160;
+        font_family = config.stylix.fonts.monospace.name;
+        position = "0, 120";
+        halign = "center";
+        valign = "center";
+      }];
       # base16 input-field colors, written here rather than via
       # stylix.targets.hyprlock: that target also forces settings.background to a
-      # solid base00, which collides with the blurred-wallpaper background above.
+      # solid base00, which collides with the dithered background above.
       # These are the exact values it would have set (see stylix modules/hyprlock/
-      # hm.nix), so the lock screen follows the light/dark specialisation either way.
+      # hm.nix), so the lock screen follows the dither scheme.
       "input-field" = [{
         monitor = "";
         size = "280, 42";
-        outer_color = "rgb(${config.lib.stylix.colors.base03})";
-        inner_color = "rgb(${config.lib.stylix.colors.base00})";
-        font_color = "rgb(${config.lib.stylix.colors.base05})";
-        fail_color = "rgb(${config.lib.stylix.colors.base08})";
-        check_color = "rgb(${config.lib.stylix.colors.base0A})";
+        font_family = config.stylix.fonts.monospace.name;
+        outer_color = "rgb(${c.base03})";
+        inner_color = "rgb(${c.base00})";
+        font_color = "rgb(${c.base05})";
+        fail_color = "rgb(${c.base08})";
+        check_color = "rgb(${c.base0A})";
         # doubled ## is hyprlock's escape for a literal # inside pango markup
-        placeholder_text = ''<span foreground="##${config.lib.stylix.colors.base04}">contraseña...</span>'';
+        placeholder_text = ''<span foreground="##${c.base04}">contraseña...</span>'';
         hide_input = false;
         dots_size = 0.30;
         dots_spacing = 0.20;
@@ -585,7 +560,13 @@ in
       # new config but the running bar keeps the old one until a manual restart.
       # Interpolating the source dir bakes its store hash into the unit file, so
       # any change under quickshell/ makes sd-switch restart the service.
-      X-Restart-Triggers = [ "${./quickshell}" ];
+      # The bar also reads stylix's palette.json once at startup (no watcher), so
+      # the generated palette's store path is a second trigger: a scheme edit
+      # alone changes it without touching the QML tree.
+      X-Restart-Triggers = [
+        "${./quickshell}"
+        "${config.xdg.configFile."stylix/palette.json".source}"
+      ];
     };
     Service = {
       ExecStart = "${pkgs.quickshell}/bin/quickshell -p %h/.config/quickshell/bar";
@@ -628,11 +609,12 @@ in
     };
     Service = {
       ExecStart = "${monitorWatcher}/bin/monitor-watcher";
-      # WALLPAPER_DIR is consumed by setup-monitors.sh, which the watcher spawns on
+      # WALLPAPER_DIR and EDP_WALLPAPER are consumed by setup-monitors.sh, which the watcher spawns on
       # hotplug. A systemd user service does not inherit Hyprland's `env` (uwsm finalize
-      # only exports HYPRLAND_INSTANCE_SIGNATURE), so set it here. PATH is no longer set
+      # only exports HYPRLAND_INSTANCE_SIGNATURE), so set it here. The startup run of the same
+      # script comes from hl.exec_cmd and gets these via hl.env instead. PATH is no longer set
       # manually — runtimeInputs handles it.
-      Environment = [ "WALLPAPER_DIR=${walls}" "EDP_SCALE=${iscale}" ];
+      Environment = [ "WALLPAPER_DIR=${walls}" "EDP_WALLPAPER=${edpWall}" "EDP_SCALE=${iscale}" ];
       Restart = "on-failure";
       RestartSec = 2;
     };
@@ -654,45 +636,6 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
-  # Restores the palette that was last chosen. The ONLY thing that changes it
-  # automatically -- there is no time-of-day switching; a theme-sync.timer used to
-  # fire at 09:00/18:00 and was removed, so the palette now changes only on request.
-  #
-  # This unit still has to exist, because a `nixos-rebuild switch` re-runs the
-  # home-manager unit and lands on the parent generation, i.e. dark, whatever you
-  # had picked. It reads the recorded mode rather than the active one for exactly
-  # that reason, and no-ops when the two already agree, so firing it at login is
-  # free.
-  systemd.user.services.theme-sync = {
-    Unit = {
-      Description = "Restore the last chosen gruvbox palette";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
-      # The timer is WantedBy=timers.target, so it fires from ANY login that
-      # starts the user systemd manager -- including a bare SSH session, where a
-      # multi-second home-manager generation switch is an unwanted surprise and
-      # there is no bar to update. After= does not prevent that (it only orders).
-      # Hyprland creates $XDG_RUNTIME_DIR/hypr/<signature>, so this is the cheapest
-      # honest "is there a desktop here" test. A failed Condition skips the unit
-      # quietly rather than logging a failure, unlike Requisite=.
-      ConditionPathExistsGlob = "%t/hypr/*";
-      # Do not let a home-manager activation start or restart this unit. set-theme
-      # IS what triggers that activation, and HM's reloadSystemd step would then
-      # start theme-sync inside it, re-entering set-theme one level deep on every
-      # single switch. The lock in the script makes that nested call harmless, but
-      # this stops it being spawned at all — a theme switch has no business
-      # re-running the thing that asked for it.
-      X-SwitchMethod = "keep-old";
-    };
-    Service = {
-      Type = "oneshot";
-      ExecStart = "${setTheme}/bin/set-theme restore";
-    };
-    # Runs at login, which is what re-applies the chosen palette after a
-    # nixos-rebuild switch reverted it to the parent/dark generation.
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
   # scripts deployed individually so they coexist with the generated hyprland.lua
   xdg.configFile = {
     # KeePassXC's "launch at startup" toggle writes this autostart entry, uwsm
@@ -710,20 +653,14 @@ in
     "hypr/capture-rects.sh".source = ./scripts/capture-rects.sh;
     "hypr/screenrecord.sh".source = ./scripts/screenrecord.sh;
     "hypr/launch-or-focus.sh".source = ./scripts/launch-or-focus.sh;
-    # Thin shim so the bar can reach set-theme at a FIXED path. QML is a static
+    # Thin shim so the bar can reach caffeine at a FIXED path. QML is a static
     # file and cannot interpolate a store path, and every other consumer here
-    # invokes wrapped scripts by absolute `${pkg}/bin/name`. Calling `set-theme`
-    # by bare name would have worked (home.packages lands in
-    # /etc/profiles/per-user/$USER/bin, which is on the systemd user PATH) but it
-    # depends on the session environment rather than on the closure, and
-    # execDetached fails silently when a name does not resolve. Forwarding through
-    # the wrapper also keeps its runtimeInputs, and puts the reference back under
-    # repo-lint's ~/.config/hypr/*.sh rule, which does not see bare-name calls.
-    "hypr/set-theme.sh".text = ''
-      #!/usr/bin/env bash
-      exec ${setTheme}/bin/set-theme "$@"
-    '';
-    # Same shim rationale as set-theme.sh above.
+    # invokes wrapped scripts by absolute `${pkg}/bin/name`. Calling `caffeine`
+    # by bare name would depend on the session environment rather than on the
+    # closure, and execDetached fails silently when a name does not resolve.
+    # Forwarding through the wrapper also keeps its runtimeInputs, and puts the
+    # reference back under repo-lint's ~/.config/hypr/*.sh rule, which does not
+    # see bare-name calls.
     "hypr/caffeine.sh".text = ''
       #!/usr/bin/env bash
       exec ${caffeine}/bin/caffeine "$@"

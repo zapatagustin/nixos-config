@@ -9,7 +9,6 @@ Item {
     id: rightSection
 
     required property var theme
-    required property bool isDark
     required property var notifServer
 
     implicitWidth: row.implicitWidth
@@ -19,7 +18,7 @@ Item {
     component Sep: Rectangle {
         width: 1
         height: 14
-        color: rightSection.theme.sep
+        color: "transparent" // gap kept, line not
         Layout.alignment: Qt.AlignVCenter
     }
 
@@ -73,38 +72,6 @@ Item {
 
         Sep {}
 
-        // ── Toggle tema ──────────────────────────────────────────
-        Text {
-            id: themeIcon
-            text: rightSection.isDark ? "🌙" : "☀"
-            font.pixelSize: 11
-            color: themeHover.hovered
-                ? rightSection.theme.accent
-                : rightSection.isDark
-                    ? rightSection.theme.blue
-                    : rightSection.theme.yellow
-            Layout.alignment: Qt.AlignVCenter
-
-            HoverHandler { id: themeHover }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                // execDetached, NOT a reused Process: set-theme blocks for seconds
-                // while home-manager activates the other generation, and a Process
-                // that is still running silently ignores every later start — the
-                // same trap that broke Launcher.qml and Workspaces.qml.
-                //
-                // `toggle` derives the current mode from the active generation
-                // rather than from isDark, so the script stays the single source of
-                // truth and the bar cannot desync it. The bar's own palette flips
-                // when set-theme pushes to the qs-theme pipe (see shell.qml).
-                onClicked: Quickshell.execDetached(["bash", Paths.setTheme, "toggle"])
-            }
-        }
-
-        Sep {}
-
         // ── Toggle caffeine (inhibir idle/suspend) ───────────────
         Caffeine {
             theme: rightSection.theme
@@ -124,8 +91,9 @@ Item {
 
             Text {
                 id: bellIcon
+                renderType: Theme.render
                 text: notifItem.notifCount > 0 ? "󰂚" : "󰂜"
-                font.pixelSize: 13
+                font.pixelSize: Theme.size
                 font.family: "Symbols Nerd Font"
                 anchors.verticalCenter: parent.verticalCenter
                 color: bellHover.hovered
@@ -152,17 +120,18 @@ Item {
                 id: badge
                 visible: notifItem.notifCount > 0
                 width: badgeText.implicitWidth + 4
-                height: 13
-                radius: 6
+                height: 18
+                radius: 9
                 color: rightSection.theme.accent
                 anchors { left: bellIcon.right; top: bellIcon.top; leftMargin: 1 }
 
                 Text {
                     id: badgeText
+                    renderType: Theme.render
                     anchors.centerIn: parent
                     text: notifItem.notifCount > 9 ? "9+" : notifItem.notifCount
-                    font.pixelSize: 8
-                    font.weight: Font.Bold
+                    font.pixelSize: Theme.size
+                    font.family: Theme.mono
                     color: rightSection.theme.accentFg
                 }
             }
@@ -173,8 +142,9 @@ Item {
         // ── Clipboard ────────────────────────────────────────────
         Text {
             id: clipIcon
+            renderType: Theme.render
             text: "󰅍"
-            font.pixelSize: 13
+            font.pixelSize: Theme.size
             font.family: "Symbols Nerd Font"
             color: clipHover.hovered
                 ? rightSection.theme.accent

@@ -79,22 +79,23 @@ Item {
         spacing: 3
 
         Text {
+            renderType: Theme.render
             text: net.linkType === "eth" ? "ETH:" : net.linkType === "wifi" ? "WIFI:" : "NET:"
             color: net.theme.fgDim
-            font.pixelSize: 11
-            font.family: "Terminess Nerd Font Mono"
+            font.pixelSize: Theme.size
+            font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter
         }
 
         Text {
+            renderType: Theme.render
             // ecomono: hard truncation at 16 chars; switch to Text.elide with a
             // width cap if a real SSID makes this look wrong.
             text: net.linkType === "none" ? "---"
                 : net.name.length > 16 ? net.name.slice(0, 15) + "…" : net.name
             color: net.netColor
-            font.pixelSize: 11
-            font.family: "Terminess Nerd Font Mono"
-            font.weight: Font.Medium
+            font.pixelSize: Theme.size
+            font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter
         }
     }

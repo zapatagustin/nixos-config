@@ -13,11 +13,13 @@ LOG="${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}/setup-moni
 exec >>"$LOG" 2>&1
 echo "=== $(date '+%F %T') LEFT=$LEFT_SAMSUNG RIGHT=$RIGHT_SAMSUNG EDP=$EDP ==="
 
-# WALLPAPER_DIR set by nix (store path of the wallpapers flake input).
+# WALLPAPER_DIR (store path of the wallpapers dir) and EDP_WALLPAPER (store path of the
+# generated eDP dither PNG) are set by nix. A missing EDP_WALLPAPER only skips the eDP
+# wallpaper (counted as a failure below); it must not abort the monitor layout.
 WALL_DIR="${WALLPAPER_DIR:-$HOME/Pictures/wallpapers}"
 WALL_LEFT="$WALL_DIR/View_of_Vent_in_the_Ventertal.jpg"
 WALL_RIGHT="$WALL_DIR/morning-field.png"
-WALL_EDP="$WALL_DIR/keyboard.jpg"
+WALL_EDP="${EDP_WALLPAPER:-}"
 
 # Hyprland 0.55+ with a Lua config: `hyprctl keyword` is gone ("keyword can't work with
 # non-legacy parsers. Use eval."). `hyprctl eval` runs a config-time Lua call instead and
@@ -84,7 +86,12 @@ done
 if [ "$hyprpaper_ready" -eq 1 ]; then
     [ -n "$LEFT_SAMSUNG" ]  && hc hyprpaper wallpaper "$LEFT_SAMSUNG,$WALL_LEFT"
     [ -n "$RIGHT_SAMSUNG" ] && hc hyprpaper wallpaper "$RIGHT_SAMSUNG,$WALL_RIGHT"
-    hc hyprpaper wallpaper "$EDP,$WALL_EDP"
+    if [ -n "$WALL_EDP" ]; then
+        hc hyprpaper wallpaper "$EDP,$WALL_EDP"
+    else
+        echo "FAIL: EDP_WALLPAPER not set — eDP wallpaper skipped"
+        fails=$((fails + 1))
+    fi
 else
     echo "FAIL: hyprpaper IPC socket never came up — wallpapers skipped"
     fails=$((fails + 1))

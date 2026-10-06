@@ -37,7 +37,7 @@
   };
 
   environment = {
-    systemPackages = [ ];
+    systemPackages = [ pkgs.jellyfin-desktop ]; # client; server runs on `desktop` (http://desktop:8096)
     sessionVariables = {
       TERMINAL = "foot";
       NIXPKGS_ALLOW_UNFREE = "1";

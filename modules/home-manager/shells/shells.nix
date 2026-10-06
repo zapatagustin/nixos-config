@@ -102,6 +102,27 @@
       IdentityFile ~/.ssh/id_ed25519_personal
       IdentitiesOnly yes
 
+    # atlas-server nodes (Red-Atlas k3s cluster, repo ~/work/atlas-server).
+    # They live in the company tailnet and are shared into this one, and
+    # shared machines resolve only by FQDN, hence the HostName rewrite. Per
+    # host the user is the hostname without the dash; the work key is the one
+    # in atlas-server/keys/admin.pub.
+    Host atlas-01
+      User atlas01
+    Host atlas-02
+      User atlas02
+    Host atlas-03
+      User atlas03
+    Host atlas-04
+      User atlas04
+    # Port 22 on the nodes is Tailscale SSH, whose ACL cannot admit a user
+    # shared in from another tailnet; 2222 is plain OpenSSH with keys.
+    Host atlas-0?
+      HostName %h.tail165274.ts.net
+      Port 2222
+      IdentityFile ~/.ssh/id_ed25519_work
+      IdentitiesOnly yes
+
     # Desktop (CachyOS, not part of this flake) over Tailscale. Same personal
     # key; its public half is in the desktop's authorized_keys.
     Host desktop

@@ -17,11 +17,14 @@ nh os boot .                                  # activate on next boot only
 
 There are no unit tests. Validation is `nix flake check` + a build.
 
-`nix flake check` gates nine things — four on the generated output (both hosts'
-Hyprland Lua via the real `--verify-config`, qmllint, qmldir) and five on the
-source (`nixpkgs-fmt --check`, `statix`, `deadnix`, `shellcheck` over the hypr
-scripts, and `repo-lint`). Each was verified to actually FAIL when its target
-breaks — a gate that cannot fail is worse than no gate.
+`nix flake check` runs twelve checks (`checks.x86_64-linux`): four on the generated
+output (`hyprland-lua-{surface,thinkpad}` via the real `--verify-config`,
+`quickshell-bar-qmllint`, `quickshell-bar-qmldir`), five on the source
+(`nixpkgs-fmt`, `statix`, `deadnix`, `hypr-scripts-shellcheck`, `repo-lint`) and
+three behavioural (`get-binds-transform`, `brightness-exponent-{surface,thinkpad}`).
+Each was verified to actually FAIL when its target breaks — a gate that cannot
+fail is worse than no gate. The desktop has one theme, `dither`, so there is no
+per-theme check.
 
 `scripts/repo-lint.sh` covers what no off-the-shelf linter does, and every rule
 is there because the repo already shipped that bug with a green check: an

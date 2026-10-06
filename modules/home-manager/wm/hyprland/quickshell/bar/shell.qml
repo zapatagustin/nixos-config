@@ -8,58 +8,15 @@ import QtQuick
 ShellRoot {
     id: root
 
-    // Only drives the toggle's 🌙/☀ glyph in RightSection. The PALETTE is read from
-    // stylix's file below, so this is no longer what colours anything.
-    property bool isDark: true
-
-    // Leer el tema actual al iniciar (Quickshell resetea isDark al reiniciar).
-    // Lee el modo PERSISTIDO, no el pipe: el pipe vive en XDG_RUNTIME_DIR y se
-    // borra al cerrar sesión, así que al arrancar no dice nada.
-    Process {
-        id: themeInit
-        command: ["sh", "-c", "cat " + Paths.themeMode + " 2>/dev/null"]
-        running: true
-        stdout: SplitParser {
-            onRead: (line) => {
-                var msg = line.trim()
-                if (msg === "light") root.isDark = false
-                if (msg === "dark")  root.isDark = true
-            }
-        }
-    }
-
-    IpcWatcher {
-        pipePath: Paths.theme
-        onTriggered: (line) => {
-            if (line === "dark")  root.isDark = true
-            if (line === "light") root.isDark = false
-            // The colours do NOT come from isDark — this is what actually repaints
-            // the bar. isDark only survives because RightSection draws 🌙 or ☀ from
-            // it; deleting it as dead would take the toggle's icon with it.
-            paletteFile.reload()
-        }
-    }
-
-    // Colours come from stylix's generated palette, never from a table kept here.
-    //
-    // This replaced two hand-written gruvbox tables, and they HAD already drifted:
-    // the light one opened with #f9f5d7, which is gruvbox-light-HARD, while stylix
-    // has always been on gruvbox-light-medium (#fbf1c7). Nobody noticed for as long
-    // as it took to go looking, which is the whole argument against keeping a second
-    // copy of a palette.
-    //
-    // Re-reading on the qs-theme signal is race-free by construction: set-theme
-    // publishes to that pipe only AFTER the home-manager activation returns, and
-    // linkGeneration has relinked palette.json by then, so the file already holds
-    // the palette being announced.
+    // Colours come from stylix's palette.json, read once at startup (the palette
+    // is static). The gruvbox hexes below are the fallback if the file is missing.
     property var base16: ({})
 
     FileView {
         id: paletteFile
         path: Paths.palette
-        // preload must stay ON. See the long note in Brightness.qml: with it off,
-        // reload() will not start a FIRST read, and this would silently never load
-        // with nothing in the log to explain it.
+        // preload must stay ON so the file is read at startup. See the note in
+        // Brightness.qml.
         onLoaded: {
             try {
                 root.base16 = JSON.parse(paletteFile.text())
@@ -84,10 +41,8 @@ ShellRoot {
         return v !== undefined ? "#" + v : fallback
     }
 
-    // base16 slot per role. fgDim is the one judgement call: it used to be #a89984,
-    // gruvbox's own `gray`, which is not one of the 16 slots at all. base04 is the
-    // spec's "dark foreground, used for status bars", so it is the honest home for a
-    // dimmed foreground even though it shifts the colour slightly.
+    // base16 slot per role. fgDim maps to base04, the base16 spec's "dark
+    // foreground, used for status bars".
     property var theme: ({
         bg:           c("base00", "#282828"),
         bg1:          c("base01", "#3c3836"),
@@ -115,7 +70,6 @@ ShellRoot {
             required property var modelData
             screen: modelData
             theme: root.theme
-            isDark: root.isDark
             notifServer: notifSrv
         }
     }

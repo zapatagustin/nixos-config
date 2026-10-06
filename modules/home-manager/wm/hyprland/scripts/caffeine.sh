@@ -21,14 +21,14 @@ set -u
 
 unit=caffeine.service
 
-# Ephemeral push channel the quickshell bar tails, same split as qs-theme: the
-# icon flips on this line instead of polling systemctl. Must not persist.
+# Ephemeral push channel the quickshell bar tails: the icon flips on this line
+# instead of polling systemctl. Must not persist.
 runtime_dir="${XDG_RUNTIME_DIR:?refusing to fall back to world-writable /tmp}"
 signal_file="$runtime_dir/qs-caffeine"
 
 # Callers reach here from a bar button, where there is no terminal and
 # Quickshell.execDetached discards stderr — same notify-on-failure convention as
-# set-theme.sh and screenshot.sh.
+# screenshot.sh.
 fail() {
   echo "caffeine: $*" >&2
   notify-send -a caffeine -u critical "Caffeine failed" "$*" 2>/dev/null || true

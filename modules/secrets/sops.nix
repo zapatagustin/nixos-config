@@ -10,7 +10,7 @@
   # opencode provider API keys. Decrypted to /run/secrets/opencode/<name>, owned
   # by the host user so opencode (a user process) can read them via {file:...}.
   sops.secrets."opencode/nvidia-api-key".owner = username;
-  sops.secrets."opencode/groq-api-key".owner = username;
+  sops.secrets."opencode/opencode-api-key".owner = username;
   sops.secrets."opencode/cerebras-api-key".owner = username;
   sops.secrets."opencode/openrouter-api-key".owner = username;
 

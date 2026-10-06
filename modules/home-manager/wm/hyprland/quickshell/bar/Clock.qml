@@ -41,26 +41,29 @@ Item {
         spacing: 6
 
         Text {
+            renderType: Theme.render
             text: clock.dateString
             color: clock.theme.fgDim
-            font.pixelSize: 11
-            font.family: "Terminess Nerd Font Mono"
+            font.pixelSize: Theme.size
+            font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter
         }
 
         Text {
+            renderType: Theme.render
             text: "│"
-            color: clock.theme.sep
-            font.pixelSize: 11
+            opacity: 0 // gap kept, line not (glyph invisible, width stays)
+            font.pixelSize: Theme.size
+            font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter
         }
 
         Text {
+            renderType: Theme.render
             text: clock.timeString
             color: clock.theme.fg
-            font.pixelSize: 12
-            font.family: "Terminess Nerd Font Mono"
-            font.weight: Font.Medium
+            font.pixelSize: Theme.size
+            font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter
         }
     }

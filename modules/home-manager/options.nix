@@ -12,6 +12,17 @@
     description = "Scale factor for the eDP-1 internal display.";
   };
 
+  options.myDesktop.panelResolution = {
+    width = lib.mkOption {
+      type = lib.types.ints.positive;
+      description = "Native pixel width of the internal panel, used to render dithered images 1:1.";
+    };
+    height = lib.mkOption {
+      type = lib.types.ints.positive;
+      description = "Native pixel height of the internal panel, used to render dithered images 1:1.";
+    };
+  };
+
   # Gamma mapping the brightness KEYS onto the internal panel's raw backlight, and
   # the one number that makes three screens track one control.
   #

@@ -1,4 +1,8 @@
 { pkgs, ... }:
+let
+  # Same tokens the stylix instances read: one font package, one family name.
+  mono = (import ./modules/theme/tokens.nix pkgs).fonts.monospace;
+in
 {
   imports = [
     ./modules/modules.nix
@@ -52,8 +56,34 @@
 
   fonts = {
     enableDefaultPackages = true;
-    packages = with pkgs; [ udev-gothic nerd-fonts.terminess-ttf ibm-plex ]; # stylix.fonts refs these but autoEnable=false doesn't install them
+    # VGA is the new monospace face; symbols-only gives missing glyphs for apps
+    # that do not bring their own Nerd Font (e.g. neovim plugin icons). Terminess
+    # stays only because Doom Emacs pins "Terminess Nerd Font Mono" by name.
+    packages = with pkgs; [
+      udev-gothic
+      mono.package
+      nerd-fonts.symbols-only
+      nerd-fonts.terminess-ttf
+      ibm-plex
+    ]; # stylix.fonts refs these but autoEnable=false doesn't install them
     fontconfig.enable = true;
-    # defaultFonts managed by stylix (modules/theme/stylix.nix)
+    # The stylix fontconfig target is not enabled (autoEnable = false), so
+    # defaultFonts is set here: generic `monospace` requests (browsers, GTK apps)
+    # resolve to VGA8 with the symbols font as the next entry.
+    fontconfig.defaultFonts.monospace = [ mono.name "Symbols Nerd Font" ];
+    # defaultFonts covers the generic `monospace` alias; localConf covers apps that
+    # request VGA8 by name.
+    # <accept> APPENDS Symbols Nerd Font after VGA8, making it a real fallback
+    # for glyphs VGA8 lacks. <prefer> would PREPEND it, promoting the symbols
+    # font ahead of the primary face — inverted from what is wanted here.
+    # Verify: fc-match -s "PxPlus IBM VGA8" must list VGA8 first.
+    fontconfig.localConf = ''
+      <alias>
+        <family>${mono.name}</family>
+        <accept>
+          <family>Symbols Nerd Font</family>
+        </accept>
+      </alias>
+    '';
   };
 }
