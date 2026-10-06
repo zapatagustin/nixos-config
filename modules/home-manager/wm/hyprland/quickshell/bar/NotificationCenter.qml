@@ -10,7 +10,7 @@ PanelWindow {
     required property var theme
     required property var notifServer
 
-    anchors.top: true
+    anchors.bottom: true
     anchors.right: true
     implicitWidth: 400
     implicitHeight: open ? contentRect.implicitHeight : 0

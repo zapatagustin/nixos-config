@@ -18,7 +18,7 @@ Item {
     component Sep: Rectangle {
         width: 1
         height: 14
-        color: rightSection.theme.sep
+        color: "transparent" // gap kept, line not
         Layout.alignment: Qt.AlignVCenter
     }
 
