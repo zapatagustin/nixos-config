@@ -5,7 +5,7 @@
 # `nix flake check` stayed green through every one of them:
 #   1. modules/theme/generic-dm-stub.nix sat unimported for weeks. The import-tree
 #      convention has no lint, so an orphaned file is invisible.
-#   2. quickshell's bar called ~/.config/hypr/set-theme.sh, which did not exist. The
+#   2. quickshell's bar called a ~/.config/hypr script that was never deployed. The
 #      Process swallowed the error, so the button silently did nothing.
 #   3. shells/zsh/zsh.nix hardcoded `#surface` in a module evaluated for BOTH hosts,
 #      so `nixos-install` on thinkpad rebuilt the wrong machine.

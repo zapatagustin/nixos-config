@@ -3,7 +3,7 @@
 Multi-host NixOS flake: `surface` (work laptop, docks to two Samsung LF27T35) and
 `thinkpad` (nomad, never docks). Per host, the user name and the host name are the
 same. CachyOS kernel, Home Manager as a NixOS module, Hyprland under uwsm with a
-custom quickshell bar (no desktop environment), gruvbox via Stylix.
+custom quickshell bar (no desktop environment), the dither theme via Stylix.
 
 ## Build
 
