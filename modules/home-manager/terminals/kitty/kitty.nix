@@ -20,7 +20,7 @@ _: {
       # Radicals Supplement (U+2E80-U+2EF3) is deliberately NOT mapped: Symbols
       # Nerd Font has no CJK, and symbol_map bypasses normal fallback for mapped
       # ranges — mapping it rendered those codepoints as tofu instead of letting
-      # them fall through to Noto CJK.
+      # them fall through to the fontconfig CJK fallback (IBM Plex Sans JP / udev-gothic).
       symbol_map = "U+23FB-U+23FE,U+E000-U+F8FF,U+F0000-U+FFFFD,U+100000-U+10FFFD Symbols Nerd Font";
 
       # adjust_line_height = "92%"; # disabled until a non-8x16 monospace font
