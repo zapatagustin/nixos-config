@@ -4,7 +4,7 @@
 ;; stylix doesn't manage doom; theme is set here.
 (setq doom-theme 'doom-gruvbox)
 
-;; Emacs pins Terminess Nerd Font Mono by name and migrates separately from
+;; Only Emacs still pins Terminess Nerd Font Mono by name and migrates separately from
 ;; stylix's monospace (PxPlus IBM VGA8).
 (setq doom-font (font-spec :family "Terminess Nerd Font Mono" :size 16)
       doom-variable-pitch-font (font-spec :family "Terminess Nerd Font Mono" :size 16))

@@ -53,19 +53,20 @@ Item {
         spacing: 3
 
         Text {
+            renderType: Theme.render
             text: "BAT:"
             color: battery.theme.fgDim
-            font.pixelSize: 11
-            font.family: "Terminess Nerd Font Mono"
+            font.pixelSize: Theme.size
+            font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter
         }
 
         Text {
+            renderType: Theme.render
             text: battery.percent + "%"
             color: battery.batColor
-            font.pixelSize: 11
-            font.family: "Terminess Nerd Font Mono"
-            font.weight: Font.Medium
+            font.pixelSize: Theme.size
+            font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter
         }
     }

@@ -19,8 +19,8 @@ pkgs: {
   # IBM VGA 8x16 glyph set. It intentionally has no Nerd Font glyphs, so targets
   # that name the family (kitty, foot, GTK) get the retro look, as does any generic
   # `monospace` request via fonts.fontconfig.defaultFonts (default.nix), while
-  # the quickshell bar and Emacs pin Terminess Nerd Font Mono by name and migrate
-  # separately.
+  # the quickshell bar uses it through its Theme.qml singleton, while Emacs pins
+  # Terminess Nerd Font Mono by name and migrates separately.
   #
   # sansSerif/serif stay IBM Plex Sans/Serif for UI text: VGA is drawn for a fixed
   # pixel grid and terminal cell metrics, and it renders badly as proportional UI

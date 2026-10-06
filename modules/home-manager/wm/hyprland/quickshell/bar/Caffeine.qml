@@ -9,6 +9,7 @@ import Quickshell.Io
 // afterwards rather than tracking a local boolean of its own.
 Text {
     id: caffeineIcon
+    renderType: Theme.render
 
     required property var theme
     property bool inhibited: false
@@ -17,8 +18,9 @@ Text {
     // are colour emoji, so the glyph — not the colour below — is what actually
     // reads on screen: U+1F9C9 comes only from Noto Color Emoji here (fc-list
     // ':charset=1F9C9'), which is why the pair must not be split across fonts.
+    // font.family omitted on purpose: lets the colour emoji font render.
     text: caffeineIcon.inhibited ? "☕" : "🧉"
-    font.pixelSize: 11
+    font.pixelSize: Theme.size
     // Kept for the monochrome fallback (DejaVu covers U+2615) and for hover
     // feedback, same convention as the clipboard and bell icons next to it.
     color: caffeineHover.hovered

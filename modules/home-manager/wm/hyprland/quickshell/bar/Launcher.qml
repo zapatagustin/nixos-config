@@ -134,30 +134,31 @@ PanelWindow {
 
                 Text {
                     id: promptText
+                    renderType: Theme.render
                     anchors.centerIn: parent
                     text: "run:"
                     color: launcher.theme.accentFg
-                    font.pixelSize: 12
-                    font.family: "Terminess Nerd Font Mono"
-                    font.weight: Font.Bold
+                    font.pixelSize: Theme.size
+                    font.family: Theme.mono
                 }
             }
 
             // Input
             Rectangle {
-                width: 180
+                width: 240
                 height: parent.height
                 color: launcher.theme.bg1
 
                 TextInput {
                     id: searchInput
+                    renderType: Theme.render
                     anchors.fill: parent
                     anchors.leftMargin: 8
                     anchors.rightMargin: 8
                     verticalAlignment: TextInput.AlignVCenter
                     color: launcher.theme.fg
-                    font.pixelSize: 12
-                    font.family: "Terminess Nerd Font Mono"
+                    font.pixelSize: Theme.size
+                    font.family: Theme.mono
                     selectionColor: launcher.theme.accent
                     selectedTextColor: launcher.theme.accentFg
 
@@ -207,13 +208,14 @@ PanelWindow {
 
                             Text {
                                 id: itemLabel
+                                renderType: Theme.render
                                 anchors.centerIn: parent
                                 text: launcher.filteredApps[index]?.name ?? ""
                                 color: launcher.selectedIndex === index
                                     ? launcher.theme.accentFg
                                     : launcher.theme.fg
-                                font.pixelSize: 12
-                                font.family: "Terminess Nerd Font Mono"
+                                font.pixelSize: Theme.size
+                                font.family: Theme.mono
                             }
                         }
 

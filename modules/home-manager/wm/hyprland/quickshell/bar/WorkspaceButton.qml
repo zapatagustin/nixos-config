@@ -28,10 +28,11 @@ Rectangle {
     }
 
     Text {
+        renderType: Theme.render
         anchors.centerIn: parent
         text: btn.jpLabel
-        font.pixelSize: 12
-        font.family: "Terminess Nerd Font Mono"
+        font.pixelSize: Theme.size
+        font.family: Theme.mono
         color: btn.active
             ? btn.theme.wsActiveText
             : btn.occupied

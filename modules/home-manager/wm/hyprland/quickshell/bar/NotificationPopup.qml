@@ -93,18 +93,19 @@ PanelWindow {
                 spacing: 6
 
                 Text {
+                    renderType: Theme.render
                     text: popup.current ? popup.current.appName : ""
                     color: popup.theme.accent
-                    font.pixelSize: 10
-                    font.weight: Font.Bold
-                    font.family: "Terminess Nerd Font Mono"
+                    font.pixelSize: Theme.size
+                    font.family: Theme.mono
                     Layout.fillWidth: true
                 }
 
                 Text {
+                    renderType: Theme.render
                     text: "✕"
                     color: popup.theme.fgDim
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.size
                     MouseArea {
                         anchors.fill: parent
                         onClicked: { if (popup.current) popup.current.dismiss(); popup.current = null }
@@ -113,21 +114,22 @@ PanelWindow {
             }
 
             Text {
+                renderType: Theme.render
                 width: parent.width
                 text: popup.current ? popup.current.summary : ""
                 color: popup.theme.fg
-                font.pixelSize: 12
-                font.weight: Font.Medium
-                font.family: "Terminess Nerd Font Mono"
+                font.pixelSize: Theme.size
+                font.family: Theme.mono
                 wrapMode: Text.WordWrap
             }
 
             Text {
+                renderType: Theme.render
                 width: parent.width
                 text: popup.current ? popup.current.body : ""
                 color: popup.theme.fgDim
-                font.pixelSize: 11
-                font.family: "Terminess Nerd Font Mono"
+                font.pixelSize: Theme.size
+                font.family: Theme.mono
                 wrapMode: Text.WordWrap
                 visible: text !== ""
                 maximumLineCount: 3

@@ -144,19 +144,20 @@ Item {
         spacing: 3
 
         Text {
+            renderType: Theme.render
             text: "BRI:"
             color: brightness.theme.fgDim
-            font.pixelSize: 11
-            font.family: "Terminess Nerd Font Mono"
+            font.pixelSize: Theme.size
+            font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter
         }
 
         Text {
+            renderType: Theme.render
             text: brightness.available ? brightness.percent + "%" : "--"
             color: brightness.available ? brightness.theme.fg : brightness.theme.fgDim
-            font.pixelSize: 11
-            font.family: "Terminess Nerd Font Mono"
-            font.weight: Font.Medium
+            font.pixelSize: Theme.size
+            font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter
         }
     }
