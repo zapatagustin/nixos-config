@@ -9,7 +9,7 @@ PanelWindow {
     property var theme
     property bool open: false
 
-    anchors.top: true
+    anchors.bottom: true
     anchors.left: true
     anchors.right: true
     implicitHeight: 28

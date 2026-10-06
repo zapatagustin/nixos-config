@@ -16,7 +16,7 @@ PanelWindow {
     // that lookup would be a second source of truth for the same question.
     required property var resolveScreen
 
-    anchors.top: true
+    anchors.bottom: true
     anchors.right: true
     implicitWidth: 360
     implicitHeight: current !== null ? box.implicitHeight + 12 : 0

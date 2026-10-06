@@ -52,7 +52,7 @@ Item {
         Text {
             renderType: Theme.render
             text: "│"
-            color: clock.theme.sep
+            opacity: 0 // gap kept, line not (glyph invisible, width stays)
             font.pixelSize: Theme.size
             font.family: Theme.mono
             anchors.verticalCenter: parent.verticalCenter

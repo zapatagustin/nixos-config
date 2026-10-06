@@ -10,7 +10,7 @@ PanelWindow {
     required property var notifServer
 
     anchors {
-        top: true
+        bottom: true
         left: true
         right: true
     }
@@ -52,7 +52,7 @@ PanelWindow {
         color: bar.theme.bg
 
         Rectangle {
-            anchors.bottom: parent.bottom
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             height: 1
@@ -76,7 +76,7 @@ PanelWindow {
             Rectangle {
                 width: 1
                 height: 14
-                color: bar.theme.sep
+                color: "transparent" // gap kept, line not
                 Layout.alignment: Qt.AlignVCenter
                 Layout.leftMargin: 6
                 Layout.rightMargin: 6
@@ -98,7 +98,7 @@ PanelWindow {
             Rectangle {
                 width: 1
                 height: 14
-                color: bar.theme.sep
+                color: "transparent" // gap kept, line not
                 Layout.alignment: Qt.AlignVCenter
                 Layout.leftMargin: 4
                 Layout.rightMargin: 4
