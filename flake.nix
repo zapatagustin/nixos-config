@@ -1,5 +1,5 @@
 {
-  description = "multi-host NixOS flake (surface + thinkpad)";
+  description = "multi-host NixOS flake (surface + thinkpad + nas)";
 
   inputs = {
     # nixpkgs follows chaotic's pin rather than nixos-unstable directly. The
@@ -118,6 +118,14 @@
       nixosConfigurations = {
         surface = mkHost "surface";
         thinkpad = mkHost "thinkpad";
+        # riscv64 NAS on a SpacemiT K1 board, built on the desktop over the
+        # tailnet (hosts/host.nix nix.buildMachines). Not mkHost: headless, so
+        # no chaotic (x86_64 CachyOS kernel), stylix or home-manager.
+        nas = nixpkgs.lib.nixosSystem {
+          system = "riscv64-linux";
+          specialArgs = { inherit inputs; hostname = "nas"; username = "nas"; flakePath = flakePathFor "nas"; };
+          modules = [ ./hosts/nas/default.nix ];
+        };
       };
 
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
@@ -468,6 +476,10 @@
     in
     {
       inherit nixosConfigurations;
+
+      # The NAS system under qemu-system-riscv64 on the laptop; see
+      # hosts/nas/default.nix (virtualisation.vmVariant).
+      packages.x86_64-linux.nas-vm = nixosConfigurations.nas.config.system.build.vm;
 
       formatter.x86_64-linux = pkgs.nixpkgs-fmt;
 
