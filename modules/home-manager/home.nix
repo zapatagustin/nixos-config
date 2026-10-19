@@ -28,6 +28,11 @@
 
   programs.home-manager.enable = true;
 
+  # ~/org is the org-mode root shared by neovim (editors/neovim) and doom
+  # (editors/emacs/doom/modules/lang.el). Neither creates it, so capture would
+  # fail on a fresh install.
+  systemd.user.tmpfiles.rules = [ "d %h/org 0755 - - -" ];
+
   # Migrated from bare packages to programs.* so stylix can theme them
   # (stylix.targets.{zathura,btop} in ./stylix.nix). btop came from
   # hosts/software/default_soft.nix; stylix's btop target is home-manager-only, so

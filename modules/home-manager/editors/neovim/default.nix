@@ -1,8 +1,20 @@
 { pkgs, lib, ... }:
 let
   luaFile = name: lib.fileContents (./lua + "/${name}");
+  # Neovim ships only the en spell file. Build es from the same hunspell dict
+  # emacs uses (editors/emacs/default.nix): mkspell reads <in>.aff/.dic from cwd
+  # and writes <out>.<encoding>.spl, so this yields es.utf-8.spl.
+  spellEs = pkgs.runCommand "nvim-spell-es" { nativeBuildInputs = [ pkgs.neovim-unwrapped ]; } ''
+    cp ${pkgs.hunspellDicts.es_AR}/share/hunspell/es_AR.{aff,dic} .
+    mkdir -p $out
+    HOME=$TMPDIR nvim --headless -c "mkspell! $out/es es_AR" -c "qa!"
+    test -s $out/es.utf-8.spl
+  '';
 in
 {
+  # on runtimepath via ~/.config/nvim; `zg` additions land next to it as es.utf-8.add
+  xdg.configFile."nvim/spell/es.utf-8.spl".source = "${spellEs}/es.utf-8.spl";
+
   # stylix neovim target is enabled in ../../stylix.nix (central HM instance).
   programs.neovim = {
     enable = true;
@@ -75,7 +87,11 @@ in
         config = ''
           vim.api.nvim_create_autocmd("FileType", {
             callback = function(args)
-              if pcall(vim.treesitter.start, args.buf) then
+              if not pcall(vim.treesitter.start, args.buf) then return end
+              -- take over indent only where a query exists; otherwise the
+              -- ftplugin's indentexpr stays (orgmode ships its own, no indents.scm)
+              local ok, query = pcall(vim.treesitter.query.get, vim.treesitter.get_parser(args.buf):lang(), "indents")
+              if ok and query then
                 vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
               end
             end,
@@ -113,6 +129,7 @@ in
             sources = {
               { name = "nvim_lsp" },
               { name = "luasnip" },
+              { name = "orgmode" },
               { name = "buffer" },
               { name = "path" },
             },
@@ -180,6 +197,31 @@ in
             },
           })
         '';
+      }
+      # org-mode, counterpart of doom's (org +pretty) (editors/emacs/doom/init.el).
+      # nixpkgs builds this from luarocks and patches the tree-sitter-org grammar
+      # in (luaPackages.orgmode), so nothing compiles at runtime. Same ~/org as
+      # doom (doom/modules/lang.el). Completion source self-registers with cmp.
+      {
+        plugin = orgmode;
+        type = "lua";
+        config = ''
+          require("orgmode").setup({
+            org_agenda_files = "~/org/**/*",
+            org_default_notes_file = "~/org/todo.org",
+            -- +pretty
+            org_startup_indented = true,
+            org_hide_leading_stars = true,
+            org_hide_emphasis_markers = true,
+          })
+        '';
+      }
+      # +pretty: headline bullets + background (org-superstar analog). Parses
+      # its org query at load, so it must come after orgmode registers the parser.
+      {
+        plugin = headlines-nvim;
+        type = "lua";
+        config = ''require("headlines").setup()'';
       }
       # Claude Code Neovim IDE integration
       {

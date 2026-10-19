@@ -49,3 +49,16 @@ opt.langmap = {
 opt.foldlevel = 99
 opt.foldmethod = "expr"
 opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+
+-- prose buffers: spell-check in es, same hook as doom (editors/emacs/doom/modules/editor.el),
+-- and soft wrap at word boundaries (deliberately not mirrored in doom).
+-- es.utf-8.spl is built by nix (default.nix); treesitter @spell captures keep code out.
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "org", "markdown" },
+  callback = function()
+    vim.opt_local.spell = true
+    vim.opt_local.spelllang = "es"
+    vim.opt_local.wrap = true
+    vim.opt_local.linebreak = true
+  end,
+})
