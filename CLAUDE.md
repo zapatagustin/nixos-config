@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Multi-host NixOS flake: `surface` (work laptop, docks to external monitors), `thinkpad` (nomad laptop, never docks) and `desktop` (Ryzen 5 5600G + RX 6700 XT tower; gaming, LAN services, remote builder for the NAS; prepared for its migration off CachyOS). Per host, user and hostname equal the host name. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar. Flatpak is **disabled** on the laptops (it ran for a year with no remote and no apps); `desktop` enables it for mod managers. `services.gaming` and the `services.{immich,jellyfin,searxng}-podman` container modules are enabled on `desktop` only — don't assume Steam is live on the laptops. Pi-hole + dnscrypt-proxy run on the `nas` host only.
+Multi-host NixOS flake: `surface` (work laptop, docks to external monitors), `thinkpad` (nomad laptop, never docks) and `desktop` (Ryzen 5 5600G + RX 6700 XT tower; gaming, LAN services, remote builder for the NAS; prepared for its migration off CachyOS). Per host, user and hostname equal the host name. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar. Flatpak is **disabled** on the laptops (it ran for a year with no remote and no apps); `desktop` enables it for mod managers. `services.gaming` and the `services.{immich,jellyfin}-podman` container modules are enabled on `desktop` only — don't assume Steam is live on the laptops. Pi-hole + dnscrypt-proxy run on the `nas` host only.
 
 ## Commands
 

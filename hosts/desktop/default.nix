@@ -81,12 +81,11 @@ in
   # ── LAN services (previously rootless podman quadlets) ─────────────────
   # Tailnet-only, as the quadlets were: ports are published on loopback + the
   # tailnet address (never 0.0.0.0) and tailscale0 is trusted, so no
-  # networking.firewall port is opened for Immich (2283), Jellyfin (8096),
-  # SearXNG (8888). Pi-hole + dnscrypt-proxy live on the NAS host only.
+  # networking.firewall port is opened for Immich (2283) or Jellyfin (8096).
+  # Pi-hole + dnscrypt-proxy live on the NAS host only.
   myContainers.publishAddresses = [ "127.0.0.1" tailnetAddress ];
   services.immich-podman.enable = true;
   services.jellyfin-podman.enable = true;
-  services.searxng-podman.enable = true;
 
   # Reached over `tailscale serve` (https://desktop.<tailnet>/ -> 127.0.0.1:4533).
   services.navidrome = {
@@ -97,6 +96,8 @@ in
       Port = 4533;
     };
   };
+  # The music lives on the nofail data disk: never index an empty mountpoint.
+  systemd.services.navidrome.unitConfig.RequiresMountsFor = [ "/mnt/datos" ];
 
   # This host IS the remote builder in hosts/host.nix: never delegate to itself,
   # and let the laptops' nix-daemon (ssh as ${username}) push unsigned paths.
@@ -104,7 +105,7 @@ in
   nix = {
     distributedBuilds = lib.mkForce false;
     buildMachines = lib.mkForce [ ];
-    settings.trusted-users = [ "root" username ];
+    settings.trusted-users = [ username ]; # root is already in the default
     # Dedup on every build, on top of host.nix's weekly nix.optimise and weekly
     # 14d gc (both already apply here): this host builds for every machine.
     settings.auto-optimise-store = true;

@@ -49,7 +49,7 @@ in
     {
       device = "/dev/disk/by-uuid/3710c79f-7289-4911-9cfc-6ea4b60372b0";
       fsType = "btrfs";
-      options = [ "compress=zstd:1" "noatime" "nofail" ];
+      options = [ "compress=zstd:1" "noatime" "nofail" "x-systemd.device-timeout=10s" ];
     };
 
   # No disk swap: zram only (modules/hardware/hardware.nix zramSwap).
