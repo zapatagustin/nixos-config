@@ -3,7 +3,7 @@ let
   cfg = config.services.gaming;
 in
 {
-  options.services.gaming.enable = lib.mkEnableOption "Steam + GameMode + Wine";
+  options.services.gaming.enable = lib.mkEnableOption "Steam + GameMode + Wine, launchers and mod tooling";
 
   config = lib.mkIf cfg.enable {
     programs.steam = {
@@ -22,12 +22,26 @@ in
           libxscrnsaver
         ];
       };
+      extraCompatPackages = [ pkgs.proton-ge-bin ];
+      protontricks.enable = true;
     };
 
     programs.gamemode.enable = true;
+    programs.gamescope.enable = true;
 
     environment.systemPackages = with pkgs; [
-      wineWowPackages.waylandFull
+      wineWow64Packages.waylandFull
+      winetricks
+      lutris
+      heroic
+      pcsx2
+      mangohud
+      # modding
+      steamtinkerlaunch
+      vkbasalt
+      limo
+      # nexusmods-app: disabled, discontinued upstream and marked insecure in nixpkgs
+      r2modman
     ];
   };
 }

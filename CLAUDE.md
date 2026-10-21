@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Multi-host NixOS flake: `surface` (work laptop, docks to external monitors) and `thinkpad` (nomad laptop, never docks). Per host, user and hostname equal the host name. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar. Flatpak is declared but **disabled** (it ran for a year with no remote and no apps). `services.gaming` and `services.pihole` are declared modules but currently enabled on **neither** host — don't assume Steam/Pi-hole are live.
+Multi-host NixOS flake: `surface` (work laptop, docks to external monitors), `thinkpad` (nomad laptop, never docks) and `desktop` (Ryzen 5 5600G + RX 6700 XT tower; gaming, LAN services, remote builder for the NAS; prepared for its migration off CachyOS). Per host, user and hostname equal the host name. CachyOS kernel, Home Manager as a NixOS module. Hyprland (Wayland compositor, uwsm-managed, no full DE) with a custom quickshell bar. Flatpak is **disabled** on the laptops (it ran for a year with no remote and no apps); `desktop` enables it for mod managers. `services.gaming` and the `services.{immich,jellyfin,searxng}-podman` container modules are enabled on `desktop` only — don't assume Steam is live on the laptops. Pi-hole + dnscrypt-proxy run on the `nas` host only.
 
 ## Commands
 
@@ -17,8 +17,8 @@ nh os boot .                                  # activate on next boot only
 
 There are no unit tests. Validation is `nix flake check` + a build.
 
-`nix flake check` runs twelve checks (`checks.x86_64-linux`): four on the generated
-output (`hyprland-lua-{surface,thinkpad}` via the real `--verify-config`,
+`nix flake check` runs thirteen checks (`checks.x86_64-linux`): five on the generated
+output (`hyprland-lua-{surface,thinkpad,desktop}` via the real `--verify-config`,
 `quickshell-bar-qmllint`, `quickshell-bar-qmldir`), five on the source
 (`nixpkgs-fmt`, `statix`, `deadnix`, `hypr-scripts-shellcheck`, `repo-lint`) and
 three behavioural (`get-binds-transform`, `brightness-exponent-{surface,thinkpad}`).
@@ -49,7 +49,7 @@ in the file.
 Import tree, not a flat config. Each `.nix` is imported by its parent — adding a file does nothing until you wire it into the parent's `imports`.
 
 ```
-flake.nix                      # mkHost builds nixosConfigurations.{surface,thinkpad}
+flake.nix                      # mkHost builds nixosConfigurations.{surface,thinkpad,desktop}
   → hosts/${host}/default.nix  # per-host: imports configuration.nix, sets myDesktop.multiMonitor (surface=true)
     → configuration.nix        # users, imports ./hardware-configuration.nix (in repo, git-tracked)
       → default.nix            # ssh, fonts, printing, kernel

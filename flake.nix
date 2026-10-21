@@ -1,5 +1,5 @@
 {
-  description = "multi-host NixOS flake (surface + thinkpad + nas)";
+  description = "multi-host NixOS flake (surface + thinkpad + desktop + nas)";
 
   inputs = {
     # nixpkgs follows chaotic's pin rather than nixos-unstable directly. The
@@ -118,6 +118,7 @@
       nixosConfigurations = {
         surface = mkHost "surface";
         thinkpad = mkHost "thinkpad";
+        desktop = mkHost "desktop";
         # riscv64 NAS on a SpacemiT K1 board, built on the desktop over the
         # tailnet (hosts/host.nix nix.buildMachines). Not mkHost: headless, so
         # no chaotic (x86_64 CachyOS kernel), stylix or home-manager.
@@ -304,6 +305,7 @@
         deadnix --fail \
           --exclude ./hosts/surface/${generatedNix} \
                     ./hosts/thinkpad/${generatedNix} \
+                    ./hosts/desktop/${generatedNix} \
           -- . 2>&1 | tee $out
       '';
 
@@ -486,6 +488,7 @@
       checks.x86_64-linux = {
         hyprland-lua-surface = hyprlandConfigCheck "surface";
         hyprland-lua-thinkpad = hyprlandConfigCheck "thinkpad";
+        hyprland-lua-desktop = hyprlandConfigCheck "desktop";
         quickshell-bar-qmllint = quickshellBarQmllint;
         quickshell-bar-qmldir = quickshellBarQmldir;
         nixpkgs-fmt = nixpkgsFmtCheck;
