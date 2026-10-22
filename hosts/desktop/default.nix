@@ -1,4 +1,4 @@
-{ lib, pkgs, username, ... }:
+{ config, lib, pkgs, username, ... }:
 let
   # This node's tailnet address. Container ports are published on it explicitly
   # (see myContainers.publishAddresses). It survives the migration only if
@@ -27,7 +27,48 @@ in
       kdePackages.filelight
       overskride
     ];
+
+    # Plasma's plasma-workspace.target BindsTo graphical-session.target, so every
+    # unit the shared hyprland module hangs off that target would also start under
+    # Plasma: the bar over Plasma's panel, hypridle locking with hyprlock and
+    # suspending behind powerdevil, hyprpaper, duplicate audio notifications.
+    # uwsm exports XDG_CURRENT_DESKTOP=Hyprland to the user manager before the
+    # target is reached; Plasma exports KDE. keepassxc is left running in both.
+    # mkForce: hypridle/hyprpaper already carry HM's own "WAYLAND_DISPLAY" one.
+    systemd.user.services = lib.genAttrs [ "quickshell" "audio-device-watcher" "hypridle" "hyprpaper" ] (_: {
+      Unit.ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=Hyprland" ];
+    });
+
+    # home.nix's qt.platformTheme "gtk3" exports QT_QPA_PLATFORMTHEME globally
+    # (hm-session-vars and environment.d). Qt tries that before the desktop's own
+    # theme, so under Plasma it would replace plasma-integration's "kde" theme.
+    # Here it is scoped to the Hyprland session through uwsm's per-desktop env file.
+    qt.platformTheme.name = lib.mkForce null;
+    xdg.configFile."uwsm/env-hyprland".text = "export QT_QPA_PLATFORMTHEME=gtk3\n";
   };
+
+  # KDE Plasma 6 as a second session next to Hyprland, picked from tuigreet's
+  # session menu (F3) and remembered for the next login. Hyprland stays the default
+  # (--cmd) until another session is chosen. Same command as modules/wm/hyprland.nix
+  # plus --sessions (NixOS has no /usr/share/wayland-sessions) and --remember-session.
+  # kwallet is unlocked at login: plasma6 enables it on the "login" PAM stack, which
+  # greetd's stack includes.
+  services.desktopManager.plasma6.enable = true;
+  services.greetd.settings.default_session.command = lib.mkForce
+    "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions --cmd 'uwsm start hyprland-uwsm.desktop'";
+
+  # kde-gtk-config's kded module (applyAllSettings at every Plasma login) deletes
+  # and rewrites ~/.gtkrc-2.0, turning HM's symlink into a plain file that HM backs
+  # up once (hm-bak) and then refuses to clobber, failing activation. It also writes
+  # its own font/icon/cursor/color-scheme into the org.gnome.desktop.interface dconf
+  # keys HM sets, which the Hyprland session then reads until the next HM
+  # activation. Off: GTK apps keep the stylix look in both sessions. Set as a
+  # system default (kded reads kded5rc, even on KF6), so the Background Services
+  # KCM can still re-enable it per user.
+  environment.etc."xdg/kded5rc".text = ''
+    [Module-gtkconfig]
+    autoload=false
+  '';
 
   hardware.trackpoint.enable = false; # desktop, no TrackPoint
   # thermald only supports Intel CPUs; on this Ryzen it fails at start.
