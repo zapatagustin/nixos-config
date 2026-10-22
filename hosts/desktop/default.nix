@@ -49,13 +49,30 @@ in
 
   # KDE Plasma 6 as a second session next to Hyprland, picked from tuigreet's
   # session menu (F3) and remembered for the next login. Hyprland stays the default
-  # (--cmd) until another session is chosen. Same command as modules/wm/hyprland.nix
-  # plus --sessions (NixOS has no /usr/share/wayland-sessions) and --remember-session.
+  # (--cmd) until another session is chosen. The menu lists only the uwsm Hyprland
+  # entry and Plasma: programs.hyprland also registers a plain hyprland.desktop,
+  # which skips uwsm, so the bar, hypridle (the only idle lock) and env-hyprland
+  # never start, and --remember-session would make that pick stick.
   # kwallet is unlocked at login: plasma6 enables it on the "login" PAM stack, which
   # greetd's stack includes.
   services.desktopManager.plasma6.enable = true;
-  services.greetd.settings.default_session.command = lib.mkForce
-    "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --sessions ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions --cmd 'uwsm start hyprland-uwsm.desktop'";
+  myGreeter.extraArgs = [
+    "--remember-session"
+    "--sessions"
+    (toString (pkgs.runCommand "greeter-wayland-sessions" { } ''
+      mkdir $out
+      cp ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions/{hyprland-uwsm,plasma}.desktop $out/
+    ''))
+  ];
+
+  # One Secret Service provider in both sessions: gnome-keyring (modules/wm/
+  # hyprland.nix) holds the existing secrets, e.g. mono_player's token. Without
+  # this, kwalletd6 also claims org.freedesktop.secrets under Plasma and whichever
+  # starts first wins, splitting secrets per session.
+  environment.etc."xdg/kwalletrc".text = ''
+    [org.freedesktop.secrets]
+    apiEnabled=false
+  '';
 
   # kde-gtk-config's kded module (applyAllSettings at every Plasma login) deletes
   # and rewrites ~/.gtkrc-2.0, turning HM's symlink into a plain file that HM backs
