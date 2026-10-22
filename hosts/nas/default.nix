@@ -8,7 +8,7 @@
 #
 # First iteration: base system, SSH, tailscale, Pi-hole + dnscrypt-proxy (the
 # DNS single point of failure this host exists to remove). navidrome,
-# syncthing, searx and immich follow once this closure builds and boots.
+# syncthing and immich follow once this closure builds and boots.
 { inputs, hostname, username, ... }:
 {
   imports = [ ./k1.nix ];
