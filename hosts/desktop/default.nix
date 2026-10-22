@@ -139,11 +139,36 @@ in
   # ── LAN services (previously rootless podman quadlets) ─────────────────
   # Tailnet-only, as the quadlets were: ports are published on loopback + the
   # tailnet address (never 0.0.0.0) and tailscale0 is trusted, so no
-  # networking.firewall port is opened for Immich (2283) or Jellyfin (8096).
-  # Pi-hole + dnscrypt-proxy live on the NAS host only.
+  # networking.firewall port is opened for Immich (2283), Jellyfin (8096) or
+  # Pi-hole (53, web 8080).
   myContainers.publishAddresses = [ "127.0.0.1" tailnetAddress ];
   services.immich-podman.enable = true;
   services.jellyfin-podman.enable = true;
+
+  # Temporary: the tailnet's DNS (Tailscale global nameserver 100.74.140.82)
+  # until the nas host is deployed. Then disable here and repoint Tailscale DNS.
+  services.pihole.enable = true;
+
+  # DoH/DNSCrypt upstream for Pi-hole, same split as the NAS host: Pi-hole on 53,
+  # dnscrypt-proxy on localhost 5053. Settings from the old dnscrypt-proxy.toml.
+  services.dnscrypt-proxy = {
+    enable = true;
+    settings = {
+      listen_addresses = [ "127.0.0.1:5053" ];
+      server_names = [ "quad9-doh-ip4-port443-nofilter-pri" "quad9-dnscrypt-ip4-nofilter-pri" "cloudflare" ];
+      ipv6_servers = false;
+      require_dnssec = true;
+      require_nolog = true;
+      require_nofilter = true;
+      bootstrap_resolvers = [ "9.9.9.11:53" "8.8.8.8:53" ];
+      block_unqualified = true;
+      block_undelegated = true;
+      cache = false; # Pi-hole caches
+    };
+  };
+  # pihole runs with --network=host, so localhost is the host's dnscrypt-proxy.
+  virtualisation.oci-containers.containers.pihole.environment.FTLCONF_dns_upstreams =
+    lib.mkForce "127.0.0.1#5053";
 
   # Reached over `tailscale serve` (https://desktop.<tailnet>/ -> 127.0.0.1:4533).
   services.navidrome = {
