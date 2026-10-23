@@ -1,0 +1,37 @@
+// nvim + claude workspace, one tab per repo. Started by the `dev` zsh function
+// (zsh.nix). The tab takes the repo's name. claude panes are spawned from nvim
+// (<leader>ac, see editors/neovim/default.nix) and land on the right: a single
+// pane at 2 panes, a stack from 3 on. Zellij's shipped half-stacked layout only
+// kicks in at 5 panes, hence the two swap layouts below.
+layout {
+    tab_template name="ui" {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+    ui {
+        pane name="nvim" command="sh" close_on_exit=true {
+            args "-c" "zellij action rename-tab \"$(basename \"$PWD\")\"; exec nvim"
+        }
+    }
+    swap_tiled_layout name="side" {
+        ui exact_panes=2 {
+            pane split_direction="vertical" {
+                pane size="60%"
+                pane
+            }
+        }
+    }
+    swap_tiled_layout name="stack" {
+        ui min_panes=3 {
+            pane split_direction="vertical" {
+                pane size="60%"
+                pane stacked=true { children; }
+            }
+        }
+    }
+}

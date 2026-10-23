@@ -137,4 +137,6 @@ in
   programs.zellij.themes.dither.themes.dither = mkTheme colors;
 
   xdg.configFile."zellij/config.kdl".source = ./config.kdl;
+  # ~/.config/zellij/layouts is zellij's default layout_dir, so `--layout dev` resolves.
+  xdg.configFile."zellij/layouts/dev.kdl".source = ./layouts/dev.kdl;
 }

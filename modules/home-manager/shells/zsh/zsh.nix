@@ -91,6 +91,16 @@
         fastfetch
       fi
 
+      # nvim + claude workspace (zellij layout `dev`, see shells/zellij/layouts):
+      # run from a repo. Outside zellij it starts a session; inside, a new tab.
+      dev() {
+        if [[ -n "$ZELLIJ" ]]; then
+          zellij action new-tab --layout dev --cwd "$PWD"
+        else
+          zellij --layout dev
+        fi
+      }
+
       ZSH_AUTOSUGGEST_STRATEGY=(history match_prev_cmd completion)
       ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=180'
 

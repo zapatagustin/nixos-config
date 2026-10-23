@@ -48,7 +48,8 @@ in
       nvim-web-devicons
       plenary-nvim
 
-      # optional dep for claudecode.nvim (terminal provider)
+      # snacks.nvim: unused since claudecode runs claude in a zellij pane
+      # (terminal.provider = "external"); kept as the in-editor fallback provider.
       {
         plugin = snacks-nvim;
         type = "lua";
@@ -223,12 +224,35 @@ in
         type = "lua";
         config = ''require("headlines").setup()'';
       }
-      # Claude Code Neovim IDE integration
+      # Claude Code Neovim IDE integration. nvim only runs the websocket server;
+      # claude itself lives in a zellij pane beside nvim (not in :terminal), so Esc,
+      # scroll and resize behave like a real terminal. Each :ClaudeCode spawns one
+      # more pane wired to THIS nvim via CLAUDE_CODE_SSE_PORT, so several claude
+      # sessions per editor work and never cross between tabs/repos.
       {
         plugin = claudecode-nvim;
         type = "lua";
         config = ''
-          require("claudecode").setup({})
+          require("claudecode").setup({
+            terminal_cmd = "claude --dangerously-skip-permissions", -- same as the `cl` alias
+            terminal = {
+              provider = "external",
+              provider_opts = {
+                external_terminal_cmd = function(cmd, env)
+                  -- No --direction: an explicit split bypasses the swap layouts in
+                  -- layouts/dev.kdl (verified); without it the pane lands in the right
+                  -- column / stack. Outside zellij fall back to a foot window instead.
+                  local argv = vim.env.ZELLIJ
+                      and { "zellij", "run", "-n", "claude", "-c", "--" }
+                      or { "foot" }
+                  -- env goes in argv: zellij panes inherit the server's env, not the client's.
+                  argv[#argv + 1] = "env"
+                  for k, v in pairs(env) do argv[#argv + 1] = k .. "=" .. v end
+                  return vim.list_extend(argv, vim.split(cmd, " "))
+                end,
+              },
+            },
+          })
         '';
       }
 

@@ -14,7 +14,10 @@ map("n", "<leader>e", function()
 end, { desc = "File tree" })
 map("n", "-", "<cmd>Oil<cr>", { desc = "Oil: parent dir" })
 
--- Navegación de ventanas con Alt (no pasa por langmap, funciona con Dvorak)
+-- Window navigation with Alt. langmap DOES translate the key inside an Alt
+-- combo in normal and terminal mode (verified in a pty: the keys labelled
+-- H J K L type dvorak d h t n and fire <M-h/j/k/l>), so these are physical
+-- positions. Never map <M-d>/<M-t>/<M-n>: langmap rewrites them before lookup.
 map("n", "<M-h>", "<Cmd>wincmd h<CR>", { desc = "Window left" })
 map("n", "<M-j>", "<Cmd>wincmd j<CR>", { desc = "Window down" })
 map("n", "<M-k>", "<Cmd>wincmd k<CR>", { desc = "Window up" })
@@ -27,13 +30,12 @@ map("t", "<M-l>", "<C-\\><C-n><Cmd>wincmd l<CR>", { desc = "Window right (term)"
 -- Terminal: EscEsc rápido sale a normal mode (single Esc pasa al programa)
 map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
--- claudecode.nvim (Claude Code IDE integration)
-map("n", "<leader>ac", "<cmd>ClaudeCode<cr>", { desc = "Toggle Claude" })
-map("n", "<leader>af", "<cmd>ClaudeCodeFocus<cr>", { desc = "Focus Claude" })
+-- claudecode.nvim: claude runs in a zellij pane beside nvim (see default.nix),
+-- so there is no focus/swap keymap; Alt+arrows move between zellij panes.
+map("n", "<leader>ac", "<cmd>ClaudeCode<cr>", { desc = "New Claude pane" })
 map("n", "<leader>ar", "<cmd>ClaudeCode --resume<cr>", { desc = "Resume Claude" })
 map("n", "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", { desc = "Select Claude model" })
 map("n", "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", { desc = "Add current buffer" })
 map("x", "<leader>as", "<cmd>ClaudeCodeSend<cr>", { desc = "Send to Claude" })
 map("n", "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", { desc = "Accept diff" })
 map("n", "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", { desc = "Deny diff" })
-map("n", "<leader>ax", "<Cmd>wincmd r<CR><C-w>|", { desc = "Swap & max claude" })
