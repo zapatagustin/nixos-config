@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 let
   cfg = config.services.jellyfin-podman;
 in
@@ -24,10 +24,16 @@ in
       };
     };
     # Background priority, as the quadlet had: never starve a game.
-    # /mnt/datos is nofail: wait for it instead of failing on a missing bind source.
+    # /mnt/datos is nofail: not RequiresMountsFor, a failed mount would fail this unit
+    # as a dependency and the restart loop would not retry. Order after the mount and
+    # fail the start instead, so a missing bind source is retried every 10s.
     systemd.services.podman-jellyfin = {
-      serviceConfig.CPUWeight = 20;
-      unitConfig.RequiresMountsFor = [ "/mnt/datos" ];
+      after = [ "mnt-datos.mount" ];
+      wants = [ "mnt-datos.mount" ];
+      serviceConfig = {
+        CPUWeight = 20;
+        ExecStartPre = [ "${pkgs.util-linux}/bin/mountpoint -q /mnt/datos" ];
+      };
     };
   };
 }

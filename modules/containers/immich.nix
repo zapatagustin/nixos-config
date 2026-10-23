@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 let
   cfg = config.services.immich-podman;
 in
@@ -90,14 +90,19 @@ in
           };
           script = "${podman} network exists ${network} || ${podman} network create ${network}";
         };
-      } // lib.genAttrs (map (n: "podman-${n}") names) (unit: {
-        # Background priority, as the quadlets had: never starve a game.
-        serviceConfig.CPUWeight = 20;
-        # The library lives on the nofail data disk: wait for it.
-        unitConfig = lib.optionalAttrs (unit == "podman-immich-server") {
-          RequiresMountsFor = [ "/mnt/datos" ];
-        };
-      });
+      } // lib.genAttrs (map (n: "podman-${n}") names) (unit: lib.recursiveUpdate
+        {
+          # Background priority, as the quadlets had: never starve a game.
+          serviceConfig.CPUWeight = 20;
+        }
+        (lib.optionalAttrs (unit == "podman-immich-server") {
+          # The library lives on the nofail data disk. Not RequiresMountsFor: on a
+          # nofail mount a failed mount would fail this unit as a dependency, which the
+          # restart loop does not retry. Order after it and fail the start instead.
+          after = [ "mnt-datos.mount" ];
+          wants = [ "mnt-datos.mount" ];
+          serviceConfig.ExecStartPre = [ "${pkgs.util-linux}/bin/mountpoint -q /mnt/datos" ];
+        }));
     }
   );
 }

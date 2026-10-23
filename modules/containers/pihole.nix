@@ -67,7 +67,12 @@ in
           environment = {
             TZ = config.time.timeZone;
             FTLCONF_dns_upstreams = "1.1.1.1;1.0.0.1"; # Cloudflare
-            FTLCONF_dns_listeningMode = "all";
+            # BIND + interface: FTL listens on tailscale0 (and lo, which dnsmasq adds)
+            # only, never on 0.0.0.0, so the podman bridge gateways stay free for
+            # aardvark-dns. tailscale0 must exist at start (podman-pihole orders
+            # after tailscaled.service in containers.nix).
+            FTLCONF_dns_listeningMode = "BIND";
+            FTLCONF_dns_interface = "tailscale0";
             FTLCONF_dns_dnssec = "true";
             FTLCONF_webserver_port = "${toString webPort}o"; # admin UI port (host net); 'o' = optional bind
           };
@@ -79,9 +84,10 @@ in
           environmentFiles = [ "/var/lib/pihole/pihole.env" ];
 
           # Host networking: bind 53/${toString webPort} directly on the host (port 53
-          # is free now that resolved's stub is off). Avoids podman's bridge +
-          # aardvark-dns, which fights over <gateway>:53 when 53 is published.
-          # Reachability stays tailnet-only via the firewall (tailscale0 trusted).
+          # is free now that resolved's stub is off). Avoids podman's bridge + port
+          # publishing. FTL binds only tailscale0 + lo (see listeningMode above), so
+          # aardvark-dns can serve <gateway>:53 on the container networks (immich).
+          # Reachability stays tailnet-only (tailscale0 trusted, nothing on the LAN).
           extraOptions = [
             "--network=host"
             # The container resolves via a real upstream, NOT itself: on first

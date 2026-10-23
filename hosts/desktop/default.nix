@@ -126,13 +126,13 @@ in
   #   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
   services.flatpak.enable = true;
 
-  # Game streaming host for the laptops' moonlight-qt. The tailnet reaches it
-  # anyway (tailscale0 is trusted, network.nix); openFirewall adds LAN clients.
+  # Game streaming host for the laptops' moonlight-qt, reached over the tailnet
+  # (tailscale0 is trusted, network.nix); no LAN ports are opened.
   services.sunshine = {
     enable = true;
     autoStart = true;
     capSysAdmin = true; # KMS capture
-    openFirewall = true;
+    openFirewall = false;
   };
   programs.kdeconnect.enable = true; # opens 1714-1764 tcp/udp itself
 
@@ -179,16 +179,39 @@ in
       Port = 4533;
     };
   };
-  # The music lives on the nofail data disk: never index an empty mountpoint.
-  systemd.services.navidrome.unitConfig.RequiresMountsFor = [ "/mnt/datos" ];
+  # The music lives on the nofail data disk: never index an empty mountpoint. Not
+  # RequiresMountsFor: a failed nofail mount would fail this unit as a dependency,
+  # which is never retried. Fail the start instead and retry like the containers do.
+  systemd.services.navidrome = {
+    after = [ "mnt-datos.mount" ];
+    wants = [ "mnt-datos.mount" ];
+    serviceConfig = {
+      ExecStartPre = [ "${pkgs.util-linux}/bin/mountpoint -q /mnt/datos" ];
+      Restart = "on-failure";
+      RestartSec = "10s";
+    };
+    unitConfig.StartLimitIntervalSec = 0;
+  };
 
-  # This host IS the remote builder in hosts/host.nix: never delegate to itself,
-  # and let the laptops' nix-daemon (ssh as ${username}) push unsigned paths.
+  # This host IS the remote builder in hosts/host.nix: never delegate to itself.
+  # The laptops' nix-daemon connects as the dedicated nix-ssh user (forced command
+  # `nix-store --serve --write`, no shell/forwarding) instead of ${username}, so the
+  # main user is not root-equivalent via trusted-users. `trusted` adds nix-ssh to
+  # trusted-users, which --write needs to accept unsigned paths. The key is the
+  # personal identity that buildMachines' sshKey points at.
   # riscv64 runs via boot.binfmt.emulatedSystems, already set in host.nix.
+  nix.sshServe = {
+    enable = true;
+    write = true;
+    trusted = true;
+    protocol = "ssh";
+    keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKmL82v4Az5e/hFecVw5+hUp5rWeCMeb18KUqrVKsqGq zapatagustin4@gmail.com"
+    ];
+  };
   nix = {
     distributedBuilds = lib.mkForce false;
     buildMachines = lib.mkForce [ ];
-    settings.trusted-users = [ username ]; # root is already in the default
     # Dedup on every build, on top of host.nix's weekly nix.optimise and weekly
     # 14d gc (both already apply here): this host builds for every machine.
     settings.auto-optimise-store = true;

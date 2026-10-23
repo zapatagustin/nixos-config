@@ -64,10 +64,12 @@
   # never leave the laptop. The desktop side (CachyOS, nix from pacman) needs
   # nix-daemon running, qemu-user-static-binfmt, and in /etc/nix/nix.conf
   # `trusted-users = root desktop` plus `extra-platforms = riscv64-linux`.
+  # Once the desktop runs NixOS (hosts/desktop, nix.sshServe) it serves the
+  # dedicated nix-ssh user instead; flip sshUser then.
   nix.distributedBuilds = true;
   nix.buildMachines = [{
     hostName = "desktop.taild4c79d.ts.net";
-    sshUser = "desktop";
+    sshUser = "desktop"; # disabled until the desktop runs NixOS: "nix-ssh"
     # nix-daemon opens the connection as root; the user's key is readable by it.
     sshKey = "/home/${username}/.ssh/id_ed25519_personal";
     systems = [ "riscv64-linux" ];

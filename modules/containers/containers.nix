@@ -32,13 +32,36 @@
     # Ports published on the tailnet address only bind once tailscaled is up and
     # logged in; until then the start fails. Retry every 10s with no start limit
     # instead of tripping systemd's default (5 starts in 10s) and staying failed.
-    systemd.services = lib.mapAttrs'
-      (name: _: lib.nameValuePair "podman-${name}" {
-        after = [ "tailscaled.service" ];
-        wants = [ "tailscaled.service" ];
-        serviceConfig.RestartSec = "10s";
-        unitConfig.StartLimitIntervalSec = 0;
-      })
-      config.virtualisation.oci-containers.containers;
+    #
+    # tailscaled being up is not enough: after a re-auth the node can get a new
+    # address, and podman would then fail on every retry with a bind error. The gate
+    # waits for each non-loopback publish address and names the cause when it never
+    # shows up (no-op when only loopback is published).
+    systemd.services =
+      let
+        waitForAddresses = pkgs.writeShellScript "wait-publish-addresses" ''
+          for addr in "$@"; do
+            for _ in $(seq 1 60); do
+              ${pkgs.iproute2}/bin/ip -4 -o addr show | ${pkgs.gnugrep}/bin/grep -qF "inet $addr/" && continue 2
+              sleep 1
+            done
+            echo "address $addr is not configured on any interface (tailscale re-auth changed it? update hosts/desktop/default.nix tailnetAddress)" >&2
+            exit 1
+          done
+        '';
+        addresses = lib.filter (a: a != "127.0.0.1") config.myContainers.publishAddresses;
+      in
+      lib.mapAttrs'
+        (name: _: lib.nameValuePair "podman-${name}" {
+          after = [ "tailscaled.service" ];
+          wants = [ "tailscaled.service" ];
+          serviceConfig = {
+            RestartSec = "10s";
+            ExecStartPre = lib.mkIf (addresses != [ ])
+              [ "${waitForAddresses} ${lib.escapeShellArgs addresses}" ];
+          };
+          unitConfig.StartLimitIntervalSec = 0;
+        })
+        config.virtualisation.oci-containers.containers;
   };
 }
