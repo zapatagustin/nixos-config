@@ -1,7 +1,7 @@
 #!/bin/bash
 # Enfoca la primera ventana cuyo class matchea el regex (case-insensitive);
 # si no existe, lanza el comando. Con -t matchea por título en vez de class:
-# apps sin class propia (mono_player corre como "python3") solo son
+# apps sin class propia (p. ej. las que corren como "python3") solo son
 # distinguibles por título. Match por class es el default porque los títulos
 # cambian con el contenido (un tab del browser que nombra la app daría falso
 # positivo).

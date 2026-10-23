@@ -66,9 +66,9 @@ in
   ];
 
   # One Secret Service provider in both sessions: gnome-keyring (modules/wm/
-  # hyprland.nix) holds the existing secrets, e.g. mono_player's token. Without
-  # this, kwalletd6 also claims org.freedesktop.secrets under Plasma and whichever
-  # starts first wins, splitting secrets per session.
+  # hyprland.nix) holds the existing secrets. Without this, kwalletd6 also
+  # claims org.freedesktop.secrets under Plasma and whichever starts first
+  # wins, splitting secrets per session.
   environment.etc."xdg/kwalletrc".text = ''
     [org.freedesktop.secrets]
     apiEnabled=false

@@ -212,8 +212,5 @@
     superfile
     steam-run
     moonlight-qt # game streaming client for the desktop's sunshine host
-    # YouTube client from its own flake; ships its .desktop entry, so it shows
-    # up in the launcher. Update: `nix flake update mono_player` + rebuild.
-    inputs.mono_player.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }

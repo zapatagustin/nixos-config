@@ -310,26 +310,6 @@
         "type": "github"
       }
     },
-    "mono_player": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1788203823,
-        "narHash": "sha256-uU8AiqATYTO4Mk8AYoVNxSMAj08vh+LaunLr+C3QpeA=",
-        "ref": "refs/heads/main",
-        "rev": "b8bcb67158121b7f62dea1c04d2abffb0067793a",
-        "revCount": 61,
-        "type": "git",
-        "url": "ssh://git@github.com/zapatagustin/mono_player"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/zapatagustin/mono_player"
-      }
-    },
     "nix-doom-emacs-unstraightened": {
       "inputs": {
         "doomdir": "doomdir",
@@ -415,7 +395,6 @@
         "chaotic": "chaotic",
         "ecomono": "ecomono",
         "home-manager": "home-manager",
-        "mono_player": "mono_player",
         "nix-doom-emacs-unstraightened": "nix-doom-emacs-unstraightened",
         "nix-index-database": "nix-index-database",
         "nixpkgs": [

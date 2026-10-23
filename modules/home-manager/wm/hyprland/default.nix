@@ -324,11 +324,8 @@ in
       hl.bind(mainMod .. " + F1", hl.dsp.exec_cmd("echo toggle >> $XDG_RUNTIME_DIR/qs-cheatsheet"), { description = "Show keybindings" })
 
       -- launch-or-focus: focus the window if the app runs, launch it if not.
-      -- mono_player matches by title (-t): it runs under the generic class
-      -- "python3", so class matching cannot single it out.
       hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("bash " .. hyprDir .. "/launch-or-focus.sh '^zen' zen-beta"), { description = "Focus or launch browser" })
       hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("bash " .. hyprDir .. "/launch-or-focus.sh keepassxc keepassxc"), { description = "Focus or launch KeePassXC" })
-      hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("bash " .. hyprDir .. "/launch-or-focus.sh -t '^mono_player$' mono_player"), { description = "Focus or launch music player" })
 
       hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("bash " .. hyprDir .. "/screenrecord.sh"), { description = "Start or stop screen recording" })
 
