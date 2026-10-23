@@ -22,10 +22,16 @@ PanelWindow {
     readonly property int baseHeight: 28
     color: "transparent"
 
+    // Typed alias so qmllint resolves the real ShellScreen. Since Qt 6.12 the
+    // qmltyperegistrar declares PanelWindow.screen against an opaque
+    // QuickshellScreenInfo stub (no properties) inside Quickshell._Window, and
+    // `--missing-property error` rejected `bar.screen.name`. Runtime unchanged.
+    readonly property ShellScreen shellScreen: bar.screen
+
     // Monitor de Hyprland correspondiente a esta pantalla
     readonly property var hyprMonitor: {
         for (var i = 0; i < Hyprland.monitors.values.length; i++) {
-            if (Hyprland.monitors.values[i].name === bar.screen.name)
+            if (Hyprland.monitors.values[i].name === bar.shellScreen.name)
                 return Hyprland.monitors.values[i]
         }
         return null
