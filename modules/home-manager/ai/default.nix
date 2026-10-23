@@ -48,6 +48,25 @@
       "opencode-go" = fromSops "opencode/opencode-api-key";
       # Shared with the zed wrapper (../editors/zed), which reads the same file.
       anthropic = fromSops "zed/anthropic-api-key";
+      # llama-server on the desktop (RX 6700, Vulkan), bound to its tailscale
+      # address only. The systemd user unit lives on the desktop itself
+      # (~/.config/systemd/user/llama-server.service), not in this flake. Limits
+      # mirror the unit's -c 65536; no apiKey because the server sets none.
+      # opencode compacts once a message's tokens reach context - output, and
+      # its own system prompt is ~11.6k tokens: at 16k context every message
+      # overflowed, so the compaction -> continue cycle never terminated.
+      "llama-desktop" = {
+        npm = "@ai-sdk/openai-compatible";
+        name = "llama-server (desktop)";
+        options.baseURL = "http://100.74.140.82:8080/v1";
+        models."qwen3.6-35b-uncensored" = {
+          name = "Qwen3.6-35B-A3B Uncensored (desktop)";
+          limit = {
+            context = 65536;
+            output = 8192;
+          };
+        };
+      };
     };
 
   # ecomono-code and cavemem were removed once opencode reached compression
