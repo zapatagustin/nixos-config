@@ -24,4 +24,9 @@
 
   # swap UUID from this host's hardware-configuration.nix (nvme0n1p3) — resume target
   boot.resumeDevice = "/dev/disk/by-uuid/5ad9fdfe-3002-4f12-9857-6b6fa2aac5a0";
+
+  # early KMS: native-resolution i915 framebuffer from the initrd. Was in
+  # modules/boot/systemd/systemd.nix, where it leaked the Intel driver into the
+  # all-AMD desktop's initrd.
+  boot.initrd.kernelModules = [ "i915" ];
 }

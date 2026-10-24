@@ -141,7 +141,9 @@
   };
 
   hardware = {
-    cpu.intel.updateMicrocode = true;
+    # mkDefault: the AMD desktop turns this off (its hardware-configuration.nix
+    # already covers amd.updateMicrocode).
+    cpu.intel.updateMicrocode = lib.mkDefault true;
     # was enableAllFirmware: measured — every firmware this machine loads (i915,
     # iwlwifi, intel-bluetooth) is in linux-firmware (redistributable). All-firmware
     # only added non-redistributable blobs this hardware never requests.

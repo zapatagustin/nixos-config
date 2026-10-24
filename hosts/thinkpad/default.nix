@@ -13,4 +13,9 @@
   # hardware-configuration.nix, or `blkid`) to enable hibernation resume.
   # Leave unset until then — a wrong/missing UUID with systemd-initrd hangs boot.
   # boot.resumeDevice = "/dev/disk/by-uuid/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX";
+
+  # early KMS: native 1366x768 i915 framebuffer from the initrd instead of the
+  # firmware GOP one until ~18s in. Was in modules/boot/systemd/systemd.nix,
+  # where it leaked the Intel driver into the all-AMD desktop's initrd.
+  boot.initrd.kernelModules = [ "i915" ];
 }

@@ -23,12 +23,10 @@ _: {
       # larger image. zstd decompresses at ~the same speed regardless of level,
       # so boot time is unaffected.
       compressorArgs = [ "-6" "-T0" ];
-      # early KMS: load i915 in initrd so the native 1366x768 i915 framebuffer
-      # comes up in the initrd instead of ~18s into boot (currently fbcon only
-      # takes over the i915 console late; until then the firmware GOP framebuffer
-      # is in charge). Helps if early boot text renders at a sub-native firmware
-      # resolution; harmless otherwise. Panel only mode is 1366x768.
-      kernelModules = [ "i915" ];
+      # early-KMS modules (i915 on the laptops, amdgpu on desktop) are per-host:
+      # they live in hosts/<host>/default.nix / hardware-configuration.nix. This
+      # module used to load i915 here, which leaked the Intel driver into the
+      # all-AMD desktop's initrd.
     };
 
     consoleLogLevel = 0;
