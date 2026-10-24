@@ -1,4 +1,4 @@
-{ config, lib, pkgs, username, ... }:
+{ lib, pkgs, username, ... }:
 let
   # This node's tailnet address. Container ports are published on it explicitly
   # (see myContainers.publishAddresses). It survives the migration only if
@@ -47,23 +47,24 @@ in
     xdg.configFile."uwsm/env-hyprland".text = "export QT_QPA_PLATFORMTHEME=gtk3\n";
   };
 
-  # KDE Plasma 6 as a second session next to Hyprland, picked from tuigreet's
-  # session menu (F3) and remembered for the next login. Hyprland stays the default
-  # (--cmd) until another session is chosen. The menu lists only the uwsm Hyprland
-  # entry and Plasma: programs.hyprland also registers a plain hyprland.desktop,
-  # which skips uwsm, so the bar, hypridle (the only idle lock) and env-hyprland
-  # never start, and --remember-session would make that pick stick.
-  # kwallet is unlocked at login: plasma6 enables it on the "login" PAM stack, which
-  # greetd's stack includes.
+  # Plasma-only host (2026-10-23, by request): Hyprland is dropped on the
+  # desktop — the shared wm module keeps providing it for the laptops. SDDM +
+  # Plasma 6 Wayland mirrors the installer generation this machine actually
+  # boots. greetd is force-disabled; so is programs.hyprland, which also kills
+  # the old tuigreet session menu's hyprland-uwsm.desktop source. The HM
+  # hyprland units stay inert here: they condition on
+  # XDG_CURRENT_DESKTOP=Hyprland (block above) and no Hyprland session exists.
   services.desktopManager.plasma6.enable = true;
-  myGreeter.extraArgs = [
-    "--remember-session"
-    "--sessions"
-    (toString (pkgs.runCommand "greeter-wayland-sessions" { } ''
-      mkdir $out
-      cp ${config.services.displayManager.sessionData.desktops}/share/wayland-sessions/{hyprland-uwsm,plasma}.desktop $out/
-    ''))
-  ];
+  programs.hyprland.enable = lib.mkForce false;
+  services.greetd.enable = lib.mkForce false;
+  services.displayManager = {
+    sddm.enable = true;
+    sddm.wayland.enable = true;
+    defaultSession = "plasma";
+  };
+  # gnome-keyring stays the one Secret Service (kwalletrc below); greetd's PAM
+  # hook used to unlock it at login — give SDDM the same hook.
+  security.pam.services.sddm.enableGnomeKeyring = true;
 
   # One Secret Service provider in both sessions: gnome-keyring (modules/wm/
   # hyprland.nix) holds the existing secrets. Without this, kwalletd6 also
@@ -90,6 +91,11 @@ in
   hardware.trackpoint.enable = false; # desktop, no TrackPoint
   # thermald only supports Intel CPUs; on this Ryzen it fails at start.
   services.thermald.enable = lib.mkForce false;
+  hardware.cpu.intel.updateMicrocode = false; # Ryzen; amd.updateMicrocode in hardware-configuration.nix
+  # TLP is laptop power tuning (hardware.nix header says "ThinkPad power/thermal"):
+  # on a wall-powered tower, USB_AUTOSUSPEND and RUNTIME_PM only earn suspended
+  # peripherals. The CachyOS install never ran it either.
+  services.tlp.enable = lib.mkForce false;
 
   # ecomono: kernel is the shared chaotic linuxPackages_cachyos from default.nix,
   # not xddxdd/nix-cachyos-kernel. chaotic is archived but still locked and cached,
@@ -98,11 +104,56 @@ in
 
   # GPU overclock/undervolt: unlocks the full PowerPlay mask (was
   # amdgpu.ppfeaturemask=0xffffffff on CachyOS); LACT applies the profile.
+  # disabled while the first-boot GPU init failure is bisected: PSP failed to
+  # load the SMU firmware ("failed to load ucode SMC(0x34)" + AMD-Vi
+  # IO_PAGE_FAULT) and amdgpu aborted -> black screen — and it reproduced
+  # WITHOUT the mask (journals 2026-10-23 16:56 and 18:10), so overdrive is
+  # not the culprit. Re-enable once this host boots its own generation. LACT
+  # stays on; without overdrive it just can't apply the OC/UV profile.
   hardware.amdgpu.overdrive = {
-    enable = true;
+    enable = false;
     ppfeaturemask = "0xffffffff";
   };
   services.lact.enable = true;
+
+  # Bisect kit for the GPU-init black screen. Ruled out so far: wrong root
+  # UUID (fixed in hardware-configuration.nix), overdrive (failed without it),
+  # firmware files (navy_flounder_* byte-identical to the installer generation
+  # that boots), early-KMS amdgpu (failed with it out of the initrd too).
+  # Evidence: on cachyos 7.3 the PSP fails loading the SMU fw ("failed to load
+  # ucode SMC(0x34)" + AMD-Vi IO_PAGE_FAULT); on stock 6.18 LTS the journal
+  # stops right before the SMU step. The installer generation works on stock
+  # 7.3.0, so the BASE runs linuxPackages_latest (7.3) to mirror it; the
+  # specialisations try the remaining suspects. consoleLogLevel 7 overrides
+  # systemd.nix's silent boot so failures stay visible. Fold the verdict in
+  # and delete this block once one sticks.
+  # NOTE: early amdgpu is removed by commenting it out in
+  # hardware-configuration.nix, NOT by forcing initrd.kernelModules to [] —
+  # that clobbered the `btrfs` module NixOS injects for the root fs and broke
+  # stage 1 on the stock kernel (btrfs is builtin only in the cachyos kernel).
+  boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
+  boot.consoleLogLevel = lib.mkForce 7;
+  # Keep every generation in the menu while bisecting: the shared limit of 5
+  # would soon prune generation 1, the only entry known to boot on this host.
+  boot.loader.systemd-boot.configurationLimit = lib.mkForce 20;
+  specialisation = {
+    # IOMMU passthrough — the IO_PAGE_FAULTs during the PSP's SMC DMA are the
+    # one lead never tested. Try this first if the base stays black.
+    iommu-pt.configuration = {
+      boot.kernelParams = [ "iommu=pt" ];
+    };
+    # Guaranteed desktop: no amdgpu at all, Plasma renders in software on the
+    # firmware framebuffer (simpledrm). Slow but always reaches SDDM, and a
+    # failed base boot can be inspected from a real session instead of SSH.
+    safe-graphics.configuration = {
+      boot.blacklistedKernelModules = [ "amdgpu" ];
+    };
+    # Chaotic's cachyos kernel, for the final verdict on whether its LLVM/LTO
+    # build is the (or a) culprit (mkOverride 40 outranks the mkForce above).
+    cachyos-kernel.configuration = {
+      boot.kernelPackages = lib.mkOverride 40 pkgs.linuxPackages_cachyos;
+    };
+  };
 
   # Process priorities from CachyOS's rule set (ananicy-cpp runs on the current
   # install). Off in modules/performance for the laptops, on here.

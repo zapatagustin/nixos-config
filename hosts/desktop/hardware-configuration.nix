@@ -1,9 +1,10 @@
-# Hand-written in nixos-generate-config's layout for the TARGET NixOS install of
-# this machine (currently CachyOS; facts from findmnt/lsblk/lsmod, 2026-10-21).
+# Hand-written in nixos-generate-config's layout for the NixOS install of this
+# machine (installed 2026-10; facts from /etc/fstab + /proc/self/mounts of the
+# installer-generated generation, 2026-10-23).
 #
-# The nvme btrfs partition gets reformatted at install with three subvolumes
-# (@ -> /, @home -> /home, @nix -> /nix). Its UUID below is the CURRENT one, a
-# placeholder: reformatting changes it. Regenerate at install time with
+# The installer did NOT use the @-prefixed layout this file once assumed: / sits
+# on the btrfs top-level subvolume, with `home` and `nix` nested inside it. If
+# the disk is ever reformatted, regenerate with
 # `nixos-generate-config --show-hardware-config`, take the new UUIDs from it,
 # and keep the mount options and the /mnt/datos entry from this file.
 #
@@ -13,11 +14,11 @@
 { config, lib, modulesPath, ... }:
 
 let
-  # nvme0n1p2: one btrfs filesystem, one subvolume per mount point.
-  subvolume = subvol: {
-    device = "/dev/disk/by-uuid/14a81ffa-8648-4c6c-b2ff-845bec4d3915";
+  # nvme0n1p2: one btrfs filesystem; / is the top-level subvolume (no subvol=).
+  nvme = subvolOptions: {
+    device = "/dev/disk/by-uuid/667148d6-afe7-4c96-91b4-6ee94926d2c7";
     fsType = "btrfs";
-    options = [ "subvol=${subvol}" "compress=zstd:1" "noatime" ];
+    options = subvolOptions ++ [ "compress=zstd:1" "noatime" ];
   };
 in
 {
@@ -28,17 +29,21 @@ in
 
   boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "uas" "sd_mod" ];
   # amdgpu in initrd: KMS (native-resolution console) from the first boot stage.
-  boot.initrd.kernelModules = [ "amdgpu" ];
+  # disabled while the GPU-init black screen is bisected (hosts/desktop
+  # default.nix, "Bisect kit") — the early-amdgpu specialisation re-adds it.
+  # NEVER mkForce this list empty instead: NixOS injects `btrfs` here for the
+  # root filesystem, and force-emptying it left stage 1 unable to mount root.
+  # boot.initrd.kernelModules = [ "amdgpu" ];
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
 
-  fileSystems."/" = subvolume "@";
-  fileSystems."/home" = subvolume "@home";
-  fileSystems."/nix" = subvolume "@nix";
+  fileSystems."/" = nvme [ ];
+  fileSystems."/home" = nvme [ "subvol=home" ];
+  fileSystems."/nix" = nvme [ "subvol=nix" ];
 
   fileSystems."/boot" =
     {
-      device = "/dev/disk/by-uuid/438A-DFF8";
+      device = "/dev/disk/by-uuid/75D8-737E";
       fsType = "vfat";
       options = [ "fmask=0077" "dmask=0077" ];
     };
@@ -52,7 +57,10 @@ in
       options = [ "compress=zstd:1" "noatime" "nofail" "x-systemd.device-timeout=10s" ];
     };
 
-  # No disk swap: zram only (modules/hardware/hardware.nix zramSwap).
+  # No disk swap: zram only (modules/hardware/hardware.nix zramSwap). The
+  # installer did create a swap partition (nvme0n1p3,
+  # 85e661c4-4fd5-49e4-83e1-3052549bb640, 8.8G); it is deliberately not declared
+  # here, so it stays unused under this config.
   swapDevices = [ ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";

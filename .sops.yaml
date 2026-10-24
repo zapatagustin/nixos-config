@@ -5,7 +5,11 @@ keys:
   - &host_surface age1atmdkgjl0x9ycyyp64h3hvqqkzfked9ftjf6wka83hxl2dch33usy3z7fs
   - &user_surface age144qp9cxg6hj0sn4vgtughad2v96x4w5q0xjkfxt9njyq298xg4dsx7nvdv
   - &host_thinkpad age1k9a74ksgxcxpesjn8uthnf5sdqq2ph2ng4q8p4fqdxruxj37p57q34nz0k
-  - &host_desktop age1nh2g9tlzqz8sk06a5egqz5lsveh24jpqphq45n0ljdpq04uh4cyqpkmuq2
+  # Re-derived 2026-10-23 from the fresh NixOS install's host key (the previous
+  # recipient came from the CachyOS-era key, lost when the nvme was reformatted).
+  # After changing this, run `sops updatekeys modules/secrets/secrets.yaml` on a
+  # host that can still decrypt (either laptop), commit, pull here, rebuild.
+  - &host_desktop age1l97pyectljp9nu93wevwna2s45we2vah8ge33qmlhc5sl9qzkv0qdpeekw
 creation_rules:
   - path_regex: modules/secrets/secrets\.yaml$
     key_groups:
