@@ -232,16 +232,16 @@ in
   };
   # The music lives on the nofail data disk: never index an empty mountpoint. Not
   # RequiresMountsFor: a failed nofail mount would fail this unit as a dependency,
-  # which is never retried. Fail the start instead and retry like the containers do.
+  # which is never retried. Not an ExecStartPre mountpoint check either: the
+  # module sandboxes the service (BindReadOnlyPaths bind-mounts only MusicFolder),
+  # so inside the unit /mnt/datos is never a mountpoint and the check looped
+  # forever (observed: 53 restarts). A Condition runs in PID1's host namespace.
+  # Tradeoff: a dead disk SKIPS the start (shows in `systemctl status`) instead
+  # of retrying — `systemctl start navidrome` by hand once the disk is back.
   systemd.services.navidrome = {
     after = [ "mnt-datos.mount" ];
     wants = [ "mnt-datos.mount" ];
-    serviceConfig = {
-      ExecStartPre = [ "${pkgs.util-linux}/bin/mountpoint -q /mnt/datos" ];
-      Restart = "on-failure";
-      RestartSec = "10s";
-    };
-    unitConfig.StartLimitIntervalSec = 0;
+    unitConfig.ConditionPathIsMountPoint = "/mnt/datos";
   };
 
   # This host IS the remote builder in hosts/host.nix: never delegate to itself.
