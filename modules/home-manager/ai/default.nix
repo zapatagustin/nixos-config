@@ -58,7 +58,7 @@
       "llama-desktop" = {
         npm = "@ai-sdk/openai-compatible";
         name = "llama-server (desktop)";
-        options.baseURL = "http://100.74.140.82:8080/v1";
+        options.baseURL = "http://100.70.43.27:8080/v1";
         models."qwen3.6-35b-uncensored" = {
           name = "Qwen3.6-35B-A3B Uncensored (desktop)";
           limit = {

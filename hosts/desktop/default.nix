@@ -1,9 +1,9 @@
 { lib, pkgs, username, ... }:
 let
   # This node's tailnet address. Container ports are published on it explicitly
-  # (see myContainers.publishAddresses). It survives the migration only if
-  # /var/lib/tailscale is carried over; a fresh login gets a new address.
-  tailnetAddress = "100.74.140.82";
+  # (see myContainers.publishAddresses). /var/lib/tailscale was NOT carried over
+  # in the 2026-10 reinstall, so this is the fresh login's address (2026-10-25).
+  tailnetAddress = "100.70.43.27";
 in
 {
   imports = [ ../../configuration.nix ];
@@ -196,7 +196,7 @@ in
   services.immich-podman.enable = true;
   services.jellyfin-podman.enable = true;
 
-  # Temporary: the tailnet's DNS (Tailscale global nameserver 100.74.140.82)
+  # Temporary: the tailnet's DNS (Tailscale global nameserver, tailnetAddress)
   # until the nas host is deployed. Then disable here and repoint Tailscale DNS.
   services.pihole.enable = true;
 
