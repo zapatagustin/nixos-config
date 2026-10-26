@@ -14,8 +14,8 @@
       # Pinned so root, which runs the remote builds in nix.buildMachines, never
       # hits a trust-on-first-use prompt. Same key the user's known_hosts holds.
       # Host key of the 2026-10 NixOS install (the CachyOS-era key died with the
-      # reformat); machine renamed desktop-01 (the old node held "desktop").
-      knownHosts."desktop-01.taild4c79d.ts.net".publicKey =
+      # reformat); machine renamed desktop-1 (the old node held "desktop").
+      knownHosts."desktop-1.taild4c79d.ts.net".publicKey =
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKZZBfnkU62I56ql3DOwI7DKrBynocLaErbgiiZTV9MA";
     };
     command-not-found.enable = false; # use nix-index instead
@@ -68,7 +68,7 @@
   # (forced command `nix-store --serve --write`, no shell).
   nix.distributedBuilds = true;
   nix.buildMachines = [{
-    hostName = "desktop-01.taild4c79d.ts.net";
+    hostName = "desktop-1.taild4c79d.ts.net";
     sshUser = "nix-ssh";
     # nix-daemon opens the connection as root; the user's key is readable by it.
     sshKey = "/home/${username}/.ssh/id_ed25519_personal";

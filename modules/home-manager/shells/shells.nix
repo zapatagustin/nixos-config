@@ -126,7 +126,7 @@
     # Desktop (CachyOS, not part of this flake) over Tailscale. Same personal
     # key; its public half is in the desktop's authorized_keys.
     Host desktop
-      HostName desktop-01.taild4c79d.ts.net
+      HostName desktop-1.taild4c79d.ts.net
       User desktop
       IdentityFile ~/.ssh/id_ed25519_personal
       IdentitiesOnly yes
