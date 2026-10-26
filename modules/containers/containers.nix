@@ -23,6 +23,16 @@
       autoPrune.enable = true;
     };
 
+    # aardvark-dns answers container-name lookups on each network's gateway
+    # (10.88.0.1:53, 10.89.0.1:53, ...). That query is host-INPUT traffic from the
+    # podman bridge, and netavark's accept lives in its own `inet netavark` table —
+    # it cannot save the packet from nixos-fw's drop, so without this rule every
+    # multi-container network (immich) fails name resolution (EAI_AGAIN) while
+    # single-container ones appear fine. nftables wildcard needs the quotes.
+    networking.firewall.extraInputRules = ''
+      iifname "podman*" meta l4proto { tcp, udp } th dport 53 accept comment "aardvark-dns"
+    '';
+
     environment.systemPackages = with pkgs; [
       podman-compose
       distrobox
