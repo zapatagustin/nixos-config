@@ -226,7 +226,12 @@ in
     enable = true;
     settings = {
       MusicFolder = "/mnt/datos/Music";
-      Address = "127.0.0.1";
+      # 0.0.0.0 is safe for a NATIVE service: nixos-fw filters its INPUT (unlike
+      # podman-published ports, which netavark DNATs past the firewall — that is
+      # what the "never 0.0.0.0" rule below is about). No LAN port is opened, so
+      # it is reachable only via the trusted tailscale0. Binding tailnetAddress
+      # instead would fail at boot until tailscaled brings the address up.
+      Address = "0.0.0.0";
       Port = 4533;
     };
   };
