@@ -73,21 +73,25 @@ in
     };
   };
 
-  # The ecomono flake pins `"theme": "gruvbox"` in its opencode/tui.json, and
-  # stylix's opencode target sets tui.theme = "stylix". Both are ordinary-priority
+  # The ecomono flake pins `theme.name = "gruvbox"` in its opencode/cli.json, and
+  # stylix's opencode target defines the "stylix" theme. Both are ordinary-priority
   # definitions of the same option, so enabling that target without this line is a
   # hard eval error, not a silent last-one-wins:
   #
-  #   error: The option `...programs.opencode.tui.theme' has conflicting definition
-  #   values: - stylix modules/opencode/hm.nix: "stylix"  - ecomono flake.nix: "gruvbox"
+  #   error: The option `...programs.opencode.cli.theme.name' has conflicting
+  #   definition values: - stylix: "stylix"  - ecomono flake.nix: "gruvbox"
   #
   # Resolved HERE rather than by deleting the key from ecomono, and that is the whole
   # point: ecomono is a standalone flake other machines install without stylix, and
   # dropping its theme would leave every one of them on opencode's default. The
   # collision is local to this config, so the override belongs in this config.
   #
-  # Only tui.theme collides. programs.opencode.tui takes pkgs.formats.json's type,
-  # which merges per key, so ecomono's `plugin` list survives untouched — verified,
+  # Only theme.name collides. programs.opencode.cli takes pkgs.formats.json's type,
+  # which merges per key, so ecomono's `plugins` list survives untouched — verified,
   # not assumed.
-  programs.opencode.tui.theme = lib.mkForce "stylix";
+  programs.opencode.cli.theme.name = lib.mkForce "stylix";
+  # stylix (master, 2026-10) still sets programs.opencode.tui.theme, which OpenCode 2
+  # ignores and home-manager warns about on every rebuild. Empty it to silence the
+  # warning; drop this line once stylix's opencode target sets cli.theme itself.
+  programs.opencode.tui = lib.mkForce { };
 }
