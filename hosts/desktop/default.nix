@@ -4,14 +4,20 @@ let
   # (see myContainers.publishAddresses). /var/lib/tailscale was NOT carried over
   # in the 2026-10 reinstall, so this is the fresh login's address (2026-10-25).
   tailnetAddress = "100.70.43.27";
+
+  # Local Qwen weights. 18.7G IQ4_XS quant of the 35B-A3B MoE, on the NVMe and
+  # NOT on /mnt/datos: llama-server mmaps the file and 16G of RAM cannot hold the
+  # ~10G of CPU-side experts next to the desktop, so every token page-faults
+  # into the file. From the WD10EZEX HDD that measured 0.27 tok/s (iowait ~40%);
+  # from the NVMe the same config does 23 tok/s and loads in 25s instead of 5min.
+  # /mnt/datos/models/ keeps the cold copy; this path is the one that runs.
+  qwenModel = "/home/${username}/models/qwen3.6-35b-a3b-uncensored-iq4_xs.gguf";
 in
 {
   imports = [ ../../configuration.nix ];
 
   # Ryzen 5 5600G + RX 6700 XT (Navi 22) tower, single 1920x1080 HDMI-A-1 monitor.
   # Not a dock host: multiMonitor stays at its default (false).
-  # TODO: the shared hyprland module assumes an eDP-1 panel (wallpaper, workspaces
-  # 19-27); on this host HDMI-A-1 gets the fallback monitor rule and base00 wallpaper.
   home-manager.users.${username} = {
     myDesktop.panelResolution = { width = 1920; height = 1080; };
     home.packages = with pkgs; [
@@ -215,6 +221,54 @@ in
     after = [ "mnt-datos.mount" ];
     wants = [ "mnt-datos.mount" ];
     unitConfig.ConditionPathIsMountPoint = "/mnt/datos";
+  };
+
+  # Local LLM inference: llama.cpp built with Vulkan, serving the Qwen MoE above
+  # on the RX 6700 XT. The opencode provider "llama-desktop" in
+  # modules/home-manager/ai points at this port over the tailnet; its declared
+  # 64k context is the -c below, so the two must move together. Port 8081, not
+  # llama.cpp's default 8080: Pi-hole runs with --network=host and its admin UI
+  # already holds 0.0.0.0:8080 (modules/containers/pihole.nix webPort).
+  #
+  # --fit on instead of a hand-tuned -ngl: 18.7G of weights do not fit 10.7G of
+  # VRAM, so llama.cpp derives the split from what is actually free (attention
+  # and embeddings on the GPU, MoE experts streamed from the CPU-side mmap).
+  # --cache-ram 2048 keeps the host-side KV cache bounded on a 16G machine.
+  # The mmap is deliberate: it is what lets an 18.7G model run here at all, and
+  # it is why -t 6 (the 5600G's physical cores) matters, not 12.
+  #
+  # 0.0.0.0 is safe for a NATIVE service: nixos-fw filters INPUT and only
+  # tailscale0 is trusted (same reasoning as navidrome above), so no port is
+  # opened and the tailnet is the only way in. Binding ${tailnetAddress} directly
+  # would fail at boot until tailscaled raised the address.
+  systemd.services.llama-server = {
+    description = "llama.cpp server - Qwen3.6-35B-A3B Uncensored (Vulkan)";
+    wantedBy = [ "multi-user.target" ];
+    unitConfig.ConditionPathExists = qwenModel;
+
+    serviceConfig = {
+      User = username;
+      Group = "users";
+      StateDirectory = "llama-server";
+      WorkingDirectory = "/var/lib/llama-server";
+      ExecStart =
+        "${lib.getExe' pkgs.llama-cpp-vulkan "llama-server"}"
+        + " --model ${qwenModel} --alias qwen3.6-35b-uncensored"
+        + " --host 0.0.0.0 --port 8081"
+        + " -c 65536 -np 1 --cache-ram 2048 --flash-attn on -t 6"
+        + " --fit on --jinja";
+      Restart = "on-failure";
+      RestartSec = 10;
+      # Loading 18.7G from disk before the first token is not a hang.
+      TimeoutStartSec = 600;
+
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      # read-only, not true: the weights live under /home (see qwenModel) and
+      # `true` hides it entirely. StateDirectory already covers the cache.
+      ProtectHome = "read-only";
+      ProtectSystem = "strict";
+    };
   };
 
   # This host IS the remote builder in hosts/host.nix: never delegate to itself.

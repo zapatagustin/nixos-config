@@ -48,17 +48,18 @@
       "opencode-go" = fromSops "opencode/opencode-api-key";
       # Shared with the zed wrapper (../editors/zed), which reads the same file.
       anthropic = fromSops "zed/anthropic-api-key";
-      # llama-server on the desktop (RX 6700, Vulkan), bound to its tailscale
-      # address only. The systemd user unit lives on the desktop itself
-      # (~/.config/systemd/user/llama-server.service), not in this flake. Limits
-      # mirror the unit's -c 65536; no apiKey because the server sets none.
+      # llama-server on the desktop (RX 6700, Vulkan): the systemd.services
+      # .llama-server unit in hosts/desktop/default.nix, reachable only over the
+      # tailnet (firewall trusts tailscale0, no LAN port opened). Port 8081, not
+      # 8080, which Pi-hole's host-network admin UI holds there. Limits mirror
+      # the unit's -c 65536; no apiKey because the server sets none.
       # opencode compacts once a message's tokens reach context - output, and
       # its own system prompt is ~11.6k tokens: at 16k context every message
       # overflowed, so the compaction -> continue cycle never terminated.
       "llama-desktop" = {
         npm = "@ai-sdk/openai-compatible";
         name = "llama-server (desktop)";
-        options.baseURL = "http://100.70.43.27:8080/v1";
+        options.baseURL = "http://100.70.43.27:8081/v1";
         models."qwen3.6-35b-uncensored" = {
           name = "Qwen3.6-35B-A3B Uncensored (desktop)";
           limit = {
