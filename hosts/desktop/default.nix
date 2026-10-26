@@ -104,56 +104,24 @@ in
 
   # GPU overclock/undervolt: unlocks the full PowerPlay mask (was
   # amdgpu.ppfeaturemask=0xffffffff on CachyOS); LACT applies the profile.
-  # disabled while the first-boot GPU init failure is bisected: PSP failed to
-  # load the SMU firmware ("failed to load ucode SMC(0x34)" + AMD-Vi
-  # IO_PAGE_FAULT) and amdgpu aborted -> black screen — and it reproduced
-  # WITHOUT the mask (journals 2026-10-23 16:56 and 18:10), so overdrive is
-  # not the culprit. Re-enable once this host boots its own generation. LACT
-  # stays on; without overdrive it just can't apply the OC/UV profile.
+  # Ruled out as the GPU-init culprit during the 2026-10 bisect (the failure
+  # reproduced WITHOUT the mask, journals 2026-10-23 16:56 and 18:10).
   hardware.amdgpu.overdrive = {
-    enable = false;
+    enable = true;
     ppfeaturemask = "0xffffffff";
   };
   services.lact.enable = true;
 
-  # Bisect kit for the GPU-init black screen. Ruled out so far: wrong root
-  # UUID (fixed in hardware-configuration.nix), overdrive (failed without it),
-  # firmware files (navy_flounder_* byte-identical to the installer generation
-  # that boots), early-KMS amdgpu (failed with it out of the initrd too).
-  # Evidence: on cachyos 7.3 the PSP fails loading the SMU fw ("failed to load
-  # ucode SMC(0x34)" + AMD-Vi IO_PAGE_FAULT); on stock 6.18 LTS the journal
-  # stops right before the SMU step. The installer generation works on stock
-  # 7.3.0, so the BASE runs linuxPackages_latest (7.3) to mirror it; the
-  # specialisations try the remaining suspects. consoleLogLevel 7 overrides
-  # systemd.nix's silent boot so failures stay visible. Fold the verdict in
-  # and delete this block once one sticks.
-  # NOTE: early amdgpu is removed by commenting it out in
-  # hardware-configuration.nix, NOT by forcing initrd.kernelModules to [] —
-  # that clobbered the `btrfs` module NixOS injects for the root fs and broke
-  # stage 1 on the stock kernel (btrfs is builtin only in the cachyos kernel).
+  # Bisect verdict (2026-10, GPU-init black screen): the kernel BUILD was the
+  # culprit. On chaotic's cachyos 7.3 (LLVM/LTO) the PSP fails loading the SMU
+  # fw ("failed to load ucode SMC(0x34)" + AMD-Vi IO_PAGE_FAULT); on stock
+  # 6.18 LTS the journal stops right before the SMU step. Stock 7.3
+  # (linuxPackages_latest) initializes the SMU and boots — so this host pins
+  # it over the shared chaotic linuxPackages_cachyos (default.nix). Also ruled
+  # out: wrong root UUID, overdrive, firmware files (byte-identical), early-KMS
+  # amdgpu. If a kernel bump regresses this, bisect generations from the
+  # systemd-boot menu before touching the config.
   boot.kernelPackages = lib.mkForce pkgs.linuxPackages_latest;
-  boot.consoleLogLevel = lib.mkForce 7;
-  # Keep every generation in the menu while bisecting: the shared limit of 5
-  # would soon prune generation 1, the only entry known to boot on this host.
-  boot.loader.systemd-boot.configurationLimit = lib.mkForce 20;
-  specialisation = {
-    # IOMMU passthrough — the IO_PAGE_FAULTs during the PSP's SMC DMA are the
-    # one lead never tested. Try this first if the base stays black.
-    iommu-pt.configuration = {
-      boot.kernelParams = [ "iommu=pt" ];
-    };
-    # Guaranteed desktop: no amdgpu at all, Plasma renders in software on the
-    # firmware framebuffer (simpledrm). Slow but always reaches SDDM, and a
-    # failed base boot can be inspected from a real session instead of SSH.
-    safe-graphics.configuration = {
-      boot.blacklistedKernelModules = [ "amdgpu" ];
-    };
-    # Chaotic's cachyos kernel, for the final verdict on whether its LLVM/LTO
-    # build is the (or a) culprit (mkOverride 40 outranks the mkForce above).
-    cachyos-kernel.configuration = {
-      boot.kernelPackages = lib.mkOverride 40 pkgs.linuxPackages_cachyos;
-    };
-  };
 
   # Process priorities from CachyOS's rule set (ananicy-cpp runs on the current
   # install). Off in modules/performance for the laptops, on here.

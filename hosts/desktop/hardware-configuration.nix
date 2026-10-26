@@ -29,11 +29,11 @@ in
 
   boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "uas" "sd_mod" ];
   # amdgpu in initrd: KMS (native-resolution console) from the first boot stage.
-  # disabled while the GPU-init black screen is bisected (hosts/desktop
-  # default.nix, "Bisect kit") — the early-amdgpu specialisation re-adds it.
-  # NEVER mkForce this list empty instead: NixOS injects `btrfs` here for the
-  # root filesystem, and force-emptying it left stage 1 unable to mount root.
-  # boot.initrd.kernelModules = [ "amdgpu" ];
+  # Ruled out as the GPU-init culprit in the 2026-10 bisect (hosts/desktop
+  # default.nix, "Bisect verdict"); the real fix was pinning stock 7.3.
+  # NEVER mkForce this list: NixOS injects `btrfs` here for the root
+  # filesystem, and force-emptying it left stage 1 unable to mount root.
+  boot.initrd.kernelModules = [ "amdgpu" ];
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
 
