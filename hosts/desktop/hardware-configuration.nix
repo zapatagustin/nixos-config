@@ -57,11 +57,12 @@ in
       options = [ "compress=zstd:1" "noatime" "nofail" "x-systemd.device-timeout=10s" ];
     };
 
-  # No disk swap: zram only (modules/hardware/hardware.nix zramSwap). The
-  # installer did create a swap partition (nvme0n1p3,
-  # 85e661c4-4fd5-49e4-83e1-3052549bb640, 8.8G); it is deliberately not declared
-  # here, so it stays unused under this config.
-  swapDevices = [ ];
+  # Disk swap behind zram (modules/hardware/hardware.nix zramSwap, priority 5):
+  # the installer's nvme0n1p3 keeps the default priority -1, so it only fills
+  # once zram is exhausted. systemd-gpt-auto was already activating it anyway;
+  # declaring it makes the config match the running system. No boot.resumeDevice:
+  # 8.8G cannot reliably hold a 16G hibernation image.
+  swapDevices = [{ device = "/dev/disk/by-uuid/85e661c4-4fd5-49e4-83e1-3052549bb640"; }];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
