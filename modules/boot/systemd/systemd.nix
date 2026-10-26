@@ -15,9 +15,9 @@ _: {
       };
     };
 
-    # Modern systemd-in-initrd
+    # systemd-in-initrd is mandatory since the scripted initrd was removed
+    # (nixos-unstable 26.11); boot.initrd.systemd.enable no longer exists.
     initrd = {
-      systemd.enable = true;
       compressor = "zstd";
       # -6 over -19: much faster initrd builds (every rebuild) for a marginally
       # larger image. zstd decompresses at ~the same speed regardless of level,
