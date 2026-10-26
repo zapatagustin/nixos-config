@@ -123,10 +123,10 @@
       IdentityFile ~/.ssh/id_ed25519_work
       IdentitiesOnly yes
 
-    # Desktop (CachyOS, not part of this flake) over Tailscale. Same personal
-    # key; its public half is in the desktop's authorized_keys.
+    # Desktop (hosts/desktop) over Tailscale. Same personal key; authorized
+    # like the laptops via configuration.nix.
     Host desktop
-      HostName desktop-1.taild4c79d.ts.net
+      HostName desktop.taild4c79d.ts.net
       User desktop
       IdentityFile ~/.ssh/id_ed25519_personal
       IdentitiesOnly yes

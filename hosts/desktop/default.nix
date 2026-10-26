@@ -1,4 +1,4 @@
-{ lib, pkgs, username, ... }:
+{ config, lib, pkgs, username, ... }:
 let
   # This node's tailnet address. Container ports are published on it explicitly
   # (see myContainers.publishAddresses). /var/lib/tailscale was NOT carried over
@@ -221,17 +221,18 @@ in
   # The laptops' nix-daemon connects as the dedicated nix-ssh user (forced command
   # `nix-store --serve --write`, no shell/forwarding) instead of ${username}, so the
   # main user is not root-equivalent via trusted-users. `trusted` adds nix-ssh to
-  # trusted-users, which --write needs to accept unsigned paths. The key is the
-  # personal identity that buildMachines' sshKey points at.
+  # trusted-users, which --write needs to accept unsigned paths. Each laptop's
+  # buildMachines.sshKey is its own ~/.ssh/id_ed25519_personal, and those are
+  # exactly the keys configuration.nix already authorizes for ${username}, so
+  # reuse that list instead of pinning one of them here (a single pinned key
+  # locked out surface, whose personal key is the atlas.red one).
   # riscv64 runs via boot.binfmt.emulatedSystems, already set in host.nix.
   nix.sshServe = {
     enable = true;
     write = true;
     trusted = true;
     protocol = "ssh";
-    keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKmL82v4Az5e/hFecVw5+hUp5rWeCMeb18KUqrVKsqGq zapatagustin4@gmail.com"
-    ];
+    keys = config.users.users.${username}.openssh.authorizedKeys.keys;
   };
   nix = {
     distributedBuilds = lib.mkForce false;
