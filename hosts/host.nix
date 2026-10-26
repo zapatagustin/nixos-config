@@ -13,8 +13,10 @@
       askPassword = "";
       # Pinned so root, which runs the remote builds in nix.buildMachines, never
       # hits a trust-on-first-use prompt. Same key the user's known_hosts holds.
-      knownHosts."desktop.taild4c79d.ts.net".publicKey =
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP+ny2CT7fpgioIxZzoSt/+yxAFiTTvJ2yhafcAcVliy";
+      # Host key of the 2026-10 NixOS install (the CachyOS-era key died with the
+      # reformat); machine renamed desktop-01 (the old node held "desktop").
+      knownHosts."desktop-01.taild4c79d.ts.net".publicKey =
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKZZBfnkU62I56ql3DOwI7DKrBynocLaErbgiiZTV9MA";
     };
     command-not-found.enable = false; # use nix-index instead
     appimage = {
@@ -61,15 +63,13 @@
 
   # Emulating on the laptop is the fallback: the desktop (Ryzen 5 5600G, far
   # more free RAM) takes riscv64 derivations over the tailnet. x86_64 builds
-  # never leave the laptop. The desktop side (CachyOS, nix from pacman) needs
-  # nix-daemon running, qemu-user-static-binfmt, and in /etc/nix/nix.conf
-  # `trusted-users = root desktop` plus `extra-platforms = riscv64-linux`.
-  # Once the desktop runs NixOS (hosts/desktop, nix.sshServe) it serves the
-  # dedicated nix-ssh user instead; flip sshUser then.
+  # never leave the laptop. The desktop runs NixOS and serves builds through
+  # nix.sshServe (hosts/desktop/default.nix) as the dedicated nix-ssh user
+  # (forced command `nix-store --serve --write`, no shell).
   nix.distributedBuilds = true;
   nix.buildMachines = [{
-    hostName = "desktop.taild4c79d.ts.net";
-    sshUser = "desktop"; # disabled until the desktop runs NixOS: "nix-ssh"
+    hostName = "desktop-01.taild4c79d.ts.net";
+    sshUser = "nix-ssh";
     # nix-daemon opens the connection as root; the user's key is readable by it.
     sshKey = "/home/${username}/.ssh/id_ed25519_personal";
     systems = [ "riscv64-linux" ];

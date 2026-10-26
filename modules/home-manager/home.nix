@@ -121,10 +121,10 @@
         engines.searxng = {
           name = "SearXNG";
           urls = [{
-            template = "http://desktop.taild4c79d.ts.net:8888/search";
+            template = "http://desktop-01.taild4c79d.ts.net:8888/search";
             params = [{ name = "q"; value = "{searchTerms}"; }];
           }];
-          iconMapObj."16" = "http://desktop.taild4c79d.ts.net:8888/favicon.ico";
+          iconMapObj."16" = "http://desktop-01.taild4c79d.ts.net:8888/favicon.ico";
           definedAliases = [ "@sx" ];
         };
       };
