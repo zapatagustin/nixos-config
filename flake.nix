@@ -68,6 +68,11 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Declarative Flatpak: services.flatpak.{remotes,packages}, installed by a
+    # systemd unit on activation. Apps come from Flathub at install time, so their
+    # versions are NOT pinned by flake.lock. Used for apps nixpkgs can't serve
+    # prebuilt (e.g. stremio-linux-shell is unfree, so off cache.nixos.org).
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
   outputs = { nixpkgs, home-manager, chaotic, ... }@inputs:
@@ -92,6 +97,7 @@
             chaotic.nixosModules.default
             inputs.stylix.nixosModules.stylix
             inputs.sops-nix.nixosModules.sops
+            inputs.nix-flatpak.nixosModules.nix-flatpak
             home-manager.nixosModules.home-manager
             {
               home-manager.useUserPackages = true;

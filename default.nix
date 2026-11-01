@@ -26,9 +26,9 @@ in
   # remote would need the nix-flatpak input -- a whole flake input to declare a
   # repository nothing is installed from. Unlike gaming/pihole, which are modules
   # left switched OFF and cost nothing, this one was RUNNING: a service plus the
-  # portal closure, for nothing. Re-enable here and add the remote when an app
-  # actually needs it:
-  #   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  # portal closure, for nothing. nix-flatpak is now an input anyway (thinkpad and
+  # desktop enable it per host, with Flathub as its default remote), so a host that
+  # needs an app sets services.flatpak.{enable,packages} in its own default.nix.
   # services.flatpak.enable = true;
 
   boot.kernelPackages = pkgs.linuxPackages_cachyos;

@@ -147,8 +147,8 @@ in
 
   services.gaming.enable = true;
   # Mod managers and some launchers only ship as Flatpak (see default.nix for why
-  # it is off elsewhere). Add the remote once:
-  #   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+  # it is off elsewhere). nix-flatpak (flake.nix) declares Flathub as its default
+  # remote; apps installed by hand stay, since uninstallUnmanaged defaults to false.
   services.flatpak.enable = true;
 
   # Game streaming host for the laptops' moonlight-qt, reached over the tailnet
