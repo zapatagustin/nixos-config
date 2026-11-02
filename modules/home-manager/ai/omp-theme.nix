@@ -133,7 +133,14 @@ in
   #     are glyphs the VGA8 font lacks. Array values are JSON for `config set`;
   #     omp refuses an unknown segment id, so a typo fails the switch's log
   #     line, never the file.
-  #   startup.quiet: no welcome banner, the transcript starts at the top.
+  #   statusLine.showHookStatus false: omp's legacy status renderer repeats
+  #     every hook status as a line under the bar even when the `status`
+  #     segment already shows it inline (tui/src/status-line/component.ts
+  #     render); this keeps the inline copy only.
+  #   startup.quiet: omp's own welcome (pi logo, wordmark, tip) is off; the
+  #     ecomono extension draws its own banner, the wallpaper's engraving
+  #     (an inline image when the terminal draws one: kitty, iTerm2, sixel; the PNG
+  #     nixos-config builds, handed over in ECOMONO_OMP_BANNER; else a block-glyph cut), as a widget above the editor, taken down at the first prompt.
   home.activation.ompSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     ompSet() {
       run ${pkgs.coreutils}/bin/timeout 10 ${inputs.oh-my-pi.packages.${pkgs.stdenv.hostPlatform.system}.omp}/bin/omp \
@@ -149,6 +156,7 @@ in
     ompSet statusLine.leftSegments '["vim","path","git"]'
     ompSet statusLine.rightSegments '["status","model","context_pct","cost","time"]'
     ompSet statusLine.separator block
+    ompSet statusLine.showHookStatus false
     ompSet startup.quiet true
   '';
 }

@@ -2,8 +2,25 @@
 # gentle-ai binary, and the activation script that registers Claude Code plugins
 # and user-scope MCP servers all come from the ecomono flake input, imported in
 # ../home.nix. This module is only the packages that are not part of that config.
-{ pkgs, osConfig, inputs, ... }:
-
+{ config, pkgs, osConfig, inputs, ... }:
+let
+  # The startup banner the ecomono extension draws in place of omp's welcome
+  # (theme/omp-banner.nix): the eDP wallpaper's engraving at terminal size.
+  # Handed over by path: the extension reads the PNG, omp places it inline.
+  bannerPng = pkgs.callPackage ../../theme/omp-banner.nix {
+    wallpaper = pkgs.callPackage ../../theme/dore-dither.nix { } {
+      name = "dore-wallpaper";
+      plate = pkgs.fetchurl {
+        name = "dore-paradise-lost-6-406.jpg";
+        url = "https://upload.wikimedia.org/wikipedia/commons/1/1e/6-406_Now_night_her_course_began.jpg";
+        hash = "sha256-Jlq3kWZWheMd94Qk1tFygA6ZFnQxtjnowegvYSSls/E=";
+      };
+      inherit (config.myDesktop.panelResolution) width height;
+      bg = "#${config.lib.stylix.colors.base00}";
+      fg = "#${config.lib.stylix.colors.base05}";
+    };
+  };
+in
 {
   home.packages = with pkgs; [
     opencode
@@ -22,7 +39,8 @@
       nativeBuildInputs = [ makeWrapper ];
       postBuild = ''
         wrapProgram $out/bin/omp \
-          --run 'export OPENCODE_API_KEY="$(cat ${osConfig.sops.secrets."opencode/opencode-api-key".path} 2>/dev/null)"'
+          --run 'export OPENCODE_API_KEY="$(cat ${osConfig.sops.secrets."opencode/opencode-api-key".path} 2>/dev/null)"' \
+          --set ECOMONO_OMP_BANNER ${bannerPng}
       '';
     })
   ];
