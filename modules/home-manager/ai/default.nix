@@ -63,6 +63,10 @@
       # OpenCode Go (built-in provider, no block upstream). The ecomono-compress
       # skill's --api pass reads the same secret file directly.
       "opencode-go" = fromSops "opencode/opencode-api-key";
+      # OpenCode Zen (provider "opencode", the -free models in the picker): same
+      # console key, so Zen stops depending on the credential opencode keeps in
+      # its own DB -- that one was the July key and expired.
+      opencode = fromSops "opencode/opencode-api-key";
       # Shared with the zed wrapper (../editors/zed), which reads the same file.
       anthropic = fromSops "zed/anthropic-api-key";
       # llama-server on the desktop (RX 6700, Vulkan): the systemd.services
