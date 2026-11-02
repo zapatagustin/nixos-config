@@ -11,6 +11,7 @@
     ./editors/zed
     ./wm/hyprland
     ./ai
+    ./ai/omp-theme.nix
     ./dev
     # Claude Code + opencode config, from the ecomono flake. Replaces the local
     # ./claude-code and ./opencode modules, which were a second copy of it.
