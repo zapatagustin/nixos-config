@@ -31,7 +31,6 @@ in
       qbittorrent
       transmission_4
       haruna
-      stremio-linux-shell # `stremio` was removed from nixpkgs (qt5 webengine)
       code-cursor
       vscode
       lazygit

@@ -18,12 +18,4 @@
   # firmware GOP one until ~18s in. Was in modules/boot/systemd/systemd.nix,
   # where it leaked the Intel driver into the all-AMD desktop's initrd.
   boot.initrd.kernelModules = [ "i915" ];
-
-  # Stremio: nixpkgs dropped `stremio` (qt5 webengine) and `stremio-linux-shell` is
-  # unfree, so not on cache.nixos.org -- it would compile locally. Flathub ships it
-  # prebuilt. Declared via nix-flatpak (flake.nix); Flathub is its default remote.
-  services.flatpak = {
-    enable = true;
-    packages = [ "com.stremio.Stremio" ];
-  };
 }

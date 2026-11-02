@@ -83,7 +83,7 @@
     # Declarative Flatpak: services.flatpak.{remotes,packages}, installed by a
     # systemd unit on activation. Apps come from Flathub at install time, so their
     # versions are NOT pinned by flake.lock. Used for apps nixpkgs can't serve
-    # prebuilt (e.g. stremio-linux-shell is unfree, so off cache.nixos.org).
+    # prebuilt (unfree, or dropped from nixpkgs).
     nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
 
