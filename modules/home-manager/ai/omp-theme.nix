@@ -124,6 +124,16 @@ in
   #   symbolPreset: the setting beats the theme's preset, and today's `nerd`
   #     draws glyphs PxPlus IBM VGA8 lacks; the theme's overrides still apply.
   #   tasks.todoClearDelay -1: the todo HUD never hides itself once all done.
+  #   tui.vimMode: the prompt gets vim's insert/normal/visual modes; the mode
+  #     shows as text in the status line's `vim` segment (starship colors it
+  #     the same way: insert green, normal amber, visual teal).
+  #   statusLine custom: vim mode, path and git counters on the left; the
+  #     ecomono extension's `todo N` (its `status` entry), model, context,
+  #     cost and time on the right. `block` separators: the powerline caps
+  #     are glyphs the VGA8 font lacks. Array values are JSON for `config set`;
+  #     omp refuses an unknown segment id, so a typo fails the switch's log
+  #     line, never the file.
+  #   startup.quiet: no welcome banner, the transcript starts at the top.
   home.activation.ompSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     ompSet() {
       run ${pkgs.coreutils}/bin/timeout 10 ${inputs.oh-my-pi.packages.${pkgs.stdenv.hostPlatform.system}.omp}/bin/omp \
@@ -133,5 +143,12 @@ in
     ompSet theme.dark dither
     ompSet symbolPreset unicode
     ompSet tasks.todoClearDelay -1
+    ompSet tui.vimMode true
+    ompSet tui.vimModeDisplay text
+    ompSet statusLine.preset custom
+    ompSet statusLine.leftSegments '["vim","path","git"]'
+    ompSet statusLine.rightSegments '["status","model","context_pct","cost","time"]'
+    ompSet statusLine.separator block
+    ompSet startup.quiet true
   '';
 }
