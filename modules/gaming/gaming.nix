@@ -32,7 +32,9 @@ in
     environment.systemPackages = with pkgs; [
       wineWow64Packages.waylandFull
       winetricks
-      lutris
+      # lutris: disabled, its FHS env links gtk2 (marked broken in nixpkgs,
+      # would compile from source). Re-enable once chaotic's nixpkgs pin
+      # carries "lutris: drop gtk2" (2026-10-25).
       heroic
       pcsx2
       mangohud
