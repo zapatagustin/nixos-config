@@ -12,6 +12,12 @@ let
   # from the NVMe the same config does 23 tok/s and loads in 25s instead of 5min.
   # /mnt/datos/models/ keeps the cold copy; this path is the one that runs.
   qwenModel = "/home/${username}/models/qwen3.6-35b-a3b-uncensored-iq4_xs.gguf";
+  # Vision projector from the same HauhauCS repo (the IQ4_XS above is byte-exact
+  # with that repo's file, so the projector matches). Without it llama-server
+  # rejects every image part with "image input is not supported", which opencode
+  # shows as an error on any message with an attachment. f16 is the only quant
+  # published; ~0.9G, loaded next to the LLM.
+  qwenMmproj = "/home/${username}/models/mmproj-qwen3.6-35b-a3b-uncensored-f16.gguf";
 in
 {
   imports = [ ../../configuration.nix ];
@@ -207,6 +213,11 @@ in
       # instead would fail at boot until tailscaled brings the address up.
       Address = "0.0.0.0";
       Port = 4533;
+      # The nixpkgs module defaults Plugins.Enabled to true with Folder at
+      # ${finalPackage}/share/plugins, a path withPlugins = [] never creates;
+      # navidrome >= 0.64 then tries to mkdir it inside /nix/store and dies
+      # (FATAL: creating directory ... read-only file system). No plugins here.
+      Plugins.Enabled = false;
     };
   };
   # The music lives on the nofail data disk: never index an empty mountpoint. Not
@@ -237,6 +248,16 @@ in
   # The mmap is deliberate: it is what lets an 18.7G model run here at all, and
   # it is why -t 6 (the 5600G's physical cores) matters, not 12.
   #
+  # Sampling is set HERE because opencode sends none (verified through a logging
+  # proxy: only model/stream/max_completion_tokens), so llama-server's defaults
+  # (temp 0.8, top-k 40, min-p 0.05) would apply. These are the Qwen3.6 model
+  # card's thinking-mode values for precise coding. --reasoning-budget is the
+  # hard stop: thinking that never closes was eating the whole 8192-token output
+  # limit opencode declares, which then compacted and retried forever. 4096 is
+  # half of that limit, so the answer always has room after the thinking.
+  # ecomono: if loops persist under the budget, next knob is --presence-penalty
+  # 1.5 (the card's anti-repetition value; costs some coding precision).
+  #
   # 0.0.0.0 is safe for a NATIVE service: nixos-fw filters INPUT and only
   # tailscale0 is trusted (same reasoning as navidrome above), so no port is
   # opened and the tailnet is the only way in. Binding ${tailnetAddress} directly
@@ -244,7 +265,7 @@ in
   systemd.services.llama-server = {
     description = "llama.cpp server - Qwen3.6-35B-A3B Uncensored (Vulkan)";
     wantedBy = [ "multi-user.target" ];
-    unitConfig.ConditionPathExists = qwenModel;
+    unitConfig.ConditionPathExists = [ qwenModel qwenMmproj ];
 
     serviceConfig = {
       User = username;
@@ -256,7 +277,10 @@ in
         + " --model ${qwenModel} --alias qwen3.6-35b-uncensored"
         + " --host 0.0.0.0 --port 8081"
         + " -c 65536 -np 1 --cache-ram 2048 --flash-attn on -t 6"
-        + " --fit on --jinja";
+        + " --fit on --jinja"
+        + " --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0"
+        + " --reasoning-budget 4096"
+        + " --mmproj ${qwenMmproj}";
       Restart = "on-failure";
       RestartSec = 10;
       # Loading 18.7G from disk before the first token is not a hang.
