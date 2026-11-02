@@ -38,4 +38,14 @@ map("n", "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", { desc = "Select Claude
 map("n", "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", { desc = "Add current buffer" })
 map("x", "<leader>as", "<cmd>ClaudeCodeSend<cr>", { desc = "Send to Claude" })
 map("n", "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", { desc = "Accept diff" })
+
+-- omp (oh-my-pi) has no claudecode.nvim pairing, so this only opens a pane:
+-- same placement as <leader>ac (no --direction, see default.nix), foot outside zellij.
+map("n", "<leader>ao", function()
+  local cwd = vim.fn.getcwd()
+  local argv = vim.env.ZELLIJ
+      and { "zellij", "run", "-n", "omp", "-c", "--cwd", cwd, "--", "omp" }
+      or { "foot", "--working-directory=" .. cwd, "omp" }
+  vim.fn.jobstart(argv, { detach = true })
+end, { desc = "New omp pane" })
 map("n", "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", { desc = "Deny diff" })

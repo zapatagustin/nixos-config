@@ -2,12 +2,29 @@
 # gentle-ai binary, and the activation script that registers Claude Code plugins
 # and user-scope MCP servers all come from the ecomono flake input, imported in
 # ../home.nix. This module is only the packages that are not part of that config.
-{ pkgs, osConfig, ... }:
+{ pkgs, osConfig, inputs, ... }:
 
 {
   home.packages = with pkgs; [
     opencode
     opencode-desktop
+    # Not via its programs.omp module: that one only adds a config.yml that is
+    # overwritten on every switch, and omp writes its own settings at runtime.
+    #
+    # Wrapped like zed (../editors/zed): the OpenCode console key below is read
+    # from sops-nix at launch, so it never lands in the nix store or a global
+    # session variable. omp reads OPENCODE_API_KEY for both OpenCode Zen and
+    # OpenCode Go models (`omp --help`). Same secret as the opencode providers.
+    # Ceiling: the exported variable is inherited by the commands omp runs.
+    (symlinkJoin {
+      name = "omp-sops";
+      paths = [ inputs.oh-my-pi.packages.${pkgs.stdenv.hostPlatform.system}.omp ];
+      nativeBuildInputs = [ makeWrapper ];
+      postBuild = ''
+        wrapProgram $out/bin/omp \
+          --run 'export OPENCODE_API_KEY="$(cat ${osConfig.sops.secrets."opencode/opencode-api-key".path} 2>/dev/null)"'
+      '';
+    })
   ];
 
   # Provider credentials, which the ecomono flake deliberately does NOT ship.
