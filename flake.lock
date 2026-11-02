@@ -186,11 +186,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793623718,
-        "narHash": "sha256-ZF141sg9qWm7pGtkH/LEDuKIKVNoZ8+2b05vdHUesyU=",
+        "lastModified": 1793625726,
+        "narHash": "sha256-XO+zlhpPnW7fxWEDMckDhKJRdh5ssbkQIXibzpPwAqw=",
         "owner": "zapatagustin",
         "repo": "ecomono",
-        "rev": "bcd80a92ab2338c62156a1b90f85b2787576cbcc",
+        "rev": "ce71803dc451f1aaf9d72897e7a70c57d0c09d1b",
         "type": "github"
       },
       "original": {
