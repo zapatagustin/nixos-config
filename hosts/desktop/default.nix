@@ -17,7 +17,8 @@ let
   # rejects every image part with "image input is not supported", which opencode
   # shows as an error on any message with an attachment. f16 is the only quant
   # published; ~0.9G, loaded next to the LLM.
-  qwenMmproj = "/home/${username}/models/mmproj-qwen3.6-35b-a3b-uncensored-f16.gguf";
+  # disabled until image input is needed (see --mmproj in llama-server below):
+  # qwenMmproj = "/home/${username}/models/mmproj-qwen3.6-35b-a3b-uncensored-f16.gguf";
 in
 {
   imports = [ ../../configuration.nix ];
@@ -244,6 +245,10 @@ in
   # --cache-ram 2048 keeps the host-side KV cache bounded on a 16G machine.
   # The mmap is deliberate: it is what lets an 18.7G model run here at all, and
   # it is why -t 6 (the 5600G's physical cores) matters, not 12.
+  # -b/-ub 2048 (default 512): with experts on the CPU, prompt processing is
+  # bound by how many tokens each pass over the weights covers, so a bigger
+  # ubatch cuts the ~80s an agent's 12k-token system prompt cost at 512. It
+  # costs VRAM for compute buffers, which --fit takes back from offloaded layers.
   #
   # Sampling is set HERE because opencode sends none (verified through a logging
   # proxy: only model/stream/max_completion_tokens), so llama-server's defaults
@@ -262,7 +267,7 @@ in
   systemd.services.llama-server = {
     description = "llama.cpp server - Qwen3.6-35B-A3B Uncensored (Vulkan)";
     wantedBy = [ "multi-user.target" ];
-    unitConfig.ConditionPathExists = [ qwenModel qwenMmproj ];
+    unitConfig.ConditionPathExists = [ qwenModel ];
 
     serviceConfig = {
       User = username;
@@ -274,10 +279,12 @@ in
         + " --model ${qwenModel} --alias qwen3.6-35b-uncensored"
         + " --host 0.0.0.0 --port 8081"
         + " -c 65536 -np 1 --cache-ram 2048 --flash-attn on -t 6"
-        + " --fit on --jinja"
+        + " --fit on --jinja -b 2048 -ub 2048"
         + " --temp 0.6 --top-p 0.95 --top-k 20 --min-p 0"
-        + " --reasoning-budget 4096"
-        + " --mmproj ${qwenMmproj}";
+        + " --reasoning-budget 4096";
+      # --mmproj disabled until image input is needed: its 0.9G of VRAM goes
+      # to offloaded experts instead. Re-add + " --mmproj ${qwenMmproj}" above,
+      # restore qwenMmproj in let and in ConditionPathExists.
       Restart = "on-failure";
       RestartSec = 10;
       # Loading 18.7G from disk before the first token is not a hang.
