@@ -21,15 +21,16 @@ in
     # browsed picked the default queue. Add printers explicitly when one is needed.
     browsed.enable = false;
   };
-  # disabled: enabled for a year with no Flathub remote and zero apps installed
-  # (`flatpak remotes` and `flatpak list --app` both came back empty). Declaring the
-  # remote would need the nix-flatpak input -- a whole flake input to declare a
-  # repository nothing is installed from. Unlike gaming/pihole, which are modules
-  # left switched OFF and cost nothing, this one was RUNNING: a service plus the
-  # portal closure, for nothing. nix-flatpak is now an input anyway (thinkpad and
-  # desktop enable it per host, with Flathub as its default remote), so a host that
-  # needs an app sets services.flatpak.{enable,packages} in its own default.nix.
-  # services.flatpak.enable = true;
+  # Declarative Flatpak via nix-flatpak (flake.nix): flatpak-managed-install.service
+  # installs `packages` from Flathub, its default remote, on every activation. It
+  # drives the `flatpak` binary, so services.flatpak.enable is required, not optional.
+  # Stremio: nixpkgs dropped `stremio` (qt5 webengine) and `stremio-linux-shell` is
+  # unfree, so not on cache.nixos.org -- it would compile locally. Flathub ships it
+  # prebuilt. Apps installed by hand stay, since uninstallUnmanaged defaults to false.
+  services.flatpak = {
+    enable = true;
+    packages = [ "com.stremio.Stremio" ];
+  };
 
   boot.kernelPackages = pkgs.linuxPackages_cachyos;
 

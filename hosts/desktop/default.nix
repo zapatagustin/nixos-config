@@ -151,10 +151,8 @@ in
   };
 
   services.gaming.enable = true;
-  # Mod managers and some launchers only ship as Flatpak (see default.nix for why
-  # it is off elsewhere). nix-flatpak (flake.nix) declares Flathub as its default
-  # remote; apps installed by hand stay, since uninstallUnmanaged defaults to false.
-  services.flatpak.enable = true;
+  # Mod managers and some launchers only ship as Flatpak; flatpak itself is enabled
+  # for every host in default.nix.
 
   # Game streaming host for the laptops' moonlight-qt, reached over the tailnet
   # (tailscale0 is trusted, network.nix); no LAN ports are opened.
