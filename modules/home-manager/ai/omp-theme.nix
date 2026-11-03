@@ -115,6 +115,28 @@ in
 {
   home.file.".omp/agent/themes/dither.json".text = builtins.toJSON theme;
 
+  # Custom provider for the local llama-server (hosts/desktop/default.nix,
+  # :8081 because Pi-hole holds :8080, which is the only port omp's llama.cpp
+  # auto-discovery probes). JSON is valid YAML, so toJSON fills models.yml.
+  # auth "none": the server sets no key, and omp otherwise demands an apiKey
+  # for custom models. contextWindow mirrors the unit's -c 65536.
+  # Ceiling: a read-only store link, so omp cannot add models to it at runtime.
+  home.file.".omp/agent/models.yml".text = builtins.toJSON {
+    providers.llama-local = {
+      baseUrl = "http://127.0.0.1:8081/v1";
+      api = "openai-completions";
+      auth = "none";
+      models = [
+        {
+          id = "qwen3.6-35b-uncensored";
+          name = "Qwen3.6-35B-A3B Uncensored (local)";
+          reasoning = true;
+          contextWindow = 65536;
+        }
+      ];
+    };
+  };
+
   # omp owns ~/.omp/agent/config.yml and rewrites it at runtime, so the
   # settings cannot be a home.file link (ai/default.nix skips programs.omp for
   # the same reason). omp's own `config set` puts them in at activation: it
