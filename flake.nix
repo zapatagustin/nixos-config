@@ -45,13 +45,21 @@
     # oh-my-pi (omp), the pi coding-agent fork. A flake input rather than a
     # package because nixpkgs has none, and it needs bun >= 1.4.4 while nixpkgs
     # ships 1.4.2: its flake pins its own bun (nix-bun) and builds the Rust
-    # natives from source, so only nixpkgs is shared. Its *-darwin-x64 inputs only
-    # serve Intel macOS; pointing them at the Linux ones keeps a second nixpkgs
-    # (and a second bun2nix tree) out of the lockfile.
+    # natives from source. Its *-darwin-x64 inputs only serve Intel macOS;
+    # pointing them at its Linux ones keeps a third nixpkgs (and a second
+    # bun2nix tree) out of the lockfile.
+    #
+    # Pinned to a release tag, and deliberately NOT following the root nixpkgs:
+    # nothing caches omp, so every input change recompiles it (Rust + bun)
+    # locally. Tracking main pulled in-between commits whose nix/bun.nix lagged
+    # bun.lock (sandbox fetch -> DNSResolveFailed), and following nixpkgs rebuilt
+    # it on every chaotic bump. Now its drv changes only when this tag does.
+    # ecomono: the cost is the one exception to "exactly one nixpkgs" — a
+    # second, omp-only nixpkgs in the lockfile and closure. Bump by editing the
+    # tag (git ls-remote --tags https://github.com/can1357/oh-my-pi).
     oh-my-pi = {
-      url = "github:can1357/oh-my-pi";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nixpkgs-darwin-x64.follows = "nixpkgs";
+      url = "github:can1357/oh-my-pi/v18.16.0";
+      inputs.nixpkgs-darwin-x64.follows = "oh-my-pi/nixpkgs";
       inputs.bun2nix-darwin-x64.follows = "oh-my-pi/bun2nix";
     };
     # Doom Emacs built by nix (see modules/home-manager/editors/emacs). Replaces

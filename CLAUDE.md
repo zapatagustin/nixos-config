@@ -63,7 +63,7 @@ flake.nix                      # mkHost builds nixosConfigurations.{surface,thin
 - **emacs** (`modules/home-manager/editors/emacs`) is Doom Emacs built by the `nix-doom-emacs-unstraightened` home-manager module: `programs.doom-emacs` with `doomDir = ./doom`. Nix resolves doom's whole package set, so there is no straight.el, no `~/.config/emacs/.local`, and **no `doom sync`** — editing `doom/*.el` needs a rebuild. Do not also enable `programs.emacs`; double-wrapping the already-wrapped doom emacs breaks `load-path` non-interactively.
 - **neovim** (`modules/home-manager/editors/neovim`) is Nix-managed: `programs.neovim` with nixpkgs plugins and LSP servers on PATH (no Mason). The per-plugin lua lives inline plus `lua/*.lua` files loaded via `initLua`/`fileContents`.
 - **Hyprland HM module** (`modules/home-manager/wm/hyprland`) deploys the `quickshell/` bar config (only `bar/` is actually run, via the `quickshell.service` user unit) and `scripts/`. The monitor-watcher unit + per-monitor/group scripts are gated behind `myDesktop.multiMonitor.enable` (surface only).
-- **AI agent stack**: sourced from the external `ecomono` flake input (`github:zapatagustin/ecomono`), imported as `inputs.ecomono.homeModules.default` in `home.nix`. It owns the Claude Code + opencode declarative config (CLAUDE.md, hooks, agents, commands, skills). The `gentle-ai` binary was retired (see ecomono's NOTICE.md); its skill-registry job moved to `claude/hooks/ecomono-skill-registry.js`. `modules/home-manager/ai/` is now only `home.packages = [ opencode opencode-desktop ]`. The local `claude-code/` and `opencode/` module trees were a second, silently-drifting copy of that flake and were deleted in `eacf9e6` — do not recreate them; edit the `ecomono` repo instead.
+- **AI agent stack**: sourced from the external `ecomono` flake input (`github:zapatagustin/ecomono`), imported as `inputs.ecomono.homeModules.default` in `home.nix`. It owns the Claude Code + opencode declarative config (CLAUDE.md, hooks, agents, commands, skills). The `gentle-ai` binary was retired (see ecomono's NOTICE.md); its skill-registry job moved to `claude/hooks/ecomono-skill-registry.js`. `modules/home-manager/ai/` is now only `home.packages` (the sops-wrapped `omp`) and the omp/Claude Code theming; opencode is not installed (`programs.opencode.enable = lib.mkForce false` overrides ecomono). The local `claude-code/` and `opencode/` module trees were a second, silently-drifting copy of that flake and were deleted in `eacf9e6` — do not recreate them; edit the `ecomono` repo instead.
 
 `hardware-configuration.nix` is copied into the repo (git-tracked) and imported via a relative path, so rebuilds work without `--impure`. If hardware changes, regenerate it (`nixos-generate-config --show-hardware-config`) and overwrite the repo copy.
 
@@ -82,8 +82,11 @@ now follows both `nixpkgs` and `home-manager`. The one deliberate exception is
 `nix-doom-emacs-unstraightened`, which sets `inputs.nixpkgs.follows = ""`: its
 home-manager module builds against the consuming config's `pkgs`, so its own
 nixpkgs would only ever feed its checks and devShell. Dropping the input entirely
-beats deduplicating it. The lockfile therefore holds exactly
-one nixpkgs. Before that, chaotic tracked nixos-unstable independently and merely
+beats deduplicating it. The lockfile therefore holds one system nixpkgs, plus
+one omp-only nixpkgs: `oh-my-pi` is pinned to a release tag and deliberately
+does NOT follow root `nixpkgs`, because nothing caches omp and following made
+every nixpkgs bump recompile it (Rust + bun) locally. Bump it by editing the tag
+in `flake.nix`; `nix flake update` never moves it. Before that, chaotic tracked nixos-unstable independently and merely
 happened to match — a partial `nix flake update` would have pulled a second full
 nixpkgs into the closure.
 

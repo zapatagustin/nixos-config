@@ -2,7 +2,7 @@
 # gentle-ai binary, and the activation script that registers Claude Code plugins
 # and user-scope MCP servers all come from the ecomono flake input, imported in
 # ../home.nix. This module is only the packages that are not part of that config.
-{ config, pkgs, osConfig, inputs, ... }:
+{ config, lib, pkgs, osConfig, inputs, ... }:
 let
   # The startup banner the ecomono extension draws in place of omp's welcome
   # (theme/omp-banner.nix): the eDP wallpaper's engraving at terminal size.
@@ -23,8 +23,6 @@ let
 in
 {
   home.packages = with pkgs; [
-    opencode
-    opencode-desktop
     # Not via its programs.omp module: that one only adds a config.yml that is
     # overwritten on every switch, and omp writes its own settings at runtime.
     #
@@ -114,4 +112,9 @@ in
   # tool-output/JSON/dedup/char-cap layers cover the same token savings, and
   # ecomono-memory already owns persistent memory. No npm-global tools remain,
   # so the ~/.npm-global prefix + sessionPath were dropped too.
+
+  # opencode dropped: the ecomono module enables programs.opencode, which
+  # installs pkgs.opencode itself, so leaving it out of home.packages was not
+  # enough. Forcing the module off also skips its ~/.config/opencode files.
+  programs.opencode.enable = lib.mkForce false;
 }
