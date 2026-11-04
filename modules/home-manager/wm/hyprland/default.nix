@@ -177,6 +177,10 @@ in
       hl.env("WALLPAPER_DIR", "${walls}")
       hl.env("EDP_WALLPAPER", "${edpWall}")
       hl.env("EDP_SCALE", "${iscale}") -- setup-monitors.sh reuses the per-host eDP scale on dock
+      -- 0.57 puts the main thread on SCHED_RR via rtkit with a 200ms RLIMIT_RTTIME hard limit;
+      -- when the SIGXCPU demotion doesn't land in time the kernel SIGKILLs the compositor
+      -- (no core, no crash report). Read by startCompositor after the config loads.
+      hl.env("HYPRLAND_NO_RT", "1")
 
       -- scale per host (myDesktop.internalScale); externals via setup-monitors.sh
       hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = ${iscale} })
