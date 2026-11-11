@@ -174,14 +174,18 @@ in
   services.immich-podman.enable = true;
   services.jellyfin-podman.enable = true;
 
-  # Temporary: the tailnet's DNS (Tailscale global nameserver, tailnetAddress)
-  # until the nas host is deployed. Then disable here and repoint Tailscale DNS.
-  services.pihole.enable = true;
+  # Disabled until the nas host is deployed: this tower is not always-on, and as
+  # the tailnet's only global nameserver (Override on) every power-off took DNS
+  # down on all tailnet devices. Pi-hole comes back on the NAS; the tailnet runs
+  # without a sinkhole until then. The Tailscale admin console must NOT list
+  # tailnetAddress as a nameserver while this is off.
+  services.pihole.enable = false;
 
   # DoH/DNSCrypt upstream for Pi-hole, same split as the NAS host: Pi-hole on 53,
   # dnscrypt-proxy on localhost 5053. Settings from the old dnscrypt-proxy.toml.
+  # Follows services.pihole.enable: it has no other consumer.
   services.dnscrypt-proxy = {
-    enable = true;
+    inherit (config.services.pihole) enable;
     settings = {
       listen_addresses = [ "127.0.0.1:5053" ];
       server_names = [ "quad9-doh-ip4-port443-nofilter-pri" "quad9-dnscrypt-ip4-nofilter-pri" "cloudflare" ];
@@ -196,8 +200,11 @@ in
     };
   };
   # pihole runs with --network=host, so localhost is the host's dnscrypt-proxy.
-  virtualisation.oci-containers.containers.pihole.environment.FTLCONF_dns_upstreams =
-    lib.mkForce "127.0.0.1#5053";
+  # mkIf on the attrset, not the leaf: any definition under containers.pihole
+  # declares the container, which then has no image while the module is off.
+  virtualisation.oci-containers.containers = lib.mkIf config.services.pihole.enable {
+    pihole.environment.FTLCONF_dns_upstreams = lib.mkForce "127.0.0.1#5053";
+  };
 
   # Reached over `tailscale serve` (https://desktop.<tailnet>/ -> 127.0.0.1:4533).
   services.navidrome = {
