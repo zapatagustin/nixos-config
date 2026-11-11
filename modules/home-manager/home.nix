@@ -198,7 +198,6 @@
   nixpkgs.config.allowUnfree = true;
 
   home.packages = with pkgs; [
-    brave-origin # was a local pkgs/brave-origin.nix repack; nixpkgs carries it now
     # zen -> programs.zen-browser below, so stylix.targets.zen-browser can theme it.
     # Zed lives in ./editors/zed now (programs.zed-editor + stylix + sops wrapper).
     sone
