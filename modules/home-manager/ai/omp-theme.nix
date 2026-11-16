@@ -117,13 +117,15 @@ in
 
   # Custom provider for the local llama-server (hosts/desktop/default.nix,
   # :8081 because Pi-hole holds :8080, which is the only port omp's llama.cpp
-  # auto-discovery probes). JSON is valid YAML, so toJSON fills models.yml.
+  # auto-discovery probes). Tailnet IP, not loopback: this HM module runs on
+  # every host but the server only on desktop (same address as opencode's
+  # llama-desktop in ./default.nix). JSON is valid YAML, so toJSON fills models.yml.
   # auth "none": the server sets no key, and omp otherwise demands an apiKey
   # for custom models. contextWindow mirrors the unit's -c 65536.
   # Ceiling: a read-only store link, so omp cannot add models to it at runtime.
   home.file.".omp/agent/models.yml".text = builtins.toJSON {
     providers.llama-local = {
-      baseUrl = "http://127.0.0.1:8081/v1";
+      baseUrl = "http://100.70.43.27:8081/v1";
       api = "openai-completions";
       auth = "none";
       models = [
