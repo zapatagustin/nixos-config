@@ -20,6 +20,32 @@ let
       fg = "#${config.lib.stylix.colors.base05}";
     };
   };
+
+  # Desktop toast from Claude Code's Stop and Notification hooks, so a session
+  # says when it is done or needs input instead of being polled. Reads the hook's
+  # JSON on stdin. Stop fires at every turn end; `background_tasks` is non-empty
+  # when the turn only paused for background work. That case gets a low-urgency
+  # toast rather than silence, so nothing is lost if the field's meaning shifts.
+  # Malformed input sends nothing.
+  claudeNotify = pkgs.writeShellScript "claude-notify" ''
+    jq=${pkgs.jq}/bin/jq
+    send=${pkgs.libnotify}/bin/notify-send
+    input=$(${pkgs.coreutils}/bin/cat)
+    printf '%s' "$input" | $jq -e . >/dev/null 2>&1 || exit 0
+    project=$(printf '%s' "$input" | $jq -r '(.cwd // "") | split("/") | last // "session"')
+    case "$1" in
+      stop)
+        pending=$(printf '%s' "$input" | $jq -r '(.background_tasks // []) | length')
+        if [ "$pending" = 0 ]; then
+          $send -a "Claude Code" "Claude · $project" "Turn finished"
+        else
+          $send -a "Claude Code" -u low "Claude · $project" "Waiting on $pending background task(s)"
+        fi ;;
+      notification)
+        message=$(printf '%s' "$input" | $jq -r '.message // "Needs your input"')
+        $send -a "Claude Code" "Claude · $project" "$message" ;;
+    esac
+  '';
 in
 {
   home.packages = with pkgs; [
@@ -117,4 +143,31 @@ in
   # installs pkgs.opencode itself, so leaving it out of home.packages was not
   # enough. Forcing the module off also skips its ~/.config/opencode files.
   programs.opencode.enable = lib.mkForce false;
+
+  # ~/.claude/settings.json is a real file that Claude Code rewrites (the ecomono
+  # flake seeds it once and does not manage it), so the two hooks go in by jq at
+  # activation, the way ecomonoOmpMcp edits omp's mcp.json. Assigning both event
+  # keys keeps the edit idempotent. Ceiling: it replaces any other Stop or
+  # Notification hook; none exist today, so switch to an upsert by command name if
+  # ecomono ever ships one. A failure warns and never stops the switch.
+  #
+  # omp needs nothing here: completion.notify and ask.notify are on by default and
+  # call notify-send themselves when the terminal has no notification protocol.
+  home.activation.claudeNotifyHooks = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    claude_settings="$HOME/.claude/settings.json"
+    if [ -f "$claude_settings" ]; then
+      claude_tmp="$claude_settings.hm-tmp"
+      if ${pkgs.jq}/bin/jq --arg cmd ${claudeNotify} '
+           .hooks.Stop = [ { hooks: [ { type: "command", command: ($cmd + " stop"), async: true } ] } ]
+           | .hooks.Notification = [ { matcher: "permission_prompt|elicitation_dialog",
+               hooks: [ { type: "command", command: ($cmd + " notification"), async: true } ] } ]
+         ' "$claude_settings" > "$claude_tmp" \
+         && ${pkgs.coreutils}/bin/chmod --reference="$claude_settings" "$claude_tmp"; then
+        run mv "$claude_tmp" "$claude_settings"
+      else
+        rm -f "$claude_tmp"
+        echo "claude-notify: could not update $claude_settings; add the hooks by hand" >&2
+      fi
+    fi
+  '';
 }

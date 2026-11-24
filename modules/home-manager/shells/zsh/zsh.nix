@@ -87,14 +87,20 @@
       # shell has SHLVL<=1. Sub-shells, `nix develop`/`nix shell` shells and every
       # zellij pane (SHLVL>=2, plus ZELLIJ set) are skipped, as are non-interactive
       # shells and anything with stdout not on a tty.
-      if [[ -o interactive && -t 1 && -z "$ZELLIJ" && "''${SHLVL:-1}" -le 1 ]]; then
+      if [[ -o interactive && -t 1 && -z "$ZELLIJ" && -z "$HERDR_ENV" && "''${SHLVL:-1}" -le 1 ]]; then
         fastfetch
       fi
 
       # nvim + claude workspace (zellij layout `dev`, see shells/zellij/layouts):
       # run from a repo. Outside zellij it starts a session; inside, a new tab.
+      # Inside herdr it is `dev [vco] [-w branch]` instead: a tab with any mix of
+      # neovim (v), Claude Code (c) and omp (o), all three by default, optionally
+      # in a new sibling worktree (see shells/herdr). The zellij branches ignore
+      # the arguments.
       dev() {
-        if [[ -n "$ZELLIJ" ]]; then
+        if [[ -n "$HERDR_ENV" ]]; then
+          herdr-dev "$@"
+        elif [[ -n "$ZELLIJ" ]]; then
           zellij action new-tab --layout dev --cwd "$PWD"
         else
           zellij --layout dev

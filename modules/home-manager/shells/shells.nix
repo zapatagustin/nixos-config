@@ -1,8 +1,9 @@
-{ inputs, ... }: {
+{ inputs, pkgs, ... }: {
   imports = [
     ./zsh/zsh.nix
     ./starship/starship.nix
     ./zellij/zellij.nix
+    ./herdr/herdr.nix
     # Ships the prebuilt database programs.nix-index below needs: it points
     # programs.nix-index at the with-db package and symlinks the database into
     # $XDG_CACHE_HOME/nix-index/files, which is what was missing. Also provides the
@@ -21,7 +22,32 @@
   # bat theme (base16-stylix) comes from stylix.targets.bat
   # (modules/home-manager/stylix.nix). Trade-off: adds a ~2s batCache rebuild on
   # activation, accepted for a palette that matches the rest of the system.
-  programs.gh.enable = true;
+  # gh follows the same directory routing as git below: anything under ~/work/
+  # uses the work account, everything else the personal one, whichever account
+  # is "active" in gh. The wrapper exports that account's token for the one
+  # call. `gh auth ...` passes through untouched (login and switch refuse to run
+  # with GH_TOKEN set), and so does a call that already carries GH_TOKEN. An
+  # account that is not logged in leaves gh on its active account.
+  programs.gh = {
+    enable = true;
+    package = pkgs.symlinkJoin {
+      name = "gh-by-directory";
+      paths = [ pkgs.gh ];
+      meta.mainProgram = "gh";
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        wrapProgram $out/bin/gh --run '
+          if [ -z "''${GH_TOKEN:-}" ] && [ "''${1:-}" != auth ]; then
+            case "$PWD/" in
+              "$HOME"/work/*) gh_account=zapataagustin ;;
+              *) gh_account=zapatagustin ;;
+            esac
+            gh_token=$(${pkgs.gh}/bin/gh auth token --user "$gh_account" 2>/dev/null) && export GH_TOKEN="$gh_token"
+          fi
+        '
+      '';
+    };
+  };
   programs.nix-index.enable = true;
   programs.nix-index-database.comma.enable = true; # `,` / `comma`, wrapped with the db above
 

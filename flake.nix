@@ -58,7 +58,7 @@
     # second, omp-only nixpkgs in the lockfile and closure. Bump by editing the
     # tag (git ls-remote --tags https://github.com/can1357/oh-my-pi).
     oh-my-pi = {
-      url = "github:can1357/oh-my-pi/v18.16.0";
+      url = "github:can1357/oh-my-pi/v18.22.0";
       inputs.nixpkgs-darwin-x64.follows = "oh-my-pi/nixpkgs";
       inputs.bun2nix-darwin-x64.follows = "oh-my-pi/bun2nix";
     };

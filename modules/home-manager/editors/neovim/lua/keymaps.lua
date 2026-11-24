@@ -18,20 +18,36 @@ map("n", "-", "<cmd>Oil<cr>", { desc = "Oil: parent dir" })
 -- combo in normal and terminal mode (verified in a pty: the keys labelled
 -- H J K L type dvorak d h t n and fire <M-h/j/k/l>), so these are physical
 -- positions. Never map <M-d>/<M-t>/<M-n>: langmap rewrites them before lookup.
-map("n", "<M-h>", "<Cmd>wincmd h<CR>", { desc = "Window left" })
-map("n", "<M-j>", "<Cmd>wincmd j<CR>", { desc = "Window down" })
-map("n", "<M-k>", "<Cmd>wincmd k<CR>", { desc = "Window up" })
-map("n", "<M-l>", "<Cmd>wincmd l<CR>", { desc = "Window right" })
-map("t", "<M-h>", "<C-\\><C-n><Cmd>wincmd h<CR>", { desc = "Window left (term)" })
-map("t", "<M-j>", "<C-\\><C-n><Cmd>wincmd j<CR>", { desc = "Window down (term)" })
-map("t", "<M-k>", "<C-\\><C-n><Cmd>wincmd k<CR>", { desc = "Window up (term)" })
-map("t", "<M-l>", "<C-\\><C-n><Cmd>wincmd l<CR>", { desc = "Window right (term)" })
+-- At the edge of nvim's windows, hand the move to herdr so Alt+hjkl also
+-- crosses into the neighbouring herdr pane. Async job: nvim must not block on herdr.
+local herdr_dirs = { h = "left", j = "down", k = "up", l = "right" }
+vim.api.nvim_create_user_command("WinNav", function(o)
+  local before = vim.fn.winnr()
+  vim.cmd("wincmd " .. o.fargs[1])
+  if vim.fn.winnr() == before and vim.env.HERDR_ENV then
+    -- The terminal-mode mappings left terminal mode before this ran; the window
+    -- did not change, so go back, or herdr taking the focus would leave the
+    -- buffer in normal mode.
+    if o.fargs[2] == "t" then vim.cmd("startinsert") end
+    vim.fn.jobstart({ vim.env.HERDR_BIN_PATH or "herdr", "pane", "focus",
+      "--direction", herdr_dirs[o.fargs[1]], "--current" }, { detach = true })
+  end
+end, { nargs = "+" })
+map("n", "<M-h>", "<Cmd>WinNav h<CR>", { desc = "Window left" })
+map("n", "<M-j>", "<Cmd>WinNav j<CR>", { desc = "Window down" })
+map("n", "<M-k>", "<Cmd>WinNav k<CR>", { desc = "Window up" })
+map("n", "<M-l>", "<Cmd>WinNav l<CR>", { desc = "Window right" })
+map("t", "<M-h>", "<C-\\><C-n><Cmd>WinNav h t<CR>", { desc = "Window left (term)" })
+map("t", "<M-j>", "<C-\\><C-n><Cmd>WinNav j t<CR>", { desc = "Window down (term)" })
+map("t", "<M-k>", "<C-\\><C-n><Cmd>WinNav k t<CR>", { desc = "Window up (term)" })
+map("t", "<M-l>", "<C-\\><C-n><Cmd>WinNav l t<CR>", { desc = "Window right (term)" })
 
 -- Terminal: EscEsc rápido sale a normal mode (single Esc pasa al programa)
 map("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
--- claudecode.nvim: claude runs in a zellij pane beside nvim (see default.nix),
--- so there is no focus/swap keymap; Alt+arrows move between zellij panes.
+-- claudecode.nvim: claude runs in a zellij/herdr pane beside nvim (see default.nix),
+-- so there is no focus/swap keymap; Alt+hjkl moves between nvim windows and, at
+-- the edge inside herdr, between herdr panes (WinNav above).
 map("n", "<leader>ac", "<cmd>ClaudeCode<cr>", { desc = "New Claude pane" })
 map("n", "<leader>ar", "<cmd>ClaudeCode --resume<cr>", { desc = "Resume Claude" })
 map("n", "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", { desc = "Select Claude model" })
@@ -40,12 +56,18 @@ map("x", "<leader>as", "<cmd>ClaudeCodeSend<cr>", { desc = "Send to Claude" })
 map("n", "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", { desc = "Accept diff" })
 
 -- omp (oh-my-pi) has no claudecode.nvim pairing, so this only opens a pane:
--- same placement as <leader>ac (no --direction, see default.nix), foot outside zellij.
-map("n", "<leader>ao", function()
+-- same placement as <leader>ac (no --direction, see default.nix); herdr-pane
+-- inside herdr, foot outside zellij. A command so herdr-dev can run `nvim -c OmpPane`.
+vim.api.nvim_create_user_command("OmpPane", function()
   local cwd = vim.fn.getcwd()
-  local argv = vim.env.ZELLIJ
-      and { "zellij", "run", "-n", "omp", "-c", "--cwd", cwd, "--", "omp" }
-      or { "foot", "--working-directory=" .. cwd, "omp" }
+  local argv
+  if vim.env.HERDR_ENV then
+    argv = { "herdr-pane", "--cwd", cwd, "--", "omp" }
+  elseif vim.env.ZELLIJ then
+    argv = { "zellij", "run", "-n", "omp", "-c", "--cwd", cwd, "--", "omp" }
+  else
+    argv = { "foot", "--working-directory=" .. cwd, "omp" }
+  end
   vim.fn.jobstart(argv, { detach = true })
-end, { desc = "New omp pane" })
-map("n", "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", { desc = "Deny diff" })
+end, {})
+map("n", "<leader>ao", "<cmd>OmpPane<cr>", { desc = "New omp pane" })

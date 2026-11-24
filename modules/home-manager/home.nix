@@ -198,10 +198,15 @@
   nixpkgs.config.allowUnfree = true;
 
   home.packages = with pkgs; [
+    ladybird
+    brave-origin # was a local pkgs/brave-origin.nix repack; nixpkgs carries it now
     # zen -> programs.zen-browser below, so stylix.targets.zen-browser can theme it.
     # Zed lives in ./editors/zed now (programs.zed-editor + stylix + sops wrapper).
     sone
     claude-code
+    # Claude Code's typescript-lsp plugin looks it up on the user PATH; the copy in
+    # programs.neovim.extraPackages only reaches nvim's wrapper.
+    typescript-language-server
     zapzap
     slack
     teams-for-linux

@@ -24,12 +24,27 @@ in
   # Declarative Flatpak via nix-flatpak (flake.nix): flatpak-managed-install.service
   # installs `packages` from Flathub, its default remote, on every activation. It
   # drives the `flatpak` binary, so services.flatpak.enable is required, not optional.
-  # Stremio: nixpkgs dropped `stremio` (qt5 webengine) and `stremio-linux-shell` is
-  # unfree, so not on cache.nixos.org -- it would compile locally. Flathub ships it
-  # prebuilt. Apps installed by hand stay, since uninstallUnmanaged defaults to false.
+  # Nuvio (replaced Stremio): in neither nixpkgs nor Flathub, so the upstream release
+  # bundle is fetched into the store and installed with `flatpak install --bundle`.
+  # The bundle carries no runtime-repo; org.gnome.Platform//50 resolves from Flathub.
+  # nix-flatpak only reads `sha256` to detect a changed bundle, hence one hash for
+  # both. Bump: change `version` and the hash (SHA256SUMS.txt in the release). An
+  # entry dropped from `packages` is uninstalled on the next activation. Apps
+  # installed by hand stay, since uninstallUnmanaged defaults to false.
   services.flatpak = {
     enable = true;
-    packages = [ "com.stremio.Stremio" ];
+    packages = [
+      (
+        let version = "0.1.35-alpha"; in rec {
+          appId = "com.nuvio.media.desktop";
+          sha256 = "5d233f20f6dd270a2fd58178b68f7ebe148e38951ab63a85a2a5eb3da0028f11";
+          bundle = "${pkgs.fetchurl {
+            url = "https://github.com/NuvioMedia/NuvioDesktop/releases/download/${version}/Nuvio-Linux-x86_64-${version}.flatpak";
+            inherit sha256;
+          }}";
+        }
+      )
+    ];
   };
 
   boot.kernelPackages = pkgs.linuxPackages_cachyos;

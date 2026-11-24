@@ -225,7 +225,7 @@ in
         config = ''require("headlines").setup()'';
       }
       # Claude Code Neovim IDE integration. nvim only runs the websocket server;
-      # claude itself lives in a zellij pane beside nvim (not in :terminal), so Esc,
+      # claude itself lives in a zellij or herdr pane beside nvim (not in :terminal), so Esc,
       # scroll and resize behave like a real terminal. Each :ClaudeCode spawns one
       # more pane wired to THIS nvim via CLAUDE_CODE_SSE_PORT, so several claude
       # sessions per editor work and never cross between tabs/repos.
@@ -239,6 +239,20 @@ in
               provider = "external",
               provider_opts = {
                 external_terminal_cmd = function(cmd, env)
+                  -- ecomono: splitting on single spaces means a quoted or
+                  -- space-containing argument is cut apart, in BOTH branches below
+                  -- (kept equal on purpose). Upgrade: parse shell words with
+                  -- vim.fn.shellsplit-style quoting in this one place.
+                  local words = vim.split(cmd, " ")
+                  -- Inside herdr: herdr-pane places the pane right of the editor and
+                  -- closes it when claude exits. It sets env on the pane itself, which
+                  -- is how CLAUDE_CODE_SSE_PORT pairs the pane with this nvim.
+                  if vim.env.HERDR_ENV then
+                    local hargv = { "herdr-pane" }
+                    for k, v in pairs(env) do vim.list_extend(hargv, { "--env", k .. "=" .. v }) end
+                    hargv[#hargv + 1] = "--"
+                    return vim.list_extend(hargv, words)
+                  end
                   -- No --direction: an explicit split bypasses the swap layouts in
                   -- layouts/dev.kdl (verified); without it the pane lands in the right
                   -- column / stack. Outside zellij fall back to a foot window instead.
@@ -248,7 +262,7 @@ in
                   -- env goes in argv: zellij panes inherit the server's env, not the client's.
                   argv[#argv + 1] = "env"
                   for k, v in pairs(env) do argv[#argv + 1] = k .. "=" .. v end
-                  return vim.list_extend(argv, vim.split(cmd, " "))
+                  return vim.list_extend(argv, words)
                 end,
               },
             },

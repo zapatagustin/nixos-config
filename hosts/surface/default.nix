@@ -11,6 +11,14 @@
     panelResolution = { width = 2256; height = 1504; };
   };
 
+  # Nuvio is Compose Desktop on a bundled JDK 17: X11 only (no WLToolkit), so it
+  # runs under XWayland. With xwayland.force_zero_scaling (hyprland module) it
+  # renders at native pixels and has to scale itself. This JVM truncates
+  # sun.java2d.uiScale to an integer (1.5 measured identical to unset), so 2 is
+  # the only sharp, readable value at internalScale 1.57. XWayland has a single
+  # scale, so Nuvio is also 2x on the scale-1 docked monitors.
+  services.flatpak.overrides."com.nuvio.media.desktop".Environment.JAVA_TOOL_OPTIONS = "-Dsun.java2d.uiScale=2";
+
   # Surface is a work laptop — no LAN services, no gaming.
   services.pihole.enable = false; # LAN DNS sinkhole — off explicitly here, off by default on thinkpad
   services.gaming.enable = false; # Steam + GameMode + Wine

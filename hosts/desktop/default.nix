@@ -159,7 +159,7 @@ in
   # (tailscale0 is trusted, network.nix); no LAN ports are opened.
   services.sunshine = {
     enable = true;
-    autoStart = true;
+    autoStart = false;
     capSysAdmin = true; # KMS capture
     openFirewall = false;
   };

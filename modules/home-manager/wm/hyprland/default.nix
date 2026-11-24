@@ -231,6 +231,12 @@ in
           -- returns after a Hyprland bump.
           cursor = { no_hardware_cursors = false },
 
+          -- XWayland clients render at native pixels instead of being
+          -- bitmap-upscaled by the output scale (blurry on a fractional eDP).
+          -- X11 apps then look unscaled unless they scale themselves, which is
+          -- what the per-host Nuvio flatpak override does. No-op at scale 1.
+          xwayland = { force_zero_scaling = true },
+
           misc = {
               force_default_wallpaper = 1,
               disable_hyprland_logo   = true,
