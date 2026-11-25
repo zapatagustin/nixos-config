@@ -118,15 +118,17 @@
       }
 
       # PROTOTYPE, to compare with `dev`: neovim as the multiplexer (see
-      # editors/neovim/lua/mux.lua). `vdev [vco]` opens the tab of the current
-      # directory in one long-lived headless nvim and attaches to it; :detach or
-      # closing the terminal leaves it and its agents running. From a terminal
-      # inside that nvim it only opens the tab.
+      # editors/neovim/lua/mux.lua). `vdev` opens the space of the current
+      # directory in one long-lived headless nvim and attaches to it: a sidebar
+      # with every space and its agents, and the start screen to launch them
+      # from. `vdev cov` also opens claude (c), omp (o) and the notes (v) right
+      # away. :detach or closing the terminal leaves it all running. From a
+      # terminal inside that nvim it only opens the space.
       vdev() {
         local sock="''${XDG_RUNTIME_DIR:-/tmp}/nvim-mux.sock"
-        local spec=''${1:-vco}
-        if [[ ! "$spec" =~ '^[vco]+$' ]]; then
-          echo "usage: vdev [SPEC]   SPEC = letters v c o (default vco)" >&2
+        local spec=''${1:-}
+        if [[ ! "$spec" =~ '^[vco]*$' ]]; then
+          echo "usage: vdev [SPEC]   SPEC = letters c o v (claude, omp, notes)" >&2
           return 2
         fi
         # A vim string: a single quote inside it is written twice.

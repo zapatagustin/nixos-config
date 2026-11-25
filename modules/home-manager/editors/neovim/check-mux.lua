@@ -1,11 +1,11 @@
 -- Headless check for the multiplexer prototype (lua/mux.lua). Run from anywhere:
 --   nvim --headless -u NONE -l modules/home-manager/editors/neovim/check-mux.lua
 -- Starts only `sh`, `sleep` and this same nvim as an RPC client; never claude or omp.
-local here = debug.getinfo(1, "S").source:sub(2):match("(.*)/")
+local here = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h")
 local api, fn = vim.api, vim.fn
 local function ok(name) io.stdout:write("ok " .. name .. "\n") end
-local function wait(what, cond)
-  assert(vim.wait(5000, cond, 20), "timed out: " .. what)
+local function wait(what, cond, ms)
+  assert(vim.wait(ms or 5000, cond, 20), "timed out: " .. what)
 end
 
 -- Without g:mux the file defines nothing.
@@ -14,7 +14,6 @@ assert(Mux == nil, "Mux defined outside vdev")
 ok("inert-without-g-mux")
 
 vim.g.mux = 1
-vim.g.mux_notify_shim = "/shim"
 dofile(here .. "/lua/mux.lua")
 -- claudecode.nvim is not loaded here: its command is the provider's toggle.
 api.nvim_create_user_command("ClaudeCode", function() Mux.claude.simple_toggle("sleep 1001", {}) end, {})
@@ -26,81 +25,102 @@ end
 ok("claude-provider-has-the-required-functions")
 
 local tmp = fn.resolve(fn.tempname())
-local a, b = tmp .. "/a", tmp .. "/b b"
-fn.mkdir(a, "p")
-fn.mkdir(b, "p")
-local function agents(name)
-  return vim.tbl_filter(function(buf) return vim.b[buf].mux_agent == name end, api.nvim_list_bufs())
+local a, b, c = tmp .. "/a", tmp .. "/b b", tmp .. "/c"
+for _, dir in ipairs({ a, b, c }) do fn.mkdir(dir, "p") end
+local function stack() -- windows of the current tab that are not the sidebar
+  return vim.tbl_filter(function(w) return api.nvim_win_get_buf(w) ~= Mux.side end, api.nvim_tabpage_list_wins(0))
 end
+local function sidebar_text()
+  Mux.render()
+  return table.concat(api.nvim_buf_get_lines(Mux.side, 0, -1, false), "\n")
+end
+local function has(text) return sidebar_text():find(text, 1, true) ~= nil end
 
--- First project: the server's unused tab, editor on the left, claude on the right.
-Mux.open(a, "vc")
-assert(#api.nvim_list_tabpages() == 1, "first project did not reuse the unused tab")
-assert(fn.getcwd(-1, 0) == a, "tab cwd is " .. fn.getcwd(-1, 0))
-local claude_a = agents("claude")[1]
-assert(claude_a and Mux.claude.get_active_bufnr() == claude_a, "no claude terminal in the tab")
-assert(#api.nvim_tabpage_list_wins(0) == 2 and vim.b.mux_agent == nil, "editor window is not the current one")
-local claude_win = fn.win_findbuf(claude_a)[1]
-assert(api.nvim_win_get_position(claude_win)[2] > 0, "claude is not right of the editor")
-assert(api.nvim_win_get_width(claude_win) == math.floor(vim.o.columns * 0.4), "agent column is not 40% wide")
-ok("open-first-project-editor-left-claude-right")
-
--- Second project (a directory with a space): its own tab, agents only.
-Mux.open(b, "c")
-assert(#api.nvim_list_tabpages() == 2 and fn.getcwd(-1, 0) == b, "second project has no tab of its own")
-assert(#api.nvim_tabpage_list_wins(0) == 1 and vim.b.mux_agent == "claude", "agents-only tab kept an editor window")
-local claude_b = api.nvim_get_current_buf()
-ok("open-second-project-own-tab-agents-only")
-
+-- A new space: the sidebar on the left, one stack window, nothing started.
 Mux.open(a)
-assert(#api.nvim_list_tabpages() == 2 and fn.getcwd(-1, 0) == a, "reopening a project made a new tab")
-assert(not pcall(Mux.open, tmp, "x"), "bad SPEC accepted")
-ok("open-existing-project-switches-and-bad-spec-fails")
+assert(#api.nvim_list_tabpages() == 1 and fn.getcwd(-1, 0) == a, "first space did not reuse the unused tab")
+local side = vim.tbl_filter(function(w) return api.nvim_win_get_buf(w) == Mux.side end, api.nvim_tabpage_list_wins(0))[1]
+assert(side and api.nvim_win_get_position(side)[2] == 0 and api.nvim_win_get_width(side) == 28, "no 28-column sidebar on the left")
+assert(#stack() == 1 and api.nvim_get_current_win() == stack()[1], "the stack is not one focused window")
+assert(next(Mux.st) == nil and has(">1 a"), "a new space started an agent or is not listed: " .. sidebar_text())
+ok("open-shows-sidebar-and-start-window-without-agents")
 
--- A second :ClaudeCode in the tab focuses the first; a second agent goes below it.
+-- Launching: the first item takes the start window, the next ones stack below
+-- and fold the others down to their title line.
 vim.cmd("ClaudeCode")
-assert(api.nvim_get_current_buf() == claude_a and #agents("claude") == 2, "second :ClaudeCode started another claude")
-local probe = Mux.agent("probe", { "sh", "-c", 'echo "$MUX_BUF" >"$0/buf"; echo "$PATH" >"$0/path"; pwd >"$0/pwd"; sleep 1002', tmp })
+local claude_a = api.nvim_get_current_buf()
+assert(#stack() == 1 and Mux.st[claude_a].name == "claude" and Mux.claude.get_active_bufnr() == claude_a, "claude did not take the start window")
+local probe = Mux.agent("probe", { "sh", "-c", 'echo "$MUX_BUF" >"$0/buf"; pwd >"$0/pwd"; sleep 1002', tmp })
 wait("probe output", function() return fn.filereadable(tmp .. "/pwd") == 1 end)
 assert(fn.readfile(tmp .. "/buf")[1] == tostring(probe), "MUX_BUF is not the terminal's buffer")
-assert(vim.startswith(fn.readfile(tmp .. "/path")[1], "/shim:"), "the notify-send shim is not first in PATH")
-assert(fn.readfile(tmp .. "/pwd")[1] == a, "agent did not start in the project directory")
-local cpos, ppos = api.nvim_win_get_position(claude_win), api.nvim_win_get_position(0)
-assert(ppos[2] == cpos[2] and ppos[1] > cpos[1], "second agent is not below the first")
-ok("agent-gets-buffer-id-shim-path-project-cwd-and-stacks-below")
+assert(fn.readfile(tmp .. "/pwd")[1] == a, "agent did not start in the space's directory")
+local claude_win = fn.win_findbuf(claude_a)[1]
+assert(#stack() == 2 and api.nvim_win_get_position(0)[1] > api.nvim_win_get_position(claude_win)[1], "second item is not below the first")
+assert(api.nvim_win_get_height(claude_win) == 0 and api.nvim_win_get_height(0) > 5, "the unfocused item is not folded")
+Mux.notes()
+assert(#stack() == 3 and api.nvim_buf_get_name(0) == a .. "/todo.md" and Mux.st[api.nvim_get_current_buf()] == nil, "notes did not open in the stack")
+Mux.notes()
+vim.cmd("ClaudeCode")
+assert(#stack() == 3 and api.nvim_get_current_buf() == claude_a, "reopening notes or claude added a window")
+ok("launch-claude-agent-notes-stacked-and-folded")
+
+-- A second space (a directory with a space) with its own sidebar window.
+Mux.open(b, "c")
+local claude_b = api.nvim_get_current_buf()
+assert(#api.nvim_list_tabpages() == 2 and fn.getcwd(-1, 0) == b and Mux.st[claude_b].dir == b, "second space is wrong")
+assert(#api.nvim_tabpage_list_wins(0) == 2 and #stack() == 1, "second space is not sidebar + claude")
+assert(has(" 1 a\n   claude   idle\n   probe    idle\n>2 b b\n   claude   idle"), "sidebar: " .. sidebar_text())
+Mux.open(a)
+assert(#api.nvim_list_tabpages() == 2 and fn.getcwd(-1, 0) == a, "reopening a space made a new tab")
+assert(not pcall(Mux.open, tmp, "x"), "bad SPEC accepted")
+ok("spaces-listed-with-their-agents-and-reopen-switches")
+
+-- The watcher: output while you look elsewhere is "working"; once it goes
+-- quiet the agent is "done" until you visit it.
+local chatty = Mux.agent("chatty", { "sh", "-c", "sleep 1.5; for i in 1 2 3 4 5; do echo line $i; sleep 0.2; done; sleep 1003" })
+Mux.notes()
+wait("working", function() return Mux.status(chatty) == "working" end)
+assert(has("   chatty   working"), "sidebar: " .. sidebar_text())
+wait("done after going quiet", function() return Mux.status(chatty) == "done" end, 8000)
+api.nvim_set_current_win(fn.win_findbuf(chatty)[1])
+assert(Mux.status(chatty) == "idle", "visiting did not clear the agent")
+ok("watcher-working-then-done-then-idle-after-a-visit")
 
 -- What a hook does: reach this editor through $NVIM and flag its own buffer.
-local hook = string.format([["%s" --server "$NVIM" --remote-expr "v:lua.Mux.signal($MUX_BUF, 'blocked')"; sleep 1003]], vim.v.progpath)
-api.nvim_set_current_win(fn.win_findbuf(claude_a)[1])
+local hook = string.format([["%s" --server "$NVIM" --remote-expr "v:lua.Mux.signal($MUX_BUF, 'blocked')"; sleep 1004]], vim.v.progpath)
 local hooked = Mux.agent("hooked", { "sh", "-c", hook })
-vim.cmd("wincmd t") -- look at the editor, away from the agents
-wait("signal through $NVIM", function() return vim.b[hooked].mux_state == "blocked" end)
+Mux.notes()
+wait("signal through $NVIM", function() return Mux.status(hooked) == "blocked" end)
+assert(has("   hooked   blocked"), "sidebar: " .. sidebar_text())
 ok("hook-signals-its-buffer-through-NVIM")
 
--- Tabline marks, and the jump: blocked first, then finished, oldest first.
-assert(Mux.signal(claude_b, "done") == 1 and Mux.signal(probe, "done") == 1)
-assert(Mux.tabline():find(" a ! ", 1, true), "blocked project not marked: " .. Mux.tabline())
-assert(Mux.tabline():find(" b b * ", 1, true), "finished project not marked: " .. Mux.tabline())
+-- The jump: blocked first, then finished; and the sidebar rows are targets.
+assert(Mux.signal(claude_b, "done") == 1 and Mux.status(claude_b) == "done")
 Mux.jump()
-assert(api.nvim_get_current_buf() == hooked and vim.b[hooked].mux_state == nil, "jump did not go to the blocked agent")
+assert(api.nvim_get_current_buf() == hooked and Mux.status(hooked) ~= "blocked", "jump did not go to the blocked agent")
 Mux.jump()
-assert(api.nvim_get_current_buf() == claude_b and api.nvim_tabpage_get_number(0) == 2, "jump did not cross to the other tab")
-Mux.jump()
-assert(api.nvim_get_current_buf() == probe, "jump did not go to the last waiting agent")
-assert(not Mux.tabline():find("[!*]"), "marks left after visiting every agent")
+assert(api.nvim_get_current_buf() == claude_b and api.nvim_tabpage_get_number(0) == 2, "jump did not cross to the other space")
 Mux.jump() -- nothing is waiting: stays put
-assert(api.nvim_get_current_buf() == probe)
-ok("tabline-marks-and-jump-order-across-tabs")
+assert(api.nvim_get_current_buf() == claude_b)
+Mux.sidebar()
+sidebar_text()
+for lnum, row in pairs(Mux.rows) do
+  if row.buf == probe then api.nvim_win_set_cursor(0, { lnum, 0 }) end
+end
+fn.maparg("<CR>", "n", false, true).callback()
+assert(api.nvim_get_current_buf() == probe and api.nvim_tabpage_get_number(0) == 1, "enter on a sidebar row did not go to that agent")
+ok("jump-order-and-sidebar-rows-go-to-agents-across-spaces")
 
-assert(Mux.signal(99999, "done") == 0, "signal accepted an unknown buffer")
-vim.cmd("wincmd t")
-assert(Mux.signal(api.nvim_get_current_buf(), "done") == 0, "signal flagged a buffer that is not an agent")
-ok("signal-ignores-unknown-and-non-agent-buffers")
+assert(Mux.signal(99999, "done") == 0 and Mux.signal(Mux.side, "done") == 0, "signal accepted a buffer that is not an agent")
+ok("signal-ignores-buffers-that-are-not-agents")
 
--- An agent that exits takes its window with it.
+-- An agent that exits leaves; a stack that loses its only item keeps a window.
+Mux.open(c)
 local gone = Mux.agent("gone", { "true" })
 wait("exited agent's buffer to go", function() return not api.nvim_buf_is_valid(gone) end)
-ok("agent-exit-closes-its-window")
+assert(Mux.st[gone] == nil and #stack() == 1 and #api.nvim_tabpage_list_wins(0) == 2, "the stack did not survive its last agent")
+assert(not has("gone"), "the exited agent is still listed")
+ok("agent-exit-leaves-and-the-stack-keeps-a-window")
 
 io.stdout:write("all checks passed\n")
 vim.cmd("qa!")
