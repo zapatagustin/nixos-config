@@ -252,11 +252,17 @@ focus_id "$p1"
 
 # --- 8. herdr-dev ------------------------------------------------------------------
 export HERDR_DEV_CLAUDE_CMD="sleep 1001" HERDR_DEV_OMP_CMD="sleep 1002"
-set +e; out=$(env -u HERDR_ENV "$dev" c 2>&1); rc=$?; set -e
-[ "$rc" -eq 2 ] || fail "herdr-dev outside herdr exited $rc, wanted 2"
-ok herdr-dev-outside-herdr-exits-2
+set +e; out=$(HERDR_SOCKET_PATH=$T/run/nobody.sock "$dev" c 2>&1); rc=$?; set -e
+[ "$rc" -eq 2 ] || fail "herdr-dev without a server exited $rc, wanted 2"
+ok herdr-dev-without-server-exits-2
 
 mkdir -p "$T/work/proj"
+# Outside a pane, as the `dev` shell function calls it from a bare terminal:
+# the tab goes to the active workspace.
+t0=$(cd "$T/work/proj" && env -u HERDR_ENV -u HERDR_WORKSPACE_ID "$dev" c)
+[ "$(tab_json "$t0" | jq -r .label)" = proj ] || fail "tab made from outside herdr not labelled proj"
+ok herdr-dev-outside-herdr-opens-tab-in-active-workspace
+
 t1=$(cd "$T/work/proj" && "$dev" c)
 [ "$(tab_json "$t1" | jq -r .label)" = proj ] || fail "tab not labelled proj"
 read -ra ps <<<"$(tab_panes "$t1")"
@@ -331,5 +337,24 @@ until_ 25 test -s "$T/envout2" || fail "second-agent command did not run"
 [ "$(cat "$T/envout2")" = V2 ] || fail "K not passed to the second agent (got '$(cat "$T/envout2")')"
 until_ 25 test "$(tab_panes "$t6" | wc -w)" -eq 1 || fail "second-agent pane did not close on exit"
 ok herdr-dev-second-agent-env-reaches-process-and-pane-closes
+
+# --- 10. no workspace yet ------------------------------------------------------------
+# A server that `dev` started from a bare terminal has no workspace until
+# herdr-dev opens one. Last on purpose: it closes every workspace.
+ws_labels() { "$H" workspace list | jq -r '.result.workspaces | map(.label) | join(" ")'; }
+# An attached client reopens a default workspace when the last one closes, so
+# the client goes first; the server stays up without it.
+kill "$(cat "$T/pty.pid")"
+close_all() {
+  for w in $("$H" workspace list | jq -r '.result.workspaces[].workspace_id'); do
+    "$H" workspace close "$w" >/dev/null
+  done
+  [ -z "$(ws_labels)" ]
+}
+until_ 25 close_all || fail "setup: workspaces left open ($(ws_labels))"
+t7=$(cd "$T/work/proj" && env -u HERDR_ENV -u HERDR_WORKSPACE_ID "$dev" c)
+[ "$(ws_labels)" = proj ] || fail "expected one workspace named proj, got '$(ws_labels)'"
+[ "$(tab_json "$t7" | jq -r .label)" = proj ] || fail "tab in the new workspace not labelled proj"
+ok herdr-dev-opens-a-workspace-when-there-is-none
 
 echo "all checks passed"

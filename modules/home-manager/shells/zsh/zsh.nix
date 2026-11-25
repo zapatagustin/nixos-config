@@ -91,19 +91,29 @@
         fastfetch
       fi
 
-      # nvim + claude workspace (zellij layout `dev`, see shells/zellij/layouts):
-      # run from a repo. Outside zellij it starts a session; inside, a new tab.
-      # Inside herdr it is `dev [vco] [-w branch]` instead: a tab with any mix of
-      # neovim (v), Claude Code (c) and omp (o), all three by default, optionally
-      # in a new sibling worktree (see shells/herdr). The zellij branches ignore
-      # the arguments.
+      # nvim + agents workspace, run from a repo. `dev [vco] [-w branch]` opens a
+      # herdr tab with any mix of neovim (v), Claude Code (c) and omp (o), all
+      # three by default, optionally in a new sibling worktree (see shells/herdr).
+      # From a bare terminal it starts the herdr server when none answers, makes
+      # the tab and attaches. Inside zellij it is a new tab from the zellij layout
+      # `dev` (see shells/zellij/layouts) instead, which ignores the arguments.
       dev() {
         if [[ -n "$HERDR_ENV" ]]; then
           herdr-dev "$@"
         elif [[ -n "$ZELLIJ" ]]; then
           zellij action new-tab --layout dev --cwd "$PWD"
         else
-          zellij --layout dev
+          # Started the way `herdr` starts its own server, in a session of its
+          # own. Not left to herdr-dev: panes inherit the server's environment,
+          # so it has to be this shell's and not the script's.
+          if ! herdr workspace list >/dev/null 2>&1; then
+            setsid -f herdr server >/dev/null 2>&1 </dev/null
+            repeat 50; do
+              herdr workspace list >/dev/null 2>&1 && break
+              sleep 0.1
+            done
+          fi
+          herdr-dev "$@" >/dev/null && herdr
         fi
       }
 
