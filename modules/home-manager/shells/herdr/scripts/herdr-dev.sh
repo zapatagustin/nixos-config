@@ -4,6 +4,9 @@
 # Opens a tab named after the working directory and fills it. With -w, first
 # creates a git worktree for BRANCH next to the main worktree (named after it)
 # and works there.
+#
+# Runs from a herdr pane or from outside herdr (the `dev` shell function calls
+# it from a bare terminal and attaches afterwards); a server must be running.
 bin=${HERDR_BIN_PATH:-herdr}
 claude_cmd=${HERDR_DEV_CLAUDE_CMD:-claude --dangerously-skip-permissions}
 omp_cmd=${HERDR_DEV_OMP_CMD:-omp}
@@ -14,10 +17,10 @@ die() {
   exit 1
 }
 
-if [ -z "${HERDR_ENV:-}" ]; then
-  echo "herdr-dev: must run inside herdr" >&2
+workspaces=$("$bin" workspace list 2>/dev/null | jq -e '.result.workspaces | length') || {
+  echo "herdr-dev: no herdr server is running" >&2
   exit 2
-fi
+}
 
 spec=vco
 branch=
@@ -53,6 +56,11 @@ if [ -n "$branch" ]; then
   fi
   echo "$err" >&2
 fi
+
+# A server started without a client has no workspace, and a tab needs one.
+[ "$workspaces" -gt 0 ] ||
+  "$bin" workspace create --label "$(basename "$dir")" --cwd "$dir" >/dev/null ||
+  die "workspace create failed"
 
 create=("$bin" tab create --label "$(basename "$dir")" --cwd "$dir")
 [ -z "${HERDR_WORKSPACE_ID:-}" ] || create+=(--workspace "$HERDR_WORKSPACE_ID")
