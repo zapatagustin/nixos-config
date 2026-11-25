@@ -117,6 +117,38 @@
         fi
       }
 
+      # PROTOTYPE, to compare with `dev`: neovim as the multiplexer (see
+      # editors/neovim/lua/mux.lua). `vdev [vco]` opens the tab of the current
+      # directory in one long-lived headless nvim and attaches to it; :detach or
+      # closing the terminal leaves it and its agents running. From a terminal
+      # inside that nvim it only opens the tab.
+      vdev() {
+        local sock="''${XDG_RUNTIME_DIR:-/tmp}/nvim-mux.sock"
+        local spec=''${1:-vco}
+        if [[ ! "$spec" =~ '^[vco]+$' ]]; then
+          echo "usage: vdev [SPEC]   SPEC = letters v c o (default vco)" >&2
+          return 2
+        fi
+        # A vim string: a single quote inside it is written twice.
+        local q="'"
+        local dir=''${PWD//$q/$q$q}
+        local open="v:lua.Mux.open('$dir', '$spec')"
+        if [[ "$NVIM" == "$sock" ]]; then
+          nvim --server "$sock" --remote-expr "$open" >/dev/null
+          return
+        fi
+        if ! nvim --server "$sock" --remote-expr 1 >/dev/null 2>&1; then
+          # Its own session, like the herdr server: it must outlive this terminal.
+          rm -f "$sock"
+          setsid -f nvim --headless --listen "$sock" --cmd 'let g:mux = 1' >/dev/null 2>&1 </dev/null
+          repeat 50; do
+            nvim --server "$sock" --remote-expr 1 >/dev/null 2>&1 && break
+            sleep 0.1
+          done
+        fi
+        nvim --server "$sock" --remote-expr "$open" >/dev/null && nvim --server "$sock" --remote-ui
+      }
+
       ZSH_AUTOSUGGEST_STRATEGY=(history match_prev_cmd completion)
       ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=180'
 

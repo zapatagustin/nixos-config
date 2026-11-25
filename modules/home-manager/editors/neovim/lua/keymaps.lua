@@ -59,6 +59,8 @@ map("n", "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", { desc = "Accept diff" }
 -- same placement as <leader>ac (no --direction, see default.nix); herdr-pane
 -- inside herdr, foot outside zellij. A command so herdr-dev can run `nvim -c OmpPane`.
 vim.api.nvim_create_user_command("OmpPane", function()
+  -- Under `vdev` (lua/mux.lua) omp runs in a :terminal of this tab instead.
+  if vim.g.mux then return Mux.agent("omp", "omp") end
   local cwd = vim.fn.getcwd()
   local argv
   if vim.env.HERDR_ENV then

@@ -33,16 +33,26 @@ let
     input=$(${pkgs.coreutils}/bin/cat)
     printf '%s' "$input" | $jq -e . >/dev/null 2>&1 || exit 0
     project=$(printf '%s' "$input" | $jq -r '(.cwd // "") | split("/") | last // "session"')
+    # Under `vdev` (editors/neovim/lua/mux.lua) this claude runs in the terminal
+    # buffer $MUX_BUF of the editor at $NVIM: flag it there, so the editor shows
+    # it and can jump to it. Anywhere else both are unset and this does nothing.
+    mux() {
+      case "''${MUX_BUF:-x}" in *[!0-9]*) return 0 ;; esac
+      [ -n "''${NVIM:-}" ] || return 0
+      nvim --server "$NVIM" --remote-expr "v:lua.Mux.signal($MUX_BUF, '$1')" >/dev/null 2>&1 || true
+    }
     case "$1" in
       stop)
         pending=$(printf '%s' "$input" | $jq -r '(.background_tasks // []) | length')
         if [ "$pending" = 0 ]; then
+          mux done
           $send -a "Claude Code" "Claude · $project" "Turn finished"
         else
           $send -a "Claude Code" -u low "Claude · $project" "Waiting on $pending background task(s)"
         fi ;;
       notification)
         message=$(printf '%s' "$input" | $jq -r '.message // "Needs your input"')
+        mux blocked
         $send -a "Claude Code" "Claude · $project" "$message" ;;
     esac
   '';

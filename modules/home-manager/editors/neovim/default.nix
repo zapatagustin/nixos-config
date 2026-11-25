@@ -1,6 +1,17 @@
 { pkgs, lib, ... }:
 let
   luaFile = name: lib.fileContents (./lua + "/${name}");
+  # First in PATH for the agents that lua/mux.lua starts: an agent with no hook
+  # of its own still calls notify-send when its turn ends, and that flags its
+  # terminal buffer before the real notification goes out.
+  muxNotifySend = pkgs.writeShellScriptBin "notify-send" ''
+    case "''${MUX_BUF:-x}" in
+      *[!0-9]*) ;;
+      *) [ -z "''${NVIM:-}" ] ||
+        nvim --server "$NVIM" --remote-expr "v:lua.Mux.signal($MUX_BUF, 'done')" >/dev/null 2>&1 ;;
+    esac
+    exec ${pkgs.libnotify}/bin/notify-send "$@"
+  '';
   # Neovim ships only the en spell file. Build es from the same hunspell dict
   # emacs uses (editors/emacs/default.nix): mkspell reads <in>.aff/.dic from cwd
   # and writes <out>.<encoding>.spl, so this yields es.utf-8.spl.
@@ -236,7 +247,8 @@ in
           require("claudecode").setup({
             terminal_cmd = "claude --dangerously-skip-permissions", -- same as the `cl` alias
             terminal = {
-              provider = "external",
+              -- Mux exists only under `vdev` (lua/mux.lua): claude in a :terminal.
+              provider = Mux and Mux.claude or "external",
               provider_opts = {
                 external_terminal_cmd = function(cmd, env)
                   -- ecomono: splitting on single spaces means a quoted or
@@ -283,6 +295,8 @@ in
       ${luaFile "options.lua"}
       ${luaFile "keymaps.lua"}
       ${luaFile "pokemon.lua"}
+      vim.g.mux_notify_shim = "${muxNotifySend}/bin"
+      ${luaFile "mux.lua"}
     '';
   };
 }
