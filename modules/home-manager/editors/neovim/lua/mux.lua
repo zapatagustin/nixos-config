@@ -50,8 +50,18 @@ if vim.g.mux then
 
   -- Puts the cursor in the stack window the next item goes in: the start screen
   -- (or an unused empty buffer) is replaced, anything else gets a window below.
+  -- A stack closed down to nothing (:q on its last window) starts again right
+  -- of the panel.
   local function place()
     local wins = stack_wins(0)
+    if not wins[1] then
+      vim.cmd("botright vnew")
+      -- The panel had the whole width: back to its own (M.sidebar).
+      for _, w in ipairs(api.nvim_tabpage_list_wins(0)) do
+        if api.nvim_win_get_buf(w) == M.side then api.nvim_win_set_width(w, 28) end
+      end
+      return
+    end
     api.nvim_set_current_win(wins[#wins])
     local buf = api.nvim_get_current_buf()
     local unused = fn.bufname(buf) == "" and vim.bo[buf].buftype == "" and not vim.bo[buf].modified
@@ -388,6 +398,28 @@ if vim.g.mux then
       s.state, s.unseen, s.since = nil, false, nil
       if not M.nav then vim.cmd("startinsert") end
       render()
+    end,
+  })
+  -- A file opened over an agent or the panel goes in the stack below them, as
+  -- the notes do: the file tree and the pickers :edit in the window they were
+  -- started from. Later, so that they finish with that window first.
+  api.nvim_create_autocmd("BufWinEnter", {
+    group = group,
+    callback = function(args)
+      local win, prev = api.nvim_get_current_win(), fn.bufnr("#")
+      if not (M.st[prev] or prev == M.side) or api.nvim_buf_get_name(args.buf) == "" then return end
+      for _, w in ipairs(api.nvim_tabpage_list_wins(0)) do
+        if api.nvim_win_get_buf(w) == prev then return end -- still shown here (a :split of it)
+      end
+      vim.schedule(function()
+        if not (api.nvim_win_is_valid(win) and api.nvim_win_get_buf(win) == args.buf and api.nvim_buf_is_valid(prev)) then return end
+        local cursor = api.nvim_win_get_cursor(win)
+        api.nvim_win_set_buf(win, prev)
+        place()
+        api.nvim_set_current_buf(args.buf)
+        api.nvim_win_set_cursor(0, cursor)
+        vim.cmd("stopinsert")
+      end)
     end,
   })
   -- Typing anywhere means you are inside that window.

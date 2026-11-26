@@ -192,5 +192,32 @@ assert(Mux.st[gone] == nil and #stack() == 1 and #api.nvim_tabpage_list_wins(0) 
 assert(not has("gone"), "the exited agent is still listed")
 ok("agent-exit-leaves-and-the-stack-keeps-a-window")
 
+-- A file opened over an agent or the panel goes in the stack below them: the
+-- file tree and the pickers :edit in the window they were started from.
+local busy = Mux.agent("busy", { "sleep", "1007" })
+vim.cmd("stopinsert | edit " .. fn.fnameescape(c .. "/notes.txt"))
+wait("the agent to get its window back", function() return #fn.win_findbuf(busy) == 1 and #stack() == 2 end)
+local busy_win = fn.win_findbuf(busy)[1]
+assert(api.nvim_buf_get_name(0) == c .. "/notes.txt" and api.nvim_win_get_position(0)[1] > api.nvim_win_get_position(busy_win)[1], "the file is not below the agent")
+assert(math.abs(api.nvim_win_get_height(busy_win) - api.nvim_win_get_height(0)) <= 1, "the file and the agent are not the same height")
+api.nvim_set_current_win(panel())
+vim.cmd("edit " .. fn.fnameescape(c .. "/other.txt"))
+wait("the panel to get its window back", function() return panel() ~= nil and #stack() == 3 end)
+assert(api.nvim_buf_get_name(0) == c .. "/other.txt" and #fn.win_findbuf(busy) == 1, "the file opened from the panel is not in the stack")
+ok("a-file-opened-over-an-agent-or-the-panel-stacks-below-them")
+
+-- A panel row reaches its agent also when the stack was closed down to
+-- nothing (:q on its last window): it starts again right of the panel.
+for _, win in ipairs(stack()) do api.nvim_win_close(win, true) end
+assert(#api.nvim_tabpage_list_wins(0) == 1 and panel(), "the stack did not close")
+sidebar_text()
+for lnum, row in pairs(Mux.rows) do
+  if row.buf == busy then api.nvim_win_set_cursor(0, { lnum, 0 }) end
+end
+local went, err = pcall(fn.maparg("<CR>", "n", false, true).callback)
+assert(went, "enter on the row of an agent without a window: " .. tostring(err))
+assert(api.nvim_get_current_buf() == busy and #stack() == 1 and api.nvim_win_get_width(panel()) == 28, "the agent is not back right of a 28-column panel")
+ok("a-panel-row-reaches-its-agent-after-the-stack-was-closed")
+
 io.stdout:write("all checks passed\n")
 vim.cmd("qa!")
