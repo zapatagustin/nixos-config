@@ -150,7 +150,15 @@ in
       {
         plugin = which-key-nvim;
         type = "lua";
-        config = ''require("which-key").setup()'';
+        # Group names: without one a prefix shows as "+N keymaps".
+        config = ''
+          require("which-key").setup()
+          require("which-key").add({
+            { "<leader>f", group = "find" },
+            { "<leader>a", group = "agents" },
+            { "<leader>o", group = "org" },
+          })
+        '';
       }
       {
         plugin = nvim-tree-lua;

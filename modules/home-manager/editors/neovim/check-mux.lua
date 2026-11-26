@@ -46,7 +46,7 @@ assert(next(Mux.st) == nil and has(">1 a"), "a new space started an agent or is 
 ok("open-shows-sidebar-and-start-window-without-agents")
 
 -- Launching: the first item takes the start window, the next ones stack below
--- and fold the others down to their title line.
+-- at equal heights.
 vim.cmd("ClaudeCode")
 local claude_a = api.nvim_get_current_buf()
 assert(#stack() == 1 and Mux.st[claude_a].name == "claude" and Mux.claude.get_active_bufnr() == claude_a, "claude did not take the start window")
@@ -56,20 +56,24 @@ assert(fn.readfile(tmp .. "/buf")[1] == tostring(probe), "MUX_BUF is not the ter
 assert(fn.readfile(tmp .. "/pwd")[1] == a, "agent did not start in the space's directory")
 local claude_win = fn.win_findbuf(claude_a)[1]
 assert(#stack() == 2 and api.nvim_win_get_position(0)[1] > api.nvim_win_get_position(claude_win)[1], "second item is not below the first")
-assert(api.nvim_win_get_height(claude_win) == 0 and api.nvim_win_get_height(0) > 5, "the unfocused item is not folded")
+assert(math.abs(api.nvim_win_get_height(claude_win) - api.nvim_win_get_height(0)) <= 1 and api.nvim_win_get_height(0) > 3, "the two items are not the same height")
 Mux.notes()
 assert(#stack() == 3 and api.nvim_buf_get_name(0) == a .. "/todo.md" and Mux.st[api.nvim_get_current_buf()] == nil, "notes did not open in the stack")
 Mux.notes()
+assert(#stack() == 3, "reopening the notes added a window")
+-- :ClaudeCode starts one more claude; the plugin's own open() reuses the tab's.
 vim.cmd("ClaudeCode")
-assert(#stack() == 3 and api.nvim_get_current_buf() == claude_a, "reopening notes or claude added a window")
-ok("launch-claude-agent-notes-stacked-and-folded")
+assert(#stack() == 4 and Mux.st[api.nvim_get_current_buf()].name == "claude 2", "a second :ClaudeCode did not start claude 2")
+Mux.claude.open("sleep 1005", {})
+assert(#stack() == 4 and api.nvim_get_current_buf() == claude_a, "the provider's open() did not reuse the tab's claude")
+ok("launch-claude-agent-notes-stacked-at-equal-heights-and-a-second-claude")
 
 -- A second space (a directory with a space) with its own sidebar window.
 Mux.open(b, "c")
 local claude_b = api.nvim_get_current_buf()
 assert(#api.nvim_list_tabpages() == 2 and fn.getcwd(-1, 0) == b and Mux.st[claude_b].dir == b, "second space is wrong")
 assert(#api.nvim_tabpage_list_wins(0) == 2 and #stack() == 1, "second space is not sidebar + claude")
-assert(has(" 1 a\n   claude   idle\n   probe    idle\n>2 b b\n   claude   idle"), "sidebar: " .. sidebar_text())
+assert(has(" 1 a\n   claude   idle\n   probe    idle\n   claude 2 idle\n>2 b b\n   claude   idle"), "sidebar: " .. sidebar_text())
 Mux.open(a)
 assert(#api.nvim_list_tabpages() == 2 and fn.getcwd(-1, 0) == a, "reopening a space made a new tab")
 assert(not pcall(Mux.open, tmp, "x"), "bad SPEC accepted")
@@ -102,14 +106,50 @@ Mux.jump()
 assert(api.nvim_get_current_buf() == claude_b and api.nvim_tabpage_get_number(0) == 2, "jump did not cross to the other space")
 Mux.jump() -- nothing is waiting: stays put
 assert(api.nvim_get_current_buf() == claude_b)
-Mux.sidebar()
+local function panel() -- the agents panel's window in the current tab, if open
+  return vim.tbl_filter(function(w) return api.nvim_win_get_buf(w) == Mux.side end, api.nvim_tabpage_list_wins(0))[1]
+end
+api.nvim_set_current_win(panel())
 sidebar_text()
 for lnum, row in pairs(Mux.rows) do
   if row.buf == probe then api.nvim_win_set_cursor(0, { lnum, 0 }) end
 end
 fn.maparg("<CR>", "n", false, true).callback()
-assert(api.nvim_get_current_buf() == probe and api.nvim_tabpage_get_number(0) == 1, "enter on a sidebar row did not go to that agent")
-ok("jump-order-and-sidebar-rows-go-to-agents-across-spaces")
+assert(api.nvim_get_current_buf() == probe and api.nvim_tabpage_get_number(0) == 1, "enter on a panel row did not go to that agent")
+ok("jump-order-and-panel-rows-go-to-agents-across-spaces")
+
+-- Several tabs in one space: listed once in the panel, each in the tabline.
+Mux.tab()
+local tab2 = api.nvim_get_current_tabpage()
+assert(#api.nvim_list_tabpages() == 3 and vim.t.mux_dir == a and panel() and #stack() == 1, "new tab is not a second tab of the space")
+assert(select(2, sidebar_text():gsub("%d a\n", "")) == 1, "the space is listed more than once: " .. sidebar_text())
+local extra = Mux.agent("extra", { "sleep", "1006" })
+assert(has("   extra    idle") and Mux.tabline():find("%%#TabLineSel# 2 extra "), "tabline: " .. Mux.tabline())
+assert(Mux.tabline():find(" 1 claude + probe + todo.md + claude 2 ", 1, true), "tabline: " .. Mux.tabline())
+Mux.go(1)
+assert(api.nvim_tabpage_get_number(0) == 1, "tab 1 of the space is not the first tabpage")
+Mux.go(nil, 1)
+assert(api.nvim_get_current_tabpage() == tab2, "next tab of the space is not its second tab")
+Mux.go(nil, 1)
+Mux.open(b)
+Mux.open(a)
+assert(api.nvim_tabpage_get_number(0) == 1, "returning to a space did not land on the tab it was left on")
+ok("several-tabs-per-space-with-tabline-and-switching")
+
+-- The panel opens and closes with one call, like the file tree; keys are
+-- <leader> or Alt chords only.
+Mux.sidebar()
+assert(not panel(), "the panel did not close")
+Mux.sidebar()
+assert(panel() and api.nvim_get_current_win() == panel(), "the panel did not reopen")
+for _, key in ipairs({ "c", "o", "n", "t" }) do
+  assert(fn.maparg(key, "n") == "", "bare key " .. key .. " is mapped in the panel")
+end
+for _, key in ipairs({ "<M-H>", "<M-J>", "<M-K>", "<M-L>", "<M-a>", "<M-2>" }) do
+  assert(fn.maparg(key, "n") ~= "" or fn.maparg(key, "n", false, true).callback, key .. " is not mapped in normal mode")
+  assert(fn.maparg(key, "t") ~= "" or fn.maparg(key, "t", false, true).callback, key .. " is not mapped in terminal mode")
+end
+ok("panel-toggles-and-keys-are-leader-or-alt-chords")
 
 assert(Mux.signal(99999, "done") == 0 and Mux.signal(Mux.side, "done") == 0, "signal accepted a buffer that is not an agent")
 ok("signal-ignores-buffers-that-are-not-agents")

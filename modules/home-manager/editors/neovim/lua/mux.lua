@@ -9,21 +9,17 @@
 -- "space"). Each has the sidebar on the left, which lists every space with its
 -- agents and what they are doing, and a stack on the right: it starts as the
 -- start screen, and claude, omp and the notes file open in it one above the
--- other, the focused one expanded and the rest folded to their title line.
--- The rest is stock vim: CTRL-W, :split, :q, gt, :tabclose.
+-- other at equal heights. A space can have several tabs, for when it runs more
+-- agents than fit on one screen; the tabline lists the tabs of the current
+-- space. The rest is stock vim: CTRL-W, :split, :q.
 if vim.g.mux then
   local api, fn = vim.api, vim.fn
-  local M = { st = {}, rows = {} }
+  local M = { st = {}, rows = {}, last = {} }
   _G.Mux = M
   local group = api.nvim_create_augroup("mux", {})
   local function now() return vim.uv.hrtime() / 1e6 end
 
-  -- The stack: 'winheight' makes the focused window take the column and
-  -- 'winminheight' lets the others fold down to their status line. A folded
-  -- terminal keeps its size, so its agent is not redrawn (verified).
-  vim.o.winminheight = 0
-  vim.o.winheight = 999
-  vim.o.showtabline = 0 -- the sidebar is the list of spaces
+  vim.o.showtabline = 2 -- the tabs of the current space (M.tabline)
 
   M.side = api.nvim_create_buf(false, true)
   api.nvim_buf_set_name(M.side, "agents")
@@ -35,10 +31,14 @@ if vim.g.mux then
       return api.nvim_win_get_buf(w) ~= M.side and api.nvim_win_get_config(w).relative == ""
     end, api.nvim_tabpage_list_wins(tab))
   end
+  -- The tabpages of a space, in order, and the one it was last seen on.
+  local function space_tabs(dir)
+    return vim.tbl_filter(function(tab) return vim.t[tab].mux_dir == dir end, api.nvim_list_tabpages())
+  end
   local function space_tab(dir)
-    for _, tab in ipairs(api.nvim_list_tabpages()) do
-      if vim.t[tab].mux_dir == dir then return tab end
-    end
+    local last = M.last[dir]
+    if last and api.nvim_tabpage_is_valid(last) and vim.t[last].mux_dir == dir then return last end
+    return space_tabs(dir)[1]
   end
   local function start_screen()
     return M.dash and api.nvim_buf_is_valid(M.dash) and M.dash or api.nvim_create_buf(true, false)
@@ -74,12 +74,13 @@ if vim.g.mux then
   end
 
   local function render()
-    local lines, rows, cur = {}, {}, api.nvim_get_current_tabpage()
-    for i, tab in ipairs(api.nvim_list_tabpages()) do
+    local lines, rows, seen, n = {}, {}, {}, 0
+    for _, tab in ipairs(api.nvim_list_tabpages()) do
       local dir = vim.t[tab].mux_dir
-      if dir then
-        lines[#lines + 1] = (tab == cur and ">" or " ") .. i .. " " .. vim.fs.basename(dir)
-        rows[#lines] = { tab = tab }
+      if dir and not seen[dir] then
+        seen[dir], n = true, n + 1
+        lines[#lines + 1] = (dir == vim.t.mux_dir and ">" or " ") .. n .. " " .. vim.fs.basename(dir)
+        rows[#lines] = { dir = dir }
         for _, buf in ipairs(api.nvim_list_bufs()) do
           if M.st[buf] and M.st[buf].dir == dir then
             lines[#lines + 1] = string.format("   %-8s %s", M.st[buf].name, M.status(buf))
@@ -88,13 +89,13 @@ if vim.g.mux then
         end
       end
     end
-    vim.list_extend(lines, { "", " c claude   o omp", " n notes    t shell" })
     M.rows = rows
     if table.concat(lines, "\n") ~= table.concat(api.nvim_buf_get_lines(M.side, 0, -1, false), "\n") then
       vim.bo[M.side].modifiable = true
       api.nvim_buf_set_lines(M.side, 0, -1, false, lines)
       vim.bo[M.side].modifiable = false
     end
+    vim.cmd("redrawtabline")
   end
   M.render = render
   -- Statuses change with time (working -> done), not only with events.
@@ -107,7 +108,6 @@ if vim.g.mux then
       syntax match MuxDone /done$/
       syntax match MuxWorking /working$/
       syntax match MuxIdle /idle$/
-      syntax match MuxIdle /^ \a \a\+ \+\a \a\+$/
       highlight default link MuxSpace Title
       highlight default link MuxBlocked DiagnosticWarn
       highlight default link MuxDone DiagnosticOk
@@ -132,7 +132,12 @@ if vim.g.mux then
     place()
     local buf = api.nvim_get_current_buf()
     local dir = vim.t.mux_dir or fn.getcwd(-1, 0)
-    local s = { name = name, dir = dir, out = 0 }
+    -- A space can run several of the same agent: claude, claude 2, ...
+    local n = 1
+    for _, other in pairs(M.st) do
+      if other.dir == dir and other.base == name then n = n + 1 end
+    end
+    local s = { name = n > 1 and name .. " " .. n or name, base = name, dir = dir, out = 0 }
     M.st[buf] = s
     -- The size its program was last drawn at. A folded window keeps its
     -- height, so only its width counts then.
@@ -160,7 +165,7 @@ if vim.g.mux then
       end,
     })
     -- The folded window's status line is the item's title.
-    local title = name .. " " .. vim.fs.basename(dir)
+    local title = s.name .. " " .. vim.fs.basename(dir)
     if not pcall(api.nvim_buf_set_name, buf, title) then pcall(api.nvim_buf_set_name, buf, title .. " #" .. buf) end
     vim.cmd("startinsert")
     render()
@@ -215,9 +220,10 @@ if vim.g.mux then
     vim.cmd("startinsert")
   end
 
+  -- The agents panel. Like the file tree, the same call opens and closes it.
   function M.sidebar()
     local win = vim.tbl_filter(function(w) return api.nvim_win_get_buf(w) == M.side end, api.nvim_tabpage_list_wins(0))[1]
-    if win then return api.nvim_set_current_win(win) end
+    if win then return api.nvim_win_close(win, false) end
     vim.cmd("topleft vertical 28 split")
     api.nvim_win_set_buf(0, M.side)
     for name, value in pairs({ winfixwidth = true, number = false, relativenumber = false, signcolumn = "no", wrap = false, cursorline = true }) do
@@ -225,6 +231,59 @@ if vim.g.mux then
     end
     vim.cmd("stopinsert")
   end
+
+  -- A new tab of space `dir` (default: the current space): the agents panel and
+  -- one stack window on the start screen. `reuse` takes the current tabpage.
+  function M.tab(dir, reuse)
+    dir = dir or vim.t.mux_dir or fn.getcwd(-1, 0)
+    if not reuse then
+      vim.cmd("tabnew")
+      if M.dash and api.nvim_buf_is_valid(M.dash) then api.nvim_set_current_buf(M.dash) end
+    end
+    vim.cmd("tcd " .. fn.fnameescape(dir))
+    vim.t.mux_dir = dir
+    M.last[dir] = api.nvim_get_current_tabpage()
+    M.sidebar()
+    vim.cmd("wincmd p")
+    render()
+  end
+
+  -- Tab `n` of the current space, or the one `step` tabs away from this one.
+  function M.go(n, step)
+    local tabs = space_tabs(vim.t.mux_dir)
+    for i, tab in ipairs(tabs) do
+      if step and tab == api.nvim_get_current_tabpage() then n = (i - 1 + step) % #tabs + 1 end
+    end
+    if tabs[n] then api.nvim_set_current_tabpage(tabs[n]) end
+  end
+
+  -- The window indicators: the tabs of the current space, numbered as <M-1>..
+  -- <M-9> take them, each named after what it shows, with "!" while an agent
+  -- in it is blocked and "*" while one is done.
+  function M.tabline()
+    local parts = {}
+    for i, tab in ipairs(space_tabs(vim.t.mux_dir)) do
+      local names, mark = {}, ""
+      for _, win in ipairs(stack_wins(tab)) do
+        local buf = api.nvim_win_get_buf(win)
+        local s = M.st[buf]
+        local status = s and M.status(buf)
+        if status == "blocked" then
+          mark = " !"
+        elseif status == "done" and mark == "" then
+          mark = " *"
+        end
+        if buf ~= M.dash then
+          local name = s and s.name or vim.bo[buf].buftype == "terminal" and "shell" or fn.fnamemodify(api.nvim_buf_get_name(buf), ":t")
+          if name ~= "" then names[#names + 1] = name end
+        end
+      end
+      parts[#parts + 1] = (tab == api.nvim_get_current_tabpage() and "%#TabLineSel#" or "%#TabLine#")
+        .. " " .. i .. " " .. (names[1] and table.concat(names, " + ") or "-") .. mark .. " "
+    end
+    return table.concat(parts) .. "%#TabLineFill#"
+  end
+  vim.o.tabline = "%!v:lua.Mux.tabline()"
 
   -- Entry point of `vdev`, through --remote-expr: the space of project `dir`,
   -- created if missing. `spec` (letters c o v, optional) opens claude, omp and
@@ -236,18 +295,10 @@ if vim.g.mux then
     if tab then
       api.nvim_set_current_tabpage(tab)
     else
-      if next(vim.tbl_filter(function(t) return vim.t[t].mux_dir ~= nil end, api.nvim_list_tabpages())) then
-        vim.cmd("tabnew")
-        if M.dash and api.nvim_buf_is_valid(M.dash) then api.nvim_set_current_buf(M.dash) end
-      elseif vim.bo.buftype == "terminal" then
-        -- A new server: its one tab shows the start screen (lua/pokemon.lua).
-        M.dash = api.nvim_get_current_buf()
-        M.launchers(M.dash)
-      end
-      vim.cmd("tcd " .. fn.fnameescape(dir))
-      vim.t.mux_dir = dir
-      M.sidebar()
-      vim.cmd("wincmd p")
+      -- A new server has one unused tab, showing the start screen (lua/pokemon.lua).
+      local unused = not next(vim.tbl_filter(function(t) return vim.t[t].mux_dir ~= nil end, api.nvim_list_tabpages()))
+      if unused and vim.bo.buftype == "terminal" then M.dash = api.nvim_get_current_buf() end
+      M.tab(dir, unused)
     end
     if spec:find("c") then vim.cmd("ClaudeCode") end
     if spec:find("o") then M.agent("omp", "omp") end
@@ -258,15 +309,17 @@ if vim.g.mux then
 
   -- claudecode.nvim terminal provider (see its entry in default.nix): claude in
   -- the stack of the current space instead of a herdr pane.
-  -- ecomono: one claude per space, so a second :ClaudeCode there only focuses
-  -- the first and `:ClaudeCode --resume` needs it closed first. Selections are
-  -- broadcast to every claude of this editor, whatever its space. Upgrade:
-  -- several per space keyed by the command string; one editor per project.
+  -- :ClaudeCode always starts one more claude, as it does with the herdr pane
+  -- provider; the calls the plugin makes on its own reuse the one in this tab.
+  -- ecomono: selections are broadcast to every claude of this editor, whatever
+  -- its space. Upgrade: one editor per project.
   local function claude_buf()
-    for buf, s in pairs(M.st) do
-      if s.name == "claude" and s.dir == vim.t.mux_dir then return buf end
+    for _, win in ipairs(stack_wins(0)) do
+      local buf = api.nvim_win_get_buf(win)
+      if M.st[buf] and M.st[buf].base == "claude" then return buf end
     end
   end
+  local function claude_new(cmd, env) M.agent("claude", cmd, env) end
   local function claude_open(cmd, env, _, focused)
     local prev = api.nvim_get_current_win()
     local buf = claude_buf()
@@ -280,8 +333,8 @@ if vim.g.mux then
     setup = function() end,
     is_available = function() return true end,
     open = claude_open,
-    simple_toggle = claude_open,
-    focus_toggle = claude_open,
+    simple_toggle = claude_new,
+    focus_toggle = claude_new,
     close = function()
       local buf = claude_buf()
       if buf then api.nvim_buf_delete(buf, { force = true }) end
@@ -300,7 +353,13 @@ if vim.g.mux then
       render()
     end,
   })
-  api.nvim_create_autocmd({ "TabEnter", "TabClosed" }, { group = group, callback = vim.schedule_wrap(render) })
+  api.nvim_create_autocmd({ "TabEnter", "TabClosed" }, {
+    group = group,
+    callback = function()
+      if vim.t.mux_dir then M.last[vim.t.mux_dir] = api.nvim_get_current_tabpage() end
+      vim.schedule(render)
+    end,
+  })
   -- An agent that exits takes its window with it; the stack never empties.
   api.nvim_create_autocmd("TermClose", {
     group = group,
@@ -318,37 +377,39 @@ if vim.g.mux then
     end,
   })
 
-  -- <M-a> matches herdr's alt+a. The rest is discoverable under <leader>m, and
-  -- the start screen and the sidebar take the launchers as single keys.
+  -- Every key is <leader> plus letters or an Alt chord, as in the rest of the
+  -- config. Alt chords also work while typing into an agent; <M-a> and
+  -- <M-1>..<M-9> match herdr's alt+a and alt+1..9.
   local map = vim.keymap.set
-  function M.launchers(buf)
-    map("n", "c", "<Cmd>ClaudeCode<CR>", { buffer = buf, desc = "Claude" })
-    map("n", "o", "<Cmd>OmpPane<CR>", { buffer = buf, desc = "omp" })
-    map("n", "n", M.notes, { buffer = buf, desc = "Notes" })
-    map("n", "t", M.shell, { buffer = buf, desc = "Shell" })
-  end
-  M.launchers(M.side)
   map("n", "<CR>", function()
     local row = M.rows[fn.line(".")]
     if not row then return end
-    if row.buf then focus(row.buf) else api.nvim_set_current_tabpage(row.tab) end
+    if row.buf then focus(row.buf) else api.nvim_set_current_tabpage(space_tab(row.dir)) end
   end, { buffer = M.side, desc = "Go to space or agent" })
   map({ "n", "t" }, "<M-a>", M.jump, { desc = "Agent waiting for input" })
+  for i = 1, 9 do
+    map({ "n", "t" }, "<M-" .. i .. ">", function() M.go(i) end, { desc = "Tab " .. i .. " of this space" })
+  end
+  map("n", "gt", function() M.go(nil, 1) end, { desc = "Next tab of this space" })
+  map("n", "gT", function() M.go(nil, -1) end, { desc = "Previous tab of this space" })
+  -- Resizing as a window manager does it: alt+shift+hjkl moves the right or
+  -- the bottom edge of the focused window. Opening or closing a window evens
+  -- the sizes out again ('equalalways').
+  for key, cmd in pairs({ H = "vertical resize -5", L = "vertical resize +5", J = "resize +3", K = "resize -3" }) do
+    map({ "n", "t" }, "<M-" .. key .. ">", "<Cmd>" .. cmd .. "<CR>", { desc = "Resize window" })
+  end
   map("n", "<leader>mw", M.jump, { desc = "Agent waiting for input" })
-  map("n", "<leader>ms", M.sidebar, { desc = "Sidebar: spaces and agents" })
+  map("n", "<leader>ms", M.sidebar, { desc = "Agents panel (toggle)" })
+  map("n", "<leader>mc", function() M.tab() end, { desc = "New tab in this space" })
   map("n", "<leader>mn", M.notes, { desc = "Notes" })
   map("n", "<leader>mt", M.shell, { desc = "Shell" })
-  map("n", "<leader>mz", function()
-    vim.o.winheight = vim.o.winheight == 999 and 1 or 999
-    if vim.o.winheight == 1 then vim.cmd("wincmd =") end
-  end, { desc = "Stack: folded / equal heights" })
   map("n", "<leader>md", "<Cmd>detach<CR>", { desc = "Detach (server keeps running)" })
   map("n", "<leader>mk", "<Cmd>Telescope keymaps<CR>", { desc = "Search keymaps" })
   api.nvim_create_autocmd("VimEnter", {
     group = group,
     callback = function()
       local ok, wk = pcall(require, "which-key")
-      if ok then wk.add({ { "<leader>m", group = "mux" }, { "<leader>a", group = "agents" } }) end
+      if ok then wk.add({ { "<leader>m", group = "mux" } }) end
     end,
   })
 end
