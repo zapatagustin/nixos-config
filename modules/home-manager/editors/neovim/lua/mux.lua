@@ -16,6 +16,10 @@ if vim.g.mux then
   local api, fn = vim.api, vim.fn
   local M = { st = {}, rows = {}, last = {} }
   _G.Mux = M
+  -- The config this server loaded. `vdev` compares it with the current one: a
+  -- server that outlives a rebuild keeps running the old code.
+  -- ($MYVIMRC is not set yet while the config is being sourced.)
+  M.init = vim.uv.fs_realpath(fn.stdpath("config") .. "/init.lua") or ""
   local group = api.nvim_create_augroup("mux", {})
   local function now() return vim.uv.hrtime() / 1e6 end
 
@@ -273,6 +277,22 @@ if vim.g.mux then
     if tabs[n] then api.nvim_set_current_tabpage(tabs[n]) end
   end
 
+  -- Sends the focused window to tab `n` of the space and stays here, as a
+  -- window manager moves a window to another workspace. One past the last tab
+  -- makes a new one.
+  function M.send(n)
+    local buf, win, here = api.nvim_get_current_buf(), api.nvim_get_current_win(), api.nvim_get_current_tabpage()
+    local tabs = space_tabs(vim.t.mux_dir)
+    if buf == M.side or buf == M.dash or tabs[n] == here or n > #tabs + 1 then return end
+    if #stack_wins(here) == 1 then api.nvim_win_set_buf(win, start_screen()) else api.nvim_win_close(win, false) end
+    if tabs[n] then api.nvim_set_current_tabpage(tabs[n]) else M.tab() end
+    place()
+    api.nvim_set_current_buf(buf)
+    api.nvim_set_current_tabpage(here)
+    vim.cmd("stopinsert")
+    render()
+  end
+
   -- The window indicators: the tabs of the current space, numbered as <M-1>..
   -- <M-9> take them, each named after what it shows, with "!" while an agent
   -- in it is blocked and "*" while one is done.
@@ -437,6 +457,9 @@ if vim.g.mux then
   map("n", "<leader>mw", M.jump, { desc = "Agent waiting for input" })
   map("n", "<leader>ms", M.sidebar, { desc = "Agents panel (toggle)" })
   map("n", "<leader>mc", function() M.tab() end, { desc = "New tab in this space" })
+  for i = 1, 9 do
+    map("n", "<leader>m" .. i, function() M.send(i) end, { desc = "Send window to tab " .. i })
+  end
   map("n", "<leader>mn", M.notes, { desc = "Notes" })
   map("n", "<leader>mt", M.shell, { desc = "Shell" })
   map("n", "<leader>md", "<Cmd>detach<CR>", { desc = "Detach (server keeps running)" })

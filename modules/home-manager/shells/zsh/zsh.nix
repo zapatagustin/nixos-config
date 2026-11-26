@@ -148,6 +148,15 @@
             sleep 0.1
           done
         fi
+        # A server that outlived a rebuild still runs the config it started with.
+        local init="''${XDG_CONFIG_HOME:-$HOME/.config}/nvim/init.lua"
+        # </dev/null: with a terminal on stdin the client's output is not only the value.
+        if [[ "$(nvim --server "$sock" --remote-expr 'luaeval("Mux.init")' </dev/null 2>/dev/null)" != "''${init:A}" ]]; then
+          echo "vdev: the running server was started before the last rebuild and has the old config." >&2
+          echo "      :qa! inside it loads the new one, and stops its agents." >&2
+          read -q "?      Attach to it anyway? [y/N] " || { echo; return 1; }
+          echo
+        fi
         nvim --server "$sock" --remote-expr "$open" >/dev/null && nvim --server "$sock" --remote-ui
       }
 

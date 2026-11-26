@@ -150,6 +150,22 @@ Mux.open(a)
 assert(api.nvim_tabpage_get_number(0) == 1, "returning to a space did not land on the tab it was left on")
 ok("several-tabs-per-space-with-tabline-and-switching")
 
+-- Sending a window to another tab of the space, as a window manager would:
+-- it moves, you stay. One past the last tab makes a new one.
+api.nvim_set_current_win(fn.win_findbuf(probe)[1])
+local before = #stack()
+Mux.send(2)
+assert(api.nvim_tabpage_get_number(0) == 1 and #stack() == before - 1, "send did not take the window away and stay here")
+assert(#fn.win_findbuf(probe) == 1 and api.nvim_win_get_tabpage(fn.win_findbuf(probe)[1]) == tab2, "the window is not in tab 2")
+assert(Mux.st[probe] and has("   probe    "), "the agent did not survive the move")
+Mux.send(9) -- neither an existing tab nor the next one
+assert(#stack() == before - 1 and #api.nvim_list_tabpages() == 3, "send to a tab that cannot exist did something")
+api.nvim_set_current_win(fn.win_findbuf(claude_a)[1])
+Mux.send(3)
+assert(#api.nvim_list_tabpages() == 4 and api.nvim_tabpage_get_number(0) == 1 and vim.t[api.nvim_win_get_tabpage(fn.win_findbuf(claude_a)[1])].mux_dir == a, "send to the next number did not make a new tab of the space")
+assert(type(Mux.init) == "string", "the server does not record the config it loaded")
+ok("send-window-to-another-tab-and-stay")
+
 -- The panel opens and closes with one call, like the file tree; keys are
 -- <leader> or Alt chords only.
 Mux.sidebar()
