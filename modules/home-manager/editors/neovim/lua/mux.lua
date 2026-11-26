@@ -6,15 +6,17 @@
 -- --remote-ui, so the agents keep running after :detach or a closed terminal.
 --
 -- The agents are the point, not the editor. One tabpage per project (a
--- "space"). Each has the sidebar on the left, which lists every space with its
--- agents and what they are doing, and a stack on the right: it starts as the
--- start screen, and claude, omp and the notes file open in it side by side
--- at equal widths. A space can have several tabs, for when it runs more
--- agents than fit on one screen; the tabline lists the tabs of the current
--- space. The rest is stock vim: CTRL-W, :split, :q.
+-- "space"). Each has a stack: it starts as the start screen, and claude, omp
+-- and the notes file open in it as windows do in Hyprland's dwindle layout
+-- (see place()). <leader>ms shows the sidebar on the left of a tab, which
+-- lists every space with its agents and what they are doing, with lazygit
+-- under it in a git repository; it starts hidden. A space can have several
+-- tabs, for when it runs more agents than fit on one screen; the tabline
+-- lists the tabs of the current space. The rest is stock vim: CTRL-W,
+-- :split, :q.
 if vim.g.mux then
   local api, fn = vim.api, vim.fn
-  local M = { st = {}, rows = {}, last = {} }
+  local M = { st = {}, rows = {}, last = {}, git = {} }
   _G.Mux = M
   -- The config this server loaded. `vdev` compares it with the current one: a
   -- server that outlives a rebuild keeps running the old code.
@@ -29,10 +31,12 @@ if vim.g.mux then
   api.nvim_buf_set_name(M.side, "agents")
   vim.bo[M.side].filetype = "mux"
 
-  -- Windows of a tabpage's stack: everything but the sidebar and floats.
+  -- Windows of a tabpage's stack: everything but the sidebar (the agents panel
+  -- and lazygit), the file tree and floats.
   local function stack_wins(tab)
     return vim.tbl_filter(function(w)
-      return api.nvim_win_get_buf(w) ~= M.side and api.nvim_win_get_config(w).relative == ""
+      local buf = api.nvim_win_get_buf(w)
+      return buf ~= M.side and not vim.b[buf].mux_git and vim.bo[buf].filetype ~= "NvimTree" and api.nvim_win_get_config(w).relative == ""
     end, api.nvim_tabpage_list_wins(tab))
   end
   -- The tabpages of a space, in order, and the one it was last seen on.
@@ -49,10 +53,18 @@ if vim.g.mux then
   end
 
   -- Puts the cursor in the stack window the next item goes in: the start screen
-  -- (or an unused empty buffer) is replaced, anything else gets a window
-  -- right of the last one. A stack closed down to nothing (:q on its last
-  -- window) starts again right of the panel.
+  -- (or an unused empty buffer) is replaced, anything else splits the last
+  -- window, the newest, as Hyprland's dwindle layout splits the focused one
+  -- along its longer side. On a landscape screen that alternates: the second
+  -- goes right of the first, the third below the second, the fourth right of
+  -- the third, and so on, each split halving the window it splits. A zoomed
+  -- tab (M.zoom) gets its sizes back first. A stack closed down to nothing
+  -- (:q on its last window beside the panel) starts again right of the panel.
+  -- ecomono: the direction comes from the window count, not the window's
+  -- shape, so a stack rearranged by hand (:q in the middle, CTRL-W) can split
+  -- the short way. Upgrade: compare width and height in pixels, as dwindle does.
   local function place()
+    if vim.t.mux_zoom then M.zoom() end
     local wins = stack_wins(0)
     if not wins[1] then
       vim.cmd("botright vnew")
@@ -66,7 +78,11 @@ if vim.g.mux then
     local buf = api.nvim_get_current_buf()
     local unused = fn.bufname(buf) == "" and vim.bo[buf].buftype == "" and not vim.bo[buf].modified
     if #wins > 1 or not (buf == M.dash or unused) then
-      vim.cmd("belowright vnew")
+      -- With a size, a split halves only the window it splits ('equalalways'
+      -- would even out every window of the tab).
+      local vert = #wins % 2 == 1
+      local half = math.floor((vert and api.nvim_win_get_width(0) or api.nvim_win_get_height(0)) / 2)
+      vim.cmd("belowright " .. half .. (vert and "vnew" or "new"))
     elseif buf == M.dash then
       vim.cmd("enew")
     end
@@ -87,6 +103,16 @@ if vim.g.mux then
     return (s.state == "done" or s.unseen) and "done" or "idle"
   end
 
+  -- The agents panel gets the lines of its list (one spare), lazygit under it
+  -- the rest of the sidebar.
+  local function fit()
+    for _, w in ipairs(fn.win_findbuf(M.side)) do
+      if api.nvim_win_call(w, function() return fn.winnr("j") ~= fn.winnr() end) then
+        api.nvim_win_set_height(w, api.nvim_buf_line_count(M.side) + 1)
+      end
+    end
+  end
+
   local function render()
     local lines, rows, seen, n = {}, {}, {}, 0
     for _, tab in ipairs(api.nvim_list_tabpages()) do
@@ -99,6 +125,15 @@ if vim.g.mux then
           if M.st[buf] and M.st[buf].dir == dir then
             lines[#lines + 1] = string.format("   %-8s %s", M.st[buf].name, M.status(buf))
             rows[#lines] = { buf = buf }
+            -- What it is doing: the title the program gives its terminal
+            -- (claude starts with "✳ Claude Code", omp with "π > <dir>"), on a
+            -- line of its own that the panel cuts at its width. Until a
+            -- program sets one, nvim reports the term:// name it started as.
+            local title = vim.b[buf].term_title or ""
+            if title ~= "" and not title:find("^term://") and title ~= M.st[buf].base then
+              lines[#lines + 1] = "     " .. title
+              rows[#lines] = { buf = buf }
+            end
           end
         end
       end
@@ -108,6 +143,7 @@ if vim.g.mux then
       vim.bo[M.side].modifiable = true
       api.nvim_buf_set_lines(M.side, 0, -1, false, lines)
       vim.bo[M.side].modifiable = false
+      fit()
     end
     vim.cmd("redrawtabline")
   end
@@ -122,11 +158,13 @@ if vim.g.mux then
       syntax match MuxDone /done$/
       syntax match MuxWorking /working$/
       syntax match MuxIdle /idle$/
+      syntax match MuxTitle /^     .*/
       highlight default link MuxSpace Title
       highlight default link MuxBlocked DiagnosticWarn
       highlight default link MuxDone DiagnosticOk
       highlight default link MuxWorking DiagnosticInfo
       highlight default link MuxIdle Comment
+      highlight default link MuxTitle Comment
     ]])
   end)
 
@@ -134,7 +172,7 @@ if vim.g.mux then
   -- h j k l move between windows and <CR> enters the focused one; inside a
   -- window they are vim's own keys again (scrolling an agent's output, moving
   -- in a file) until <Esc> in normal mode steps back out. The agents panel and
-  -- the file tree are lists: j and k always move in them.
+  -- the file tree are lists: j and k move in them up to their edges.
   M.nav = true
   local function set_nav(on)
     if M.nav == on then return end
@@ -252,20 +290,76 @@ if vim.g.mux then
     vim.cmd("startinsert")
   end
 
-  -- The agents panel. Like the file tree, the same call opens and closes it.
+  -- lazygit for 28 columns: the side panels stacked over the diff, nothing
+  -- that only fits a wide screen (command log, tips, footer, panel numbers).
+  -- ecomono: the user's own lazygit config is not read. Upgrade: put it first
+  -- in --use-config-file.
+  local LAZYGIT = {
+    "disableStartupPopups: true",
+    "gui:",
+    "  portraitMode: always",
+    "  showCommandLog: false",
+    "  showBottomLine: false",
+    "  showRandomTip: false",
+    "  showPanelJumps: false",
+  }
+
+  -- The sidebar: the agents panel and, in a git repository, lazygit under it.
+  -- Like the file tree, the same call opens and closes it, in the current tab
+  -- only: every tab starts without it. Showing or hiding it evens the stack
+  -- out ('equalalways'). Hidden, lazygit keeps running, one per space; quit
+  -- (q), it takes its window with it until the sidebar is shown again.
   function M.sidebar()
-    local win = vim.tbl_filter(function(w) return api.nvim_win_get_buf(w) == M.side end, api.nvim_tabpage_list_wins(0))[1]
-    if win then return api.nvim_win_close(win, false) end
+    local wins = api.nvim_tabpage_list_wins(0)
+    local win = vim.tbl_filter(function(w) return api.nvim_win_get_buf(w) == M.side end, wins)[1]
+    if win then
+      for _, w in ipairs(wins) do
+        if vim.b[api.nvim_win_get_buf(w)].mux_git then api.nvim_win_close(w, false) end
+      end
+      return api.nvim_win_close(win, false)
+    end
+    -- Both windows keep the column's width; a split does not copy it.
+    local function sidebar_win(cursorline)
+      for name, value in pairs({ winfixwidth = true, number = false, relativenumber = false, signcolumn = "no", wrap = false, cursorline = cursorline }) do
+        api.nvim_set_option_value(name, value, { win = 0, scope = "local" })
+      end
+    end
     vim.cmd("topleft vertical 28 split")
     api.nvim_win_set_buf(0, M.side)
-    for name, value in pairs({ winfixwidth = true, number = false, relativenumber = false, signcolumn = "no", wrap = false, cursorline = true }) do
-      api.nvim_set_option_value(name, value, { win = 0, scope = "local" })
+    sidebar_win(true)
+    local dir = vim.t.mux_dir
+    if dir and vim.fs.root(dir, ".git") then
+      local git = M.git[dir]
+      if git and api.nvim_buf_is_valid(git) then
+        vim.cmd("belowright sbuffer " .. git)
+      else
+        vim.cmd("belowright new")
+        git = api.nvim_get_current_buf()
+        M.git[dir] = git
+        local config = fn.tempname() .. ".yml"
+        fn.writefile(LAZYGIT, config)
+        fn.jobstart({ "lazygit", "--use-config-file", config }, {
+          term = true,
+          cwd = dir,
+          on_exit = vim.schedule_wrap(function()
+            if api.nvim_buf_is_valid(git) then api.nvim_buf_delete(git, { force = true }) end
+          end),
+        })
+        vim.b[git].mux_git = true
+        vim.bo[git].buflisted = false
+        pcall(api.nvim_buf_set_name, git, "lazygit " .. vim.fs.basename(dir))
+      end
+      sidebar_win(false)
+      vim.cmd("wincmd p")
+      vim.wo[0][0].winfixheight = true
+      fit()
     end
+    vim.cmd("wincmd =")
     vim.cmd("stopinsert")
   end
 
-  -- A new tab of space `dir` (default: the current space): the agents panel and
-  -- one stack window on the start screen. `reuse` takes the current tabpage.
+  -- A new tab of space `dir` (default: the current space): one stack window on
+  -- the start screen, without the agents panel. `reuse` takes the current tabpage.
   function M.tab(dir, reuse)
     dir = dir or vim.t.mux_dir or fn.getcwd(-1, 0)
     if not reuse then
@@ -275,8 +369,6 @@ if vim.g.mux then
     vim.cmd("tcd " .. fn.fnameescape(dir))
     vim.t.mux_dir = dir
     M.last[dir] = api.nvim_get_current_tabpage()
-    M.sidebar()
-    vim.cmd("wincmd p")
     render()
   end
 
@@ -295,7 +387,7 @@ if vim.g.mux then
   function M.send(n)
     local buf, win, here = api.nvim_get_current_buf(), api.nvim_get_current_win(), api.nvim_get_current_tabpage()
     local tabs = space_tabs(vim.t.mux_dir)
-    if buf == M.side or buf == M.dash or tabs[n] == here or n > #tabs + 1 then return end
+    if buf == M.side or vim.b[buf].mux_git or buf == M.dash or tabs[n] == here or n > #tabs + 1 then return end
     if #stack_wins(here) == 1 then api.nvim_win_set_buf(win, start_screen()) else api.nvim_win_close(win, false) end
     if tabs[n] then api.nvim_set_current_tabpage(tabs[n]) else M.tab() end
     place()
@@ -303,6 +395,31 @@ if vim.g.mux then
     api.nvim_set_current_tabpage(here)
     vim.cmd("stopinsert")
     render()
+  end
+
+  -- Hyprland's fullscreen for one window: the focused one takes the whole
+  -- stack (the sidebar and the file tree keep their width; lazygit, in the
+  -- sidebar, takes the whole tab) and the same call gives every window its
+  -- size back. Focus can move while zoomed. A window opened by place()
+  -- unzooms first; after one opened or closed some other way the exact sizes
+  -- no longer apply, so unzooming evens them out.
+  function M.zoom()
+    local wins = table.concat(vim.tbl_filter(function(w) return api.nvim_win_get_config(w).relative == "" end, api.nvim_tabpage_list_wins(0)), " ")
+    local zoom = vim.t.mux_zoom
+    if zoom then
+      vim.t.mux_zoom = nil
+      return vim.cmd(zoom.wins == wins and zoom.cmd or "wincmd =")
+    end
+    if api.nvim_get_current_buf() == M.side then return end
+    vim.t.mux_zoom = { cmd = fn.winrestcmd(), wins = wins }
+    local fixed, col = {}, api.nvim_win_get_position(0)[2]
+    for _, w in ipairs(api.nvim_tabpage_list_wins(0)) do
+      local c, width = api.nvim_win_get_position(w)[2], api.nvim_win_get_width(w)
+      if vim.wo[w].winfixwidth and not (c <= col and col < c + width) then fixed[w] = width end
+    end
+    vim.cmd("wincmd _ | wincmd |") -- takes from fixed-width windows too
+    -- Their width back, but for the column of the zoomed window (lazygit's).
+    for w, width in pairs(fixed) do api.nvim_win_set_width(w, width) end
   end
 
   -- The window indicators: the tabs of the current space, numbered as <M-1>..
@@ -334,8 +451,9 @@ if vim.g.mux then
   vim.o.tabline = "%!v:lua.Mux.tabline()"
 
   -- Entry point of `vdev`, through --remote-expr: the space of project `dir`,
-  -- created if missing. `spec` (letters c o v, optional) opens claude, omp and
-  -- the notes right away; without it the space starts on the start screen.
+  -- created if missing, without the agents panel (M.tab). `spec` (letters c o
+  -- v, optional) opens claude, omp and the notes right away; without it the
+  -- space starts on the start screen.
   function M.open(dir, spec)
     spec = spec or ""
     if not spec:match("^[vco]*$") then error("vdev: bad SPEC '" .. spec .. "' (letters v c o)") end
@@ -414,7 +532,7 @@ if vim.g.mux then
     group = group,
     callback = function(args)
       local win, prev = api.nvim_get_current_win(), fn.bufnr("#")
-      if not (M.st[prev] or prev == M.side) or api.nvim_buf_get_name(args.buf) == "" then return end
+      if not (M.st[prev] or prev == M.side or vim.b[prev].mux_git) or api.nvim_buf_get_name(args.buf) == "" then return end
       for _, w in ipairs(api.nvim_tabpage_list_wins(0)) do
         if api.nvim_win_get_buf(w) == prev then return end -- still shown here (a :split of it)
       end
@@ -433,6 +551,18 @@ if vim.g.mux then
         api.nvim_win_set_cursor(0, cursor)
         vim.cmd("stopinsert")
       end)
+    end,
+  })
+  -- The sidebar keeps its 28 columns, also after a :vsplit of one of its
+  -- windows is moved away (nvim-tree opens that way from the window it is
+  -- started in): with lazygit under the panel, vim widens their column for it.
+  api.nvim_create_autocmd("WinResized", {
+    group = group,
+    callback = function()
+      if vim.t.mux_zoom then return end
+      for _, w in ipairs(api.nvim_tabpage_list_wins(0)) do
+        if api.nvim_win_get_buf(w) == M.side and api.nvim_win_get_width(w) ~= 28 then api.nvim_win_set_width(w, 28) end
+      end
     end,
   })
   -- Typing anywhere means you are inside that window.
@@ -470,12 +600,14 @@ if vim.g.mux then
     if not row then return end
     if row.buf then focus(row.buf) else api.nvim_set_current_tabpage(space_tab(row.dir)) end
   end, { buffer = M.side, desc = "Go to space or agent" })
-  -- The navigating level (see M.nav). In a list (the panel, the tree) only h
-  -- and l leave it sideways.
+  -- The navigating level (see M.nav). In a list (the panel, the tree) j and k
+  -- move in it and leave it only past its last or first line, as from the
+  -- panel down to lazygit.
   for _, key in ipairs({ "h", "j", "k", "l" }) do
     map("n", key, function()
       local list = api.nvim_get_current_buf() == M.side or vim.bo.filetype == "NvimTree"
-      return M.nav and not (list and (key == "j" or key == "k")) and "<Cmd>wincmd " .. key .. "<CR>" or key
+      local inside = key == "j" and fn.line(".") < fn.line("$") or key == "k" and fn.line(".") > 1
+      return M.nav and not (list and inside) and "<Cmd>wincmd " .. key .. "<CR>" or key
     end, { expr = true, desc = "Window " .. key .. " while navigating" })
   end
   map("n", "<CR>", function()
@@ -503,6 +635,10 @@ if vim.g.mux then
   for key, cmd in pairs({ H = "vertical resize -5", L = "vertical resize +5", J = split .. "resize +3 | endif", K = split .. "resize -3 | endif" }) do
     map({ "n", "t" }, "<M-" .. key .. ">", "<Cmd>" .. cmd .. "<CR>", { desc = "Resize window" })
   end
+  -- 'langmap' applies inside Alt chords (lua/keymaps.lua), so alt+f is on the
+  -- physical F key, the one Hyprland's super+f uses.
+  map({ "n", "t" }, "<M-f>", M.zoom, { desc = "Zoom window (toggle)" })
+  map("n", "<leader>mf", M.zoom, { desc = "Zoom window (toggle)" })
   map("n", "<leader>mw", M.jump, { desc = "Agent waiting for input" })
   map("n", "<leader>ms", M.sidebar, { desc = "Agents panel (toggle)" })
   map("n", "<leader>mc", function() M.tab() end, { desc = "New tab in this space" })

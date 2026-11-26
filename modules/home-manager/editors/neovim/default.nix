@@ -41,6 +41,8 @@ in
       prettier
       # startup pokemon sprite (lua/pokemon.lua)
       krabby
+      # git in the sidebar of `vdev` (lua/mux.lua)
+      lazygit
     ];
 
     plugins = with pkgs.vimPlugins; [
