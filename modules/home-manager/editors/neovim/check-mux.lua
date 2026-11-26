@@ -45,11 +45,25 @@ assert(#stack() == 1 and api.nvim_get_current_win() == stack()[1], "the stack is
 assert(next(Mux.st) == nil and has(">1 a"), "a new space started an agent or is not listed: " .. sidebar_text())
 ok("open-shows-sidebar-and-start-window-without-agents")
 
+-- Navigating: plain hjkl move between windows until <CR> enters one, and
+-- <Esc> steps back out. In the panel j and k stay list motions.
+local function press(lhs) return fn.maparg(lhs, "n", false, true).callback() end
+assert(Mux.nav == true and press("h"):find("wincmd h") and press("j"):find("wincmd j"), "a new mux does not start navigating")
+press("<CR>")
+assert(Mux.nav == false and press("h") == "h" and press("<CR>") == "<CR>", "enter did not hand the keys back to vim")
+press("<Esc>")
+assert(Mux.nav == true and Mux.tabline():find(" NAV ", 1, true), "escape did not step back out, or the tabline does not say so")
+api.nvim_set_current_win(side)
+assert(press("j") == "j" and press("k") == "k" and press("l"):find("wincmd l"), "the panel does not keep j and k as list motions")
+api.nvim_set_current_win(stack()[1])
+ok("navigate-with-hjkl-enter-and-escape")
+
 -- Launching: the first item takes the start window, the next ones stack below
 -- at equal heights.
 vim.cmd("ClaudeCode")
 local claude_a = api.nvim_get_current_buf()
 assert(#stack() == 1 and Mux.st[claude_a].name == "claude" and Mux.claude.get_active_bufnr() == claude_a, "claude did not take the start window")
+assert(Mux.nav == false, "launching an agent did not put you inside it")
 local probe = Mux.agent("probe", { "sh", "-c", 'echo "$MUX_BUF" >"$0/buf"; pwd >"$0/pwd"; sleep 1002', tmp })
 wait("probe output", function() return fn.filereadable(tmp .. "/pwd") == 1 end)
 assert(fn.readfile(tmp .. "/buf")[1] == tostring(probe), "MUX_BUF is not the terminal's buffer")

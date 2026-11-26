@@ -116,8 +116,21 @@ if vim.g.mux then
     ]])
   end)
 
+  -- Two levels, as in a window manager. While navigating (M.nav) the plain
+  -- h j k l move between windows and <CR> enters the focused one; inside a
+  -- window they are vim's own keys again (scrolling an agent's output, moving
+  -- in a file) until <Esc> in normal mode steps back out. The agents panel and
+  -- the file tree are lists: j and k always move in them.
+  M.nav = true
+  local function set_nav(on)
+    if M.nav == on then return end
+    M.nav = on
+    vim.schedule(function() vim.cmd("redrawtabline") end)
+  end
+
   -- Goes to an agent: its window if it has one, else a new one in its space.
   local function focus(buf)
+    set_nav(false)
     local win = fn.win_findbuf(buf)[1]
     if win then return api.nvim_set_current_win(win) end -- also switches tabpage
     local tab = space_tab(M.st[buf].dir)
@@ -129,6 +142,7 @@ if vim.g.mux then
   -- Starts `cmd` as an agent of the current space, in the stack, and returns
   -- its buffer. $MUX_BUF tells the agent's hooks which buffer to flag (M.signal).
   function M.agent(name, cmd, env)
+    set_nav(false)
     place()
     local buf = api.nvim_get_current_buf()
     local dir = vim.t.mux_dir or fn.getcwd(-1, 0)
@@ -203,6 +217,7 @@ if vim.g.mux then
   -- The notes file of the current space, in the stack.
   -- ecomono: one fixed name per space. Upgrade: vim.g.mux_notes per project.
   function M.notes()
+    set_nav(false)
     local file = fn.fnamemodify(vim.g.mux_notes or "todo.md", ":p")
     local win = fn.win_findbuf(fn.bufnr(file))[1]
     if win and api.nvim_win_get_tabpage(win) == api.nvim_get_current_tabpage() then
@@ -215,6 +230,7 @@ if vim.g.mux then
   end
 
   function M.shell()
+    set_nav(false)
     place()
     vim.cmd("terminal")
     vim.cmd("startinsert")
@@ -281,7 +297,7 @@ if vim.g.mux then
       parts[#parts + 1] = (tab == api.nvim_get_current_tabpage() and "%#TabLineSel#" or "%#TabLine#")
         .. " " .. i .. " " .. (names[1] and table.concat(names, " + ") or "-") .. mark .. " "
     end
-    return table.concat(parts) .. "%#TabLineFill#"
+    return table.concat(parts) .. "%#TabLineFill#%=" .. (M.nav and "%#TabLineSel# NAV " or "")
   end
   vim.o.tabline = "%!v:lua.Mux.tabline()"
 
@@ -342,17 +358,20 @@ if vim.g.mux then
     get_active_bufnr = claude_buf,
   }
 
-  -- Visiting an agent types into it and marks it seen.
+  -- Visiting an agent marks it seen and, unless you are only passing over it
+  -- while navigating, types into it.
   api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
     group = group,
     callback = function()
       local s = M.st[api.nvim_get_current_buf()]
       if not s then return end
       s.state, s.unseen, s.since = nil, false, nil
-      vim.cmd("startinsert")
+      if not M.nav then vim.cmd("startinsert") end
       render()
     end,
   })
+  -- Typing anywhere means you are inside that window.
+  api.nvim_create_autocmd({ "TermEnter", "InsertEnter" }, { group = group, callback = function() set_nav(false) end })
   api.nvim_create_autocmd({ "TabEnter", "TabClosed" }, {
     group = group,
     callback = function()
@@ -386,6 +405,23 @@ if vim.g.mux then
     if not row then return end
     if row.buf then focus(row.buf) else api.nvim_set_current_tabpage(space_tab(row.dir)) end
   end, { buffer = M.side, desc = "Go to space or agent" })
+  -- The navigating level (see M.nav). In a list (the panel, the tree) only h
+  -- and l leave it sideways.
+  for _, key in ipairs({ "h", "j", "k", "l" }) do
+    map("n", key, function()
+      local list = api.nvim_get_current_buf() == M.side or vim.bo.filetype == "NvimTree"
+      return M.nav and not (list and (key == "j" or key == "k")) and "<Cmd>wincmd " .. key .. "<CR>" or key
+    end, { expr = true, desc = "Window " .. key .. " while navigating" })
+  end
+  map("n", "<CR>", function()
+    if not M.nav then return "<CR>" end
+    set_nav(false)
+    return ""
+  end, { expr = true, desc = "Enter the window while navigating" })
+  map("n", "<Esc>", function()
+    set_nav(true)
+    return "<Esc>"
+  end, { expr = true, desc = "Back to navigating between windows" })
   map({ "n", "t" }, "<M-a>", M.jump, { desc = "Agent waiting for input" })
   for i = 1, 9 do
     map({ "n", "t" }, "<M-" .. i .. ">", function() M.go(i) end, { desc = "Tab " .. i .. " of this space" })
