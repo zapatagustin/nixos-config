@@ -367,10 +367,12 @@ in
 
       -- workspace/group binds call scripts via `bash` so no exec-bit is needed on store files.
       -- `desc` is the cheat-sheet wording; the slot number is appended per iteration, so the
-      -- 36 rows read "Focus desktop 3 on this monitor" and friends.
+      -- 27 rows read "Focus desktop 3 on this monitor" and friends.
       for _, s in ipairs({
           { mods = mainMod,               script = "switch-monitor.sh",    desc = "Focus desktop %d on this monitor" },
-          { mods = "ALT",                 script = "switch-group.sh",      desc = "Focus desktop %d on all monitors" },
+          -- disabled: unused, and ALT + 1..9 is left to the terminal (herdr and nvim's
+          -- `vdev` switch tabs with it).
+          -- { mods = "ALT",                 script = "switch-group.sh",      desc = "Focus desktop %d on all monitors" },
           { mods = mainMod .. " + SHIFT", script = "move-to-group.sh",     desc = "Move window to desktop %d" },
           { mods = "ALT + SHIFT",         script = "move-all-to-group.sh", desc = "Move all windows to desktop %d" },
       }) do
