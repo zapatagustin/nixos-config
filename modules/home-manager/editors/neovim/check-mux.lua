@@ -219,5 +219,47 @@ assert(went, "enter on the row of an agent without a window: " .. tostring(err))
 assert(api.nvim_get_current_buf() == busy and #stack() == 1 and api.nvim_win_get_width(panel()) == 28, "the agent is not back right of a 28-column panel")
 ok("a-panel-row-reaches-its-agent-after-the-stack-was-closed")
 
+-- <leader>fb lists the files of this space (telescope stubbed: not loaded
+-- here) and no agents; the empty buffer the start screen replaces is gone.
+local picked
+package.loaded["telescope.builtin"] = { buffers = function(opts) picked = opts end }
+fn.maparg("<leader>fb", "n", false, true).callback()
+assert(picked and picked.cwd == c and not vim.bo[busy].buflisted, "fb does not list only this space's files: " .. vim.inspect(picked))
+vim.cmd("tabnew")
+local replaced = api.nvim_get_current_buf()
+fn.mkdir(tmp .. "/bin", "p")
+fn.writefile({ "#!/bin/sh", "echo sprite" }, tmp .. "/bin/krabby")
+fn.setfperm(tmp .. "/bin/krabby", "rwxr-xr-x")
+vim.env.PATH = tmp .. "/bin:" .. vim.env.PATH
+dofile(here .. "/lua/pokemon.lua")
+api.nvim_exec_autocmds("VimEnter", {})
+assert(vim.bo.buftype == "terminal" and not api.nvim_buf_is_valid(replaced), "the buffer the start screen replaced is still there")
+vim.cmd("tabclose")
+ok("fb-lists-only-this-spaces-files-and-no-leftover-empty-buffer")
+
+-- A file opened over an agent that the stack already shows is gone to, as
+-- the notes are: the buffer list offers the files that are open.
+local notes_txt = c .. "/notes.txt"
+api.nvim_set_current_win(fn.win_findbuf(busy)[1])
+vim.cmd("stopinsert | edit " .. fn.fnameescape(notes_txt))
+wait("the file to stack", function() return #fn.win_findbuf(busy) == 1 and #stack() == 2 end)
+api.nvim_set_current_win(fn.win_findbuf(busy)[1])
+vim.cmd("stopinsert | edit " .. fn.fnameescape(notes_txt))
+wait("the agent to get its window back", function() return #fn.win_findbuf(busy) == 1 and api.nvim_buf_get_name(0) == notes_txt end)
+assert(#stack() == 2, "a file the stack already shows got a second window")
+ok("a-file-already-in-the-stack-is-gone-to-not-opened-twice")
+
+-- Entering an agent types into it only if the window still shows it: the
+-- file tree splits the agent's window, then puts its own buffer in the split.
+local child = fn.jobstart({ vim.v.progpath, "--embed", "--headless", "-u", "NONE", "--cmd", "let g:mux = 1" }, { rpc = true })
+fn.rpcrequest(child, "nvim_command", "luafile " .. fn.fnameescape(here .. "/lua/mux.lua"))
+fn.rpcrequest(child, "nvim_exec_lua", "Mux.open(...) Mux.agent('sleeper', { 'sleep', '1008' })", { c })
+fn.rpcrequest(child, "nvim_input", "<C-\\><C-n>:topleft vsplit | enew<CR>")
+vim.wait(300)
+local mode = fn.rpcrequest(child, "nvim_get_mode").mode
+fn.jobstop(child)
+assert(mode == "n", "a split of an agent's window that shows something else is in mode " .. mode)
+ok("no-insert-mode-in-a-split-that-stops-showing-the-agent")
+
 io.stdout:write("all checks passed\n")
 vim.cmd("qa!")

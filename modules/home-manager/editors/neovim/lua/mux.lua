@@ -195,6 +195,8 @@ if vim.g.mux then
     -- The folded window's status line is the item's title.
     local title = s.name .. " " .. vim.fs.basename(dir)
     if not pcall(api.nvim_buf_set_name, buf, title) then pcall(api.nvim_buf_set_name, buf, title .. " #" .. buf) end
+    -- Reached through the panel and <M-a>, not the buffer list (<leader>fb).
+    vim.bo[buf].buflisted = false
     vim.cmd("startinsert")
     render()
     return buf
@@ -389,14 +391,19 @@ if vim.g.mux then
   }
 
   -- Visiting an agent marks it seen and, unless you are only passing over it
-  -- while navigating, types into it.
+  -- while navigating, types into it. Typing starts later, and only if the
+  -- agent is still there: the file tree splits an agent's window and then
+  -- puts its own buffer in the split.
   api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
     group = group,
     callback = function()
-      local s = M.st[api.nvim_get_current_buf()]
+      local buf = api.nvim_get_current_buf()
+      local s = M.st[buf]
       if not s then return end
       s.state, s.unseen, s.since = nil, false, nil
-      if not M.nav then vim.cmd("startinsert") end
+      vim.schedule(function()
+        if not M.nav and api.nvim_get_current_buf() == buf then vim.cmd("startinsert") end
+      end)
       render()
     end,
   })
@@ -415,8 +422,14 @@ if vim.g.mux then
         if not (api.nvim_win_is_valid(win) and api.nvim_win_get_buf(win) == args.buf and api.nvim_buf_is_valid(prev)) then return end
         local cursor = api.nvim_win_get_cursor(win)
         api.nvim_win_set_buf(win, prev)
-        place()
-        api.nvim_set_current_buf(args.buf)
+        -- Already in this stack: go there, as the notes do.
+        local shown = vim.tbl_filter(function(w) return api.nvim_win_get_buf(w) == args.buf end, api.nvim_tabpage_list_wins(0))[1]
+        if shown then
+          api.nvim_set_current_win(shown)
+        else
+          place()
+          api.nvim_set_current_buf(args.buf)
+        end
         api.nvim_win_set_cursor(0, cursor)
         vim.cmd("stopinsert")
       end)
@@ -496,6 +509,8 @@ if vim.g.mux then
   map("n", "<leader>mt", M.shell, { desc = "Shell" })
   map("n", "<leader>md", "<Cmd>detach<CR>", { desc = "Detach (server keeps running)" })
   map("n", "<leader>mk", "<Cmd>Telescope keymaps<CR>", { desc = "Search keymaps" })
+  -- The buffers of this space: the files under its directory (agents are unlisted).
+  map("n", "<leader>fb", function() require("telescope.builtin").buffers({ cwd = vim.t.mux_dir }) end, { desc = "Buffers of this space" })
   api.nvim_create_autocmd("VimEnter", {
     group = group,
     callback = function()
