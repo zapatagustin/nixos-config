@@ -8,8 +8,8 @@
 -- The agents are the point, not the editor. One tabpage per project (a
 -- "space"). Each has the sidebar on the left, which lists every space with its
 -- agents and what they are doing, and a stack on the right: it starts as the
--- start screen, and claude, omp and the notes file open in it one above the
--- other at equal heights. A space can have several tabs, for when it runs more
+-- start screen, and claude, omp and the notes file open in it side by side
+-- at equal widths. A space can have several tabs, for when it runs more
 -- agents than fit on one screen; the tabline lists the tabs of the current
 -- space. The rest is stock vim: CTRL-W, :split, :q.
 if vim.g.mux then
@@ -49,9 +49,9 @@ if vim.g.mux then
   end
 
   -- Puts the cursor in the stack window the next item goes in: the start screen
-  -- (or an unused empty buffer) is replaced, anything else gets a window below.
-  -- A stack closed down to nothing (:q on its last window) starts again right
-  -- of the panel.
+  -- (or an unused empty buffer) is replaced, anything else gets a window
+  -- right of the last one. A stack closed down to nothing (:q on its last
+  -- window) starts again right of the panel.
   local function place()
     local wins = stack_wins(0)
     if not wins[1] then
@@ -66,7 +66,7 @@ if vim.g.mux then
     local buf = api.nvim_get_current_buf()
     local unused = fn.bufname(buf) == "" and vim.bo[buf].buftype == "" and not vim.bo[buf].modified
     if #wins > 1 or not (buf == M.dash or unused) then
-      vim.cmd("belowright new")
+      vim.cmd("belowright vnew")
     elseif buf == M.dash then
       vim.cmd("enew")
     end
@@ -407,7 +407,7 @@ if vim.g.mux then
       render()
     end,
   })
-  -- A file opened over an agent or the panel goes in the stack below them, as
+  -- A file opened over an agent or the panel goes in the stack beside them, as
   -- the notes do: the file tree and the pickers :edit in the window they were
   -- started from. Later, so that they finish with that window first.
   api.nvim_create_autocmd("BufWinEnter", {
@@ -494,9 +494,13 @@ if vim.g.mux then
   map("n", "gt", function() M.go(nil, 1) end, { desc = "Next tab of this space" })
   map("n", "gT", function() M.go(nil, -1) end, { desc = "Previous tab of this space" })
   -- Resizing as a window manager does it: alt+shift+hjkl moves the right or
-  -- the bottom edge of the focused window. Opening or closing a window evens
-  -- the sizes out again ('equalalways').
-  for key, cmd in pairs({ H = "vertical resize -5", L = "vertical resize +5", J = "resize +3", K = "resize -3" }) do
+  -- the bottom edge of the focused window (the left or the top one of the
+  -- last window). Opening or closing a window evens the sizes out again
+  -- ('equalalways'). The stack is side by side, so J and K act only on a
+  -- window that shares its column (a :split): a full-height one would hand
+  -- the lines to the command line.
+  local split = "if winnr('j') != winnr() || winnr('k') != winnr() | "
+  for key, cmd in pairs({ H = "vertical resize -5", L = "vertical resize +5", J = split .. "resize +3 | endif", K = split .. "resize -3 | endif" }) do
     map({ "n", "t" }, "<M-" .. key .. ">", "<Cmd>" .. cmd .. "<CR>", { desc = "Resize window" })
   end
   map("n", "<leader>mw", M.jump, { desc = "Agent waiting for input" })

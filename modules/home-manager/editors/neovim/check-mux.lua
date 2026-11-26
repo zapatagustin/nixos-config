@@ -24,6 +24,11 @@ for _, f in ipairs({ "setup", "open", "close", "simple_toggle", "focus_toggle", 
 end
 ok("claude-provider-has-the-required-functions")
 
+-- The stack is side by side: at the headless 80 columns five windows are
+-- narrower than 'winwidth', so focusing one resizes the others, and the
+-- watcher ignores an agent's output for a second after a resize. The width of
+-- the E2E terminal instead.
+vim.o.columns = 160
 local tmp = fn.resolve(fn.tempname())
 local a, b, c = tmp .. "/a", tmp .. "/b b", tmp .. "/c"
 for _, dir in ipairs({ a, b, c }) do fn.mkdir(dir, "p") end
@@ -58,8 +63,8 @@ assert(press("j") == "j" and press("k") == "k" and press("l"):find("wincmd l"), 
 api.nvim_set_current_win(stack()[1])
 ok("navigate-with-hjkl-enter-and-escape")
 
--- Launching: the first item takes the start window, the next ones stack below
--- at equal heights.
+-- Launching: the first item takes the start window, the next ones stack side
+-- by side at equal widths; the panel keeps its 28 columns.
 vim.cmd("ClaudeCode")
 local claude_a = api.nvim_get_current_buf()
 assert(#stack() == 1 and Mux.st[claude_a].name == "claude" and Mux.claude.get_active_bufnr() == claude_a, "claude did not take the start window")
@@ -69,8 +74,10 @@ wait("probe output", function() return fn.filereadable(tmp .. "/pwd") == 1 end)
 assert(fn.readfile(tmp .. "/buf")[1] == tostring(probe), "MUX_BUF is not the terminal's buffer")
 assert(fn.readfile(tmp .. "/pwd")[1] == a, "agent did not start in the space's directory")
 local claude_win = fn.win_findbuf(claude_a)[1]
-assert(#stack() == 2 and api.nvim_win_get_position(0)[1] > api.nvim_win_get_position(claude_win)[1], "second item is not below the first")
-assert(math.abs(api.nvim_win_get_height(claude_win) - api.nvim_win_get_height(0)) <= 1 and api.nvim_win_get_height(0) > 3, "the two items are not the same height")
+assert(#stack() == 2 and api.nvim_win_get_position(0)[2] > api.nvim_win_get_position(claude_win)[2], "second item is not right of the first")
+-- Halves of what the 28-column panel leaves (one column per separator).
+local function halves(w1, w2) return math.abs(w1 - w2) <= 1 and w1 + w2 + 1 == vim.o.columns - 28 - 1 end
+assert(halves(api.nvim_win_get_width(claude_win), api.nvim_win_get_width(0)) and api.nvim_win_get_width(side) == 28, "the two items do not split the width beside a 28-column panel")
 Mux.notes()
 assert(#stack() == 3 and api.nvim_buf_get_name(0) == a .. "/todo.md" and Mux.st[api.nvim_get_current_buf()] == nil, "notes did not open in the stack")
 Mux.notes()
@@ -80,7 +87,7 @@ vim.cmd("ClaudeCode")
 assert(#stack() == 4 and Mux.st[api.nvim_get_current_buf()].name == "claude 2", "a second :ClaudeCode did not start claude 2")
 Mux.claude.open("sleep 1005", {})
 assert(#stack() == 4 and api.nvim_get_current_buf() == claude_a, "the provider's open() did not reuse the tab's claude")
-ok("launch-claude-agent-notes-stacked-at-equal-heights-and-a-second-claude")
+ok("launch-claude-agent-notes-side-by-side-at-equal-widths-and-a-second-claude")
 
 -- A second space (a directory with a space) with its own sidebar window.
 Mux.open(b, "c")
@@ -192,19 +199,19 @@ assert(Mux.st[gone] == nil and #stack() == 1 and #api.nvim_tabpage_list_wins(0) 
 assert(not has("gone"), "the exited agent is still listed")
 ok("agent-exit-leaves-and-the-stack-keeps-a-window")
 
--- A file opened over an agent or the panel goes in the stack below them: the
+-- A file opened over an agent or the panel goes in the stack beside them: the
 -- file tree and the pickers :edit in the window they were started from.
 local busy = Mux.agent("busy", { "sleep", "1007" })
 vim.cmd("stopinsert | edit " .. fn.fnameescape(c .. "/notes.txt"))
 wait("the agent to get its window back", function() return #fn.win_findbuf(busy) == 1 and #stack() == 2 end)
 local busy_win = fn.win_findbuf(busy)[1]
-assert(api.nvim_buf_get_name(0) == c .. "/notes.txt" and api.nvim_win_get_position(0)[1] > api.nvim_win_get_position(busy_win)[1], "the file is not below the agent")
-assert(math.abs(api.nvim_win_get_height(busy_win) - api.nvim_win_get_height(0)) <= 1, "the file and the agent are not the same height")
+assert(api.nvim_buf_get_name(0) == c .. "/notes.txt" and api.nvim_win_get_position(0)[2] > api.nvim_win_get_position(busy_win)[2], "the file is not right of the agent")
+assert(halves(api.nvim_win_get_width(busy_win), api.nvim_win_get_width(0)) and api.nvim_win_get_width(panel()) == 28, "the file and the agent do not split the width beside a 28-column panel")
 api.nvim_set_current_win(panel())
 vim.cmd("edit " .. fn.fnameescape(c .. "/other.txt"))
 wait("the panel to get its window back", function() return panel() ~= nil and #stack() == 3 end)
 assert(api.nvim_buf_get_name(0) == c .. "/other.txt" and #fn.win_findbuf(busy) == 1, "the file opened from the panel is not in the stack")
-ok("a-file-opened-over-an-agent-or-the-panel-stacks-below-them")
+ok("a-file-opened-over-an-agent-or-the-panel-stacks-beside-them")
 
 -- A panel row reaches its agent also when the stack was closed down to
 -- nothing (:q on its last window): it starts again right of the panel.
