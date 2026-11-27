@@ -117,6 +117,49 @@
         fi
       }
 
+      # PROTOTYPE, to compare with `dev`: neovim as the multiplexer (see
+      # editors/neovim/lua/mux.lua). `vdev` opens the space of the current
+      # directory in one long-lived headless nvim and attaches to it: a sidebar
+      # with every space and its agents, and the start screen to launch them
+      # from. `vdev cov` also opens claude (c), omp (o) and the notes (v) right
+      # away. :detach or closing the terminal leaves it all running. From a
+      # terminal inside that nvim it only opens the space.
+      vdev() {
+        local sock="''${XDG_RUNTIME_DIR:-/tmp}/nvim-mux.sock"
+        local spec=''${1:-}
+        if [[ ! "$spec" =~ '^[vco]*$' ]]; then
+          echo "usage: vdev [SPEC]   SPEC = letters c o v (claude, omp, notes)" >&2
+          return 2
+        fi
+        # A vim string: a single quote inside it is written twice.
+        local q="'"
+        local dir=''${PWD//$q/$q$q}
+        local open="v:lua.Mux.open('$dir', '$spec')"
+        if [[ "$NVIM" == "$sock" ]]; then
+          nvim --server "$sock" --remote-expr "$open" >/dev/null
+          return
+        fi
+        if ! nvim --server "$sock" --remote-expr 1 >/dev/null 2>&1; then
+          # Its own session, like the herdr server: it must outlive this terminal.
+          rm -f "$sock"
+          setsid -f nvim --headless --listen "$sock" --cmd 'let g:mux = 1' >/dev/null 2>&1 </dev/null
+          repeat 50; do
+            nvim --server "$sock" --remote-expr 1 >/dev/null 2>&1 && break
+            sleep 0.1
+          done
+        fi
+        # A server that outlived a rebuild still runs the config it started with.
+        local init="''${XDG_CONFIG_HOME:-$HOME/.config}/nvim/init.lua"
+        # </dev/null: with a terminal on stdin the client's output is not only the value.
+        if [[ "$(nvim --server "$sock" --remote-expr 'luaeval("Mux.init")' </dev/null 2>/dev/null)" != "''${init:A}" ]]; then
+          echo "vdev: the running server was started before the last rebuild and has the old config." >&2
+          echo "      :qa! inside it loads the new one, and stops its agents." >&2
+          read -q "?      Attach to it anyway? [y/N] " || { echo; return 1; }
+          echo
+        fi
+        nvim --server "$sock" --remote-expr "$open" >/dev/null && nvim --server "$sock" --remote-ui
+      }
+
       ZSH_AUTOSUGGEST_STRATEGY=(history match_prev_cmd completion)
       ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=180'
 

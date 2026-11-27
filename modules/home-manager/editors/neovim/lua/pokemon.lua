@@ -41,8 +41,12 @@ vim.api.nvim_create_autocmd("VimEnter", {
       lines[#lines + 1] = ipad .. "\27[90m" .. l .. "\27[0m"
     end
 
+    local replaced = vim.api.nvim_get_current_buf()
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_win_set_buf(0, buf)
+    -- Under `vdev` (lua/mux.lua) the empty buffer this replaces would stay
+    -- listed for the server's lifetime, a pick in <leader>fb that opens nothing.
+    if vim.g.mux then vim.api.nvim_buf_delete(replaced, {}) end
     -- no line numbers / signcolumn on the start screen
     vim.wo.number = false
     vim.wo.relativenumber = false

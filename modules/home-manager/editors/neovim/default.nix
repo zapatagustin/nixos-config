@@ -41,6 +41,8 @@ in
       prettier
       # startup pokemon sprite (lua/pokemon.lua)
       krabby
+      # git in the sidebar of `vdev` (lua/mux.lua)
+      lazygit
     ];
 
     plugins = with pkgs.vimPlugins; [
@@ -150,7 +152,62 @@ in
       {
         plugin = which-key-nvim;
         type = "lua";
-        config = ''require("which-key").setup()'';
+        # Group names: without one a prefix shows as "+N keymaps".
+        config = ''
+          require("which-key").setup()
+          require("which-key").add({
+            { "<leader>f", group = "find" },
+            { "<leader>a", group = "agents" },
+            { "<leader>o", group = "org" },
+          })
+          -- After a trigger (<leader>, g, z, ...) which-key reads the next keys itself
+          -- with getcharstr(), which skips 'langmap', and replays a miss as typed keys
+          -- while 'timeoutlen' runs again: with the Dvorak langmap (lua/options.lua)
+          -- physical <leader>ff or gg missed whenever the popup was up. So the keys it
+          -- reads go through 'langmap' here, and it feeds them back as not typed, which
+          -- 'nolangremap' then leaves alone instead of translating them twice.
+          -- Cost: this overrides two internals (state.getchar, state.execute), not API.
+          -- If an update changes the lines it relies on, which-key is left untouched
+          -- with a warning, and check-langmap.lua (flake check nvim-which-key-langmap)
+          -- fails. Only the "ab,cd" pairs form of 'langmap' is parsed.
+          local function langmap_which_key()
+            if vim.o.langmap == "" or vim.o.langremap then return end
+            local S = require("which-key.state")
+            local ok, src = pcall(function()
+              return table.concat(vim.fn.readfile(debug.getinfo(S.execute, "S").source:sub(2)), "\n")
+            end)
+            for _, line in ipairs({
+              "local ok, char = M.getchar()",
+              "return pcall(vim.fn.getcharstr)",
+              "M.execute(state, key, node)",
+              'vim.api.nvim_feedkeys(feed, "mit", false)',
+            }) do
+              if not (ok and src:find(line, 1, true)) then
+                return vim.notify("which-key internals changed: 'langmap' fix not applied (see neovim/default.nix)",
+                  vim.log.levels.WARN)
+              end
+            end
+            local lm = {}
+            -- split at "," not preceded by "\" (vim.opt.langmap:get() splits "\,w" apart)
+            for _, item in ipairs(vim.fn.split(vim.o.langmap, [[[^\\]\zs,]])) do
+              local s = item:gsub("\\(.)", "%1")
+              lm[s:sub(1, 1)] = s:sub(2, 2)
+            end
+            local getchar, execute, feedkeys = S.getchar, S.execute, vim.api.nvim_feedkeys
+            S.getchar = function()
+              local got, c = getchar()
+              return got, got and lm[c] or c
+            end
+            S.execute = function(...)
+              vim.api.nvim_feedkeys = function(k, m, e) return feedkeys(k, (m:gsub("t", "")), e) end
+              local done, r = pcall(execute, ...)
+              vim.api.nvim_feedkeys = feedkeys
+              if not done then error(r, 0) end
+              return r
+            end
+          end
+          langmap_which_key()
+        '';
       }
       {
         plugin = nvim-tree-lua;
@@ -236,7 +293,8 @@ in
           require("claudecode").setup({
             terminal_cmd = "claude --dangerously-skip-permissions", -- same as the `cl` alias
             terminal = {
-              provider = "external",
+              -- Mux exists only under `vdev` (lua/mux.lua): claude in its stack.
+              provider = Mux and Mux.claude or "external",
               provider_opts = {
                 external_terminal_cmd = function(cmd, env)
                   -- ecomono: splitting on single spaces means a quoted or
@@ -283,6 +341,7 @@ in
       ${luaFile "options.lua"}
       ${luaFile "keymaps.lua"}
       ${luaFile "pokemon.lua"}
+      ${luaFile "mux.lua"}
     '';
   };
 }

@@ -17,11 +17,12 @@ nh os boot .                                  # activate on next boot only
 
 There are no unit tests. Validation is `nix flake check` + a build.
 
-`nix flake check` runs thirteen checks (`checks.x86_64-linux`): five on the generated
+`nix flake check` runs fourteen checks (`checks.x86_64-linux`): five on the generated
 output (`hyprland-lua-{surface,thinkpad,desktop}` via the real `--verify-config`,
 `quickshell-bar-qmllint`, `quickshell-bar-qmldir`), five on the source
 (`nixpkgs-fmt`, `statix`, `deadnix`, `hypr-scripts-shellcheck`, `repo-lint`) and
-three behavioural (`get-binds-transform`, `brightness-exponent-{surface,thinkpad}`).
+four behavioural (`get-binds-transform`, `brightness-exponent-{surface,thinkpad}`,
+`nvim-which-key-langmap`: physical Dvorak keys through which-key on the built nvim).
 Each was verified to actually FAIL when its target breaks — a gate that cannot
 fail is worse than no gate. The desktop has one theme, `dither`, so there is no
 per-theme check.

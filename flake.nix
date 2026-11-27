@@ -454,6 +454,25 @@
           echo "ok" > $out
         '';
 
+      # The which-key 'langmap' fix in editors/neovim/default.nix overrides two
+      # which-key internals; a plugin update can break it. Runs the BUILT nvim config
+      # (real which-key, real langmap) in a child nvim fed keys over RPC, no pty.
+      # The neovim HM module is shared, so one host covers every host.
+      nvimWhichKeyLangmap =
+        let
+          hmCfg = nixosConfigurations.surface.config.home-manager.users.surface;
+        in
+        pkgs.runCommand "nvim-which-key-langmap"
+          { nativeBuildInputs = [ hmCfg.programs.neovim.finalPackage ]; } ''
+          export HOME=$TMPDIR XDG_CONFIG_HOME=$TMPDIR/cfg XDG_DATA_HOME=$TMPDIR/data
+          export XDG_STATE_HOME=$TMPDIR/state XDG_CACHE_HOME=$TMPDIR/cache
+          mkdir -p $XDG_CONFIG_HOME/nvim $XDG_DATA_HOME/nvim/site/pack
+          ln -s ${hmCfg.xdg.configFile."nvim/init.lua".source} $XDG_CONFIG_HOME/nvim/init.lua
+          ln -s ${hmCfg.xdg.dataFile."nvim/site/pack/hm".source} $XDG_DATA_HOME/nvim/site/pack/hm
+          set -o pipefail # tee must not mask the check's exit code
+          nvim --headless -u NONE -l ${./modules/home-manager/editors/neovim/check-langmap.lua} 2>&1 | tee $out
+        '';
+
       # The brightness gamma exists twice and only one copy can come from Nix.
       # scripts/brightness.sh gets it substituted at build time, but the bar's
       # Brightness.qml has to carry a literal: quickshell/ is deployed as ONE
@@ -513,6 +532,7 @@
         get-binds-transform = getBindsTransform;
         brightness-exponent-surface = brightnessExponent "surface";
         brightness-exponent-thinkpad = brightnessExponent "thinkpad";
+        nvim-which-key-langmap = nvimWhichKeyLangmap;
         repo-lint = repoLint;
       };
     };
